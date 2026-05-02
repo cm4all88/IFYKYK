@@ -1,46 +1,72 @@
 import { NextRequest } from "next/server";
-import { verifyWebhook } from "@/lib/ccbill";
+import { verifyWebhook } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase-server";
+import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
-  const body = await req.formData();
-  const raw = Object.fromEntries(body.entries()) as Record<string, string>;
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature");
 
-  const payload = raw as unknown as Parameters<typeof verifyWebhook>[0];
+  if (!sig) return Response.json({ error: "No signature" }, { status: 400 });
 
-  if (!verifyWebhook(payload)) {
+  let event: Stripe.Event;
+  try {
+    event = verifyWebhook(body, sig);
+  } catch (err) {
+    console.error("Stripe webhook verification failed:", err);
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   const supabase = await createServiceClient();
-  const { eventType, subscriptionId, email } = raw;
 
-  if (!eventType || !subscriptionId) {
-    return Response.json({ error: "Missing required fields" }, { status: 400 });
-  }
+  switch (event.type) {
+    case "customer.subscription.created": {
+      const sub = event.data.object as Stripe.Subscription;
+      const fanUserId = sub.metadata?.fan_user_id;
+      const creatorId = sub.metadata?.creator_id;
 
-  switch (eventType) {
-    case "NewSaleSuccess":
-      await supabase.from("ccbill_subscriptions").insert({
-        ccbill_subscription_id: subscriptionId,
-        fan_email: email,
-        status: "active",
-        event_type: eventType,
+      if (!fanUserId || !creatorId) {
+        console.error("Stripe sub created without fan_user_id/creator_id metadata", sub.id);
+        return Response.json({ error: "Missing metadata" }, { status: 400 });
+      }
+
+      await supabase.from("subscriptions").insert({
+        creator_id: creatorId,
+        fan_user_id: fanUserId,
+        stripe_subscription_id: sub.id,
+        stripe_customer_id: sub.customer as string,
+        status: sub.status,
+        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
       });
       break;
-    case "Cancellation":
-      await supabase
-        .from("ccbill_subscriptions")
+    }
+
+    case "customer.subscription.updated": {
+      const sub = event.data.object as Stripe.Subscription;
+      await supabase.from("subscriptions")
+        .update({
+          status: sub.status,
+          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        })
+        .eq("stripe_subscription_id", sub.id);
+      break;
+    }
+
+    case "customer.subscription.deleted": {
+      const sub = event.data.object as Stripe.Subscription;
+      await supabase.from("subscriptions")
         .update({ status: "canceled" })
-        .eq("ccbill_subscription_id", subscriptionId);
+        .eq("stripe_subscription_id", sub.id);
       break;
-    case "RenewalSuccess":
-      await supabase
-        .from("ccbill_subscriptions")
-        .update({ status: "active", last_renewal: new Date().toISOString() })
-        .eq("ccbill_subscription_id", subscriptionId);
+    }
+
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      console.log("Payment succeeded for invoice:", invoice.id);
       break;
+    }
   }
 
-  return new Response("OK", { status: 200 });
+  return Response.json({ received: true });
 }

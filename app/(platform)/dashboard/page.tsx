@@ -8,7 +8,7 @@ export default async function DashboardPage() {
 
   const { data: creator } = await supabase
     .from("creators")
-    .select("*, channels(*)")
+    .select("*")
     .eq("user_id", user.id)
     .single();
 
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
         {[
           { label: "Subscribers", value: subscriberCount ?? 0 },
-          { label: "Monthly revenue", value: `$${(((subscriberCount ?? 0) * (creator.subscription_price_cents ?? 999)) / 100).toFixed(0)}` },
+          { label: "Monthly revenue", value: `$${((subscriberCount ?? 0) * Number(creator.subscription_price ?? 9.99)).toFixed(0)}` },
           { label: "Posts this month", value: 0 },
           { label: "Profile views", value: 0 },
         ].map(k => (

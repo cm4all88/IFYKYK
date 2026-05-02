@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { verifyWebhook } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
@@ -22,7 +22,17 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case "customer.subscription.created": {
       const sub = event.data.object as Stripe.Subscription;
+      const fanUserId = sub.metadata?.fan_user_id;
+      const creatorId = sub.metadata?.creator_id;
+
+      if (!fanUserId || !creatorId) {
+        console.error("Stripe sub created without metadata", sub.id);
+        return Response.json({ error: "Missing metadata" }, { status: 400 });
+      }
+
       await supabase.from("subscriptions").insert({
+        creator_id: creatorId,
+        fan_user_id: fanUserId,
         stripe_subscription_id: sub.id,
         stripe_customer_id: sub.customer as string,
         status: sub.status,
@@ -35,7 +45,10 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
       await supabase.from("subscriptions")
-        .update({ status: sub.status, current_period_end: new Date(sub.current_period_end * 1000).toISOString() })
+        .update({
+          status: sub.status,
+          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+        })
         .eq("stripe_subscription_id", sub.id);
       break;
     }
@@ -50,7 +63,6 @@ export async function POST(req: NextRequest) {
 
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
-      // Log payout, send creator notification email
       console.log("Payment succeeded for invoice:", invoice.id);
       break;
     }

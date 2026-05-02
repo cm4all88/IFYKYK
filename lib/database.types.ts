@@ -17,72 +17,80 @@ export type Database = {
       ccbill_subscriptions: {
         Row: {
           ccbill_subscription_id: string
-          client_accnum: string | null
-          client_subacc: string | null
-          created_at: string
+          created_at: string | null
+          creator_id: string | null
           event_type: string | null
           fan_email: string
+          id: string
           last_renewal: string | null
-          next_renewal_at: string | null
-          raw_payload: Json | null
           status: string
-          updated_at: string
         }
         Insert: {
           ccbill_subscription_id: string
-          client_accnum?: string | null
-          client_subacc?: string | null
-          created_at?: string
+          created_at?: string | null
+          creator_id?: string | null
           event_type?: string | null
           fan_email: string
+          id?: string
           last_renewal?: string | null
-          next_renewal_at?: string | null
-          raw_payload?: Json | null
           status: string
-          updated_at?: string
         }
         Update: {
           ccbill_subscription_id?: string
-          client_accnum?: string | null
-          client_subacc?: string | null
-          created_at?: string
+          created_at?: string | null
+          creator_id?: string | null
           event_type?: string | null
           fan_email?: string
+          id?: string
           last_renewal?: string | null
-          next_renewal_at?: string | null
-          raw_payload?: Json | null
           status?: string
-          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ccbill_subscriptions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       channels: {
         Row: {
-          created_at: string
+          content_rating: string
+          created_at: string | null
           creator_id: string
           description: string | null
           id: string
-          is_default: boolean
+          is_visible: boolean | null
           name: string
           slug: string
+          sort_order: number | null
+          subscription_price: number | null
         }
         Insert: {
-          created_at?: string
+          content_rating?: string
+          created_at?: string | null
           creator_id: string
           description?: string | null
           id?: string
-          is_default?: boolean
+          is_visible?: boolean | null
           name: string
           slug: string
+          sort_order?: number | null
+          subscription_price?: number | null
         }
         Update: {
-          created_at?: string
+          content_rating?: string
+          created_at?: string | null
           creator_id?: string
           description?: string | null
           id?: string
-          is_default?: boolean
+          is_visible?: boolean | null
           name?: string
           slug?: string
+          sort_order?: number | null
+          subscription_price?: number | null
         }
         Relationships: [
           {
@@ -96,127 +104,139 @@ export type Database = {
       }
       creators: {
         Row: {
-          age_verified_at: string | null
           avatar_url: string | null
           bio: string | null
+          ccbill_account_number: string | null
           cover_url: string | null
-          created_at: string
+          created_at: string | null
+          creator_type: string
           display_name: string
+          founded: boolean | null
           handle: string
           id: string
-          is_active: boolean
-          payout_email: string | null
-          subscription_price_cents: number
-          updated_at: string
+          is_active: boolean | null
+          location: string | null
+          stripe_account_id: string | null
+          subscription_price: number | null
+          updated_at: string | null
           user_id: string
+          veriff_verified: boolean | null
         }
         Insert: {
-          age_verified_at?: string | null
           avatar_url?: string | null
           bio?: string | null
+          ccbill_account_number?: string | null
           cover_url?: string | null
-          created_at?: string
+          created_at?: string | null
+          creator_type: string
           display_name: string
+          founded?: boolean | null
           handle: string
           id?: string
-          is_active?: boolean
-          payout_email?: string | null
-          subscription_price_cents?: number
-          updated_at?: string
+          is_active?: boolean | null
+          location?: string | null
+          stripe_account_id?: string | null
+          subscription_price?: number | null
+          updated_at?: string | null
           user_id: string
+          veriff_verified?: boolean | null
         }
         Update: {
-          age_verified_at?: string | null
           avatar_url?: string | null
           bio?: string | null
+          ccbill_account_number?: string | null
           cover_url?: string | null
-          created_at?: string
+          created_at?: string | null
+          creator_type?: string
           display_name?: string
+          founded?: boolean | null
           handle?: string
           id?: string
-          is_active?: boolean
-          payout_email?: string | null
-          subscription_price_cents?: number
-          updated_at?: string
+          is_active?: boolean | null
+          location?: string | null
+          stripe_account_id?: string | null
+          subscription_price?: number | null
+          updated_at?: string | null
           user_id?: string
+          veriff_verified?: boolean | null
         }
         Relationships: []
       }
-      message_purchases: {
+      live_offer_claims: {
         Row: {
-          amount_cents: number
-          ccbill_transaction_id: string | null
-          fan_email: string
+          created_at: string | null
+          fan_contact: string | null
+          fan_name: string
           id: string
-          message_id: string
-          purchased_at: string
+          offer_id: string
+          status: string | null
         }
         Insert: {
-          amount_cents: number
-          ccbill_transaction_id?: string | null
-          fan_email: string
+          created_at?: string | null
+          fan_contact?: string | null
+          fan_name: string
           id?: string
-          message_id: string
-          purchased_at?: string
+          offer_id: string
+          status?: string | null
         }
         Update: {
-          amount_cents?: number
-          ccbill_transaction_id?: string | null
-          fan_email?: string
+          created_at?: string | null
+          fan_contact?: string | null
+          fan_name?: string
           id?: string
-          message_id?: string
-          purchased_at?: string
+          offer_id?: string
+          status?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "message_purchases_message_id_fkey"
-            columns: ["message_id"]
+            foreignKeyName: "live_offer_claims_offer_id_fkey"
+            columns: ["offer_id"]
             isOneToOne: false
-            referencedRelation: "messages"
+            referencedRelation: "live_offers"
             referencedColumns: ["id"]
           },
         ]
       }
-      messages: {
+      live_offers: {
         Row: {
-          body: string | null
-          created_at: string
+          created_at: string | null
           creator_id: string
-          direction: string
-          fan_email: string
+          expires_at: string | null
           id: string
-          media_urls: string[]
-          ppv_price_cents: number | null
-          read_at: string | null
-          unlocked_by_fan: boolean
+          is_active: boolean | null
+          offer_price: number
+          regular_price: number
+          service_name: string
+          spots_claimed: number | null
+          spots_total: number
         }
         Insert: {
-          body?: string | null
-          created_at?: string
+          created_at?: string | null
           creator_id: string
-          direction: string
-          fan_email: string
+          expires_at?: string | null
           id?: string
-          media_urls?: string[]
-          ppv_price_cents?: number | null
-          read_at?: string | null
-          unlocked_by_fan?: boolean
+          is_active?: boolean | null
+          offer_price: number
+          regular_price: number
+          service_name: string
+          spots_claimed?: number | null
+          spots_total: number
         }
         Update: {
-          body?: string | null
-          created_at?: string
+          created_at?: string | null
           creator_id?: string
-          direction?: string
-          fan_email?: string
+          expires_at?: string | null
           id?: string
-          media_urls?: string[]
-          ppv_price_cents?: number | null
-          read_at?: string | null
-          unlocked_by_fan?: boolean
+          is_active?: boolean | null
+          offer_price?: number
+          regular_price?: number
+          service_name?: string
+          spots_claimed?: number | null
+          spots_total?: number
         }
         Relationships: [
           {
-            foreignKeyName: "messages_creator_id_fkey"
+            foreignKeyName: "live_offers_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "creators"
@@ -224,86 +244,148 @@ export type Database = {
           },
         ]
       }
-      post_purchases: {
+      moderation_events: {
         Row: {
-          amount_cents: number
-          ccbill_transaction_id: string | null
-          fan_email: string
+          action_taken: string | null
+          content_id: string | null
+          content_type: string
+          created_at: string | null
+          creator_id: string | null
+          fan_user_id: string | null
+          flag_reason: string | null
+          flagged_text: string | null
           id: string
-          post_id: string
-          purchased_at: string
+          reviewed_by: string | null
+          severity: string | null
         }
         Insert: {
-          amount_cents: number
-          ccbill_transaction_id?: string | null
-          fan_email: string
+          action_taken?: string | null
+          content_id?: string | null
+          content_type: string
+          created_at?: string | null
+          creator_id?: string | null
+          fan_user_id?: string | null
+          flag_reason?: string | null
+          flagged_text?: string | null
           id?: string
-          post_id: string
-          purchased_at?: string
+          reviewed_by?: string | null
+          severity?: string | null
         }
         Update: {
-          amount_cents?: number
-          ccbill_transaction_id?: string | null
-          fan_email?: string
+          action_taken?: string | null
+          content_id?: string | null
+          content_type?: string
+          created_at?: string | null
+          creator_id?: string | null
+          fan_user_id?: string | null
+          flag_reason?: string | null
+          flagged_text?: string | null
           id?: string
-          post_id?: string
-          purchased_at?: string
+          reviewed_by?: string | null
+          severity?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "post_purchases_post_id_fkey"
-            columns: ["post_id"]
+            foreignKeyName: "moderation_events_creator_id_fkey"
+            columns: ["creator_id"]
             isOneToOne: false
-            referencedRelation: "posts"
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pii_blocks: {
+        Row: {
+          created_at: string | null
+          creator_id: string | null
+          direction: string | null
+          id: string
+          pii_type: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id?: string | null
+          direction?: string | null
+          id?: string
+          pii_type: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string | null
+          direction?: string | null
+          id?: string
+          pii_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pii_blocks_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
             referencedColumns: ["id"]
           },
         ]
       }
       posts: {
         Row: {
-          body: string | null
+          archive_reason: string | null
+          caption: string | null
           channel_id: string | null
-          created_at: string
+          collab_approved: boolean | null
+          collab_creator_id: string | null
+          content_rating: string
+          created_at: string | null
           creator_id: string
           id: string
-          is_published: boolean
-          media_urls: string[]
-          ppv_price_cents: number | null
-          published_at: string | null
-          thumbnail_url: string | null
-          type: string
-          updated_at: string
-          visibility: string
+          likes_count: number | null
+          media_type: string | null
+          media_url: string | null
+          scheduled_at: string | null
+          status: string
+          tier: string
+          updated_at: string | null
+          views_count: number | null
         }
         Insert: {
-          body?: string | null
+          archive_reason?: string | null
+          caption?: string | null
           channel_id?: string | null
-          created_at?: string
+          collab_approved?: boolean | null
+          collab_creator_id?: string | null
+          content_rating?: string
+          created_at?: string | null
           creator_id: string
           id?: string
-          is_published?: boolean
-          media_urls?: string[]
-          ppv_price_cents?: number | null
-          published_at?: string | null
-          thumbnail_url?: string | null
-          type: string
-          updated_at?: string
-          visibility: string
+          likes_count?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          scheduled_at?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string | null
+          views_count?: number | null
         }
         Update: {
-          body?: string | null
+          archive_reason?: string | null
+          caption?: string | null
           channel_id?: string | null
-          created_at?: string
+          collab_approved?: boolean | null
+          collab_creator_id?: string | null
+          content_rating?: string
+          created_at?: string | null
           creator_id?: string
           id?: string
-          is_published?: boolean
-          media_urls?: string[]
-          ppv_price_cents?: number | null
-          published_at?: string | null
-          thumbnail_url?: string | null
-          type?: string
-          updated_at?: string
-          visibility?: string
+          likes_count?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          scheduled_at?: string | null
+          status?: string
+          tier?: string
+          updated_at?: string | null
+          views_count?: number | null
         }
         Relationships: [
           {
@@ -311,6 +393,13 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_collab_creator_id_fkey"
+            columns: ["collab_creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
             referencedColumns: ["id"]
           },
           {
@@ -322,97 +411,95 @@ export type Database = {
           },
         ]
       }
-      stream_purchases: {
+      records_2257: {
         Row: {
-          amount_cents: number
-          ccbill_transaction_id: string | null
-          fan_email: string
+          created_at: string | null
+          creator_id: string
+          date_of_birth: string
           id: string
-          purchased_at: string
-          stream_id: string
+          id_document_type: string
+          id_verified_at: string
+          id_verified_by: string
+          legal_name: string
+          veriff_session_id: string | null
         }
         Insert: {
-          amount_cents: number
-          ccbill_transaction_id?: string | null
-          fan_email: string
+          created_at?: string | null
+          creator_id: string
+          date_of_birth: string
           id?: string
-          purchased_at?: string
-          stream_id: string
+          id_document_type: string
+          id_verified_at: string
+          id_verified_by?: string
+          legal_name: string
+          veriff_session_id?: string | null
         }
         Update: {
-          amount_cents?: number
-          ccbill_transaction_id?: string | null
-          fan_email?: string
+          created_at?: string | null
+          creator_id?: string
+          date_of_birth?: string
           id?: string
-          purchased_at?: string
-          stream_id?: string
+          id_document_type?: string
+          id_verified_at?: string
+          id_verified_by?: string
+          legal_name?: string
+          veriff_session_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "stream_purchases_stream_id_fkey"
-            columns: ["stream_id"]
+            foreignKeyName: "records_2257_creator_id_fkey"
+            columns: ["creator_id"]
             isOneToOne: false
-            referencedRelation: "streams"
+            referencedRelation: "creators"
             referencedColumns: ["id"]
           },
         ]
       }
-      streams: {
+      referrals: {
         Row: {
-          created_at: string
-          creator_id: string
-          description: string | null
-          ended_at: string | null
+          active_months: number | null
+          commission_rate: number | null
+          created_at: string | null
           id: string
-          ingest_url: string | null
-          playback_url: string | null
-          ppv_price_cents: number | null
-          recording_url: string | null
-          scheduled_for: string | null
-          started_at: string | null
-          status: string
-          title: string
-          updated_at: string
-          visibility: string
+          is_active: boolean | null
+          max_months: number | null
+          referred_id: string
+          referrer_id: string
+          total_earned: number | null
         }
         Insert: {
-          created_at?: string
-          creator_id: string
-          description?: string | null
-          ended_at?: string | null
+          active_months?: number | null
+          commission_rate?: number | null
+          created_at?: string | null
           id?: string
-          ingest_url?: string | null
-          playback_url?: string | null
-          ppv_price_cents?: number | null
-          recording_url?: string | null
-          scheduled_for?: string | null
-          started_at?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-          visibility: string
+          is_active?: boolean | null
+          max_months?: number | null
+          referred_id: string
+          referrer_id: string
+          total_earned?: number | null
         }
         Update: {
-          created_at?: string
-          creator_id?: string
-          description?: string | null
-          ended_at?: string | null
+          active_months?: number | null
+          commission_rate?: number | null
+          created_at?: string | null
           id?: string
-          ingest_url?: string | null
-          playback_url?: string | null
-          ppv_price_cents?: number | null
-          recording_url?: string | null
-          scheduled_for?: string | null
-          started_at?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-          visibility?: string
+          is_active?: boolean | null
+          max_months?: number | null
+          referred_id?: string
+          referrer_id?: string
+          total_earned?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "streams_creator_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
             isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
@@ -421,48 +508,57 @@ export type Database = {
       }
       subscriptions: {
         Row: {
-          canceled_at: string | null
-          ccbill_subscription_id: string | null
-          created_at: string
+          channel_id: string | null
+          created_at: string | null
           creator_id: string
-          fan_email: string
+          current_period_end: string | null
+          current_period_start: string | null
+          fan_user_id: string
           id: string
-          next_renewal_at: string | null
-          started_at: string
+          price: number | null
           status: string
-          updated_at: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: string
+          trial_end: string | null
         }
         Insert: {
-          canceled_at?: string | null
-          ccbill_subscription_id?: string | null
-          created_at?: string
+          channel_id?: string | null
+          created_at?: string | null
           creator_id: string
-          fan_email: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          fan_user_id: string
           id?: string
-          next_renewal_at?: string | null
-          started_at?: string
+          price?: number | null
           status: string
-          updated_at?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          trial_end?: string | null
         }
         Update: {
-          canceled_at?: string | null
-          ccbill_subscription_id?: string | null
-          created_at?: string
+          channel_id?: string | null
+          created_at?: string | null
           creator_id?: string
-          fan_email?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          fan_user_id?: string
           id?: string
-          next_renewal_at?: string | null
-          started_at?: string
+          price?: number | null
           status?: string
-          updated_at?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: string
+          trial_end?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "subscriptions_ccbill_subscription_id_fkey"
-            columns: ["ccbill_subscription_id"]
+            foreignKeyName: "subscriptions_channel_id_fkey"
+            columns: ["channel_id"]
             isOneToOne: false
-            referencedRelation: "ccbill_subscriptions"
-            referencedColumns: ["ccbill_subscription_id"]
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "subscriptions_creator_id_fkey"
@@ -475,31 +571,43 @@ export type Database = {
       }
       tips: {
         Row: {
-          amount_cents: number
-          ccbill_transaction_id: string | null
-          created_at: string
+          amount: number
+          created_at: string | null
           creator_id: string
-          fan_email: string
+          creator_receives: number
+          fan_user_id: string
           id: string
+          is_live_tip: boolean | null
           message: string | null
+          platform_receives: number
+          post_id: string | null
+          stripe_payment_intent_id: string | null
         }
         Insert: {
-          amount_cents: number
-          ccbill_transaction_id?: string | null
-          created_at?: string
+          amount: number
+          created_at?: string | null
           creator_id: string
-          fan_email: string
+          creator_receives: number
+          fan_user_id: string
           id?: string
+          is_live_tip?: boolean | null
           message?: string | null
+          platform_receives: number
+          post_id?: string | null
+          stripe_payment_intent_id?: string | null
         }
         Update: {
-          amount_cents?: number
-          ccbill_transaction_id?: string | null
-          created_at?: string
+          amount?: number
+          created_at?: string | null
           creator_id?: string
-          fan_email?: string
+          creator_receives?: number
+          fan_user_id?: string
           id?: string
+          is_live_tip?: boolean | null
           message?: string | null
+          platform_receives?: number
+          post_id?: string | null
+          stripe_payment_intent_id?: string | null
         }
         Relationships: [
           {
@@ -509,14 +617,57 @@ export type Database = {
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tips_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string | null
+          id: string
+          is_young_account: boolean | null
+          monthly_budget: number | null
+          parent_user_id: string | null
+          per_tip_limit: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          is_young_account?: boolean | null
+          monthly_budget?: number | null
+          parent_user_id?: string | null
+          per_tip_limit?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          is_young_account?: boolean | null
+          monthly_budget?: number | null
+          parent_user_id?: string | null
+          per_tip_limit?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      is_creator_owner: { Args: { cid: string }; Returns: boolean }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

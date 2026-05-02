@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase-server";
+﻿import { createClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -36,7 +36,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
     .select(`
       *,
       channels (*),
-      posts (id, caption, media_url, tier, likes_count, created_at, channel_id)
+      posts!posts_creator_id_fkey (id, caption, media_url, tier, likes_count, created_at, channel_id)
     `)
     .eq("handle", params.creator)
     .order("created_at", { referencedTable: "posts", ascending: false })
@@ -44,18 +44,16 @@ export default async function CreatorPage({ params, searchParams }: Props) {
 
   if (!creator) notFound();
 
-  // Filter by channel if specified
   const activeChannel = searchParams.channel
-    ? creator.channels?.find((c: { slug: string }) => c.slug === searchParams.channel)
+    ? creator.channels?.find((c) => c.slug === searchParams.channel)
     : null;
 
   const posts = activeChannel
-    ? creator.posts?.filter((p: { channel_id: string }) => p.channel_id === activeChannel.id)
+    ? creator.posts?.filter((p) => p.channel_id === activeChannel.id)
     : creator.posts;
 
   return (
     <div style={{ minHeight: "100vh", background: "#080808", color: "#f2f0ec" }}>
-      {/* Cover */}
       <div style={{ height: 240, background: "#181816", position: "relative", overflow: "hidden" }}>
         {creator.cover_url && (
           <img src={creator.cover_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.6 }} />
@@ -63,7 +61,6 @@ export default async function CreatorPage({ params, searchParams }: Props) {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 40%, rgba(8,8,8,0.9) 100%)" }} />
       </div>
 
-      {/* Profile */}
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
         <div style={{ marginTop: -50, marginBottom: 24 }}>
           {creator.avatar_url && (
@@ -74,10 +71,9 @@ export default async function CreatorPage({ params, searchParams }: Props) {
           {creator.bio && <p style={{ color: "#888078", fontSize: 15, lineHeight: 1.65, maxWidth: 560 }}>{creator.bio}</p>}
         </div>
 
-        {/* Channel selector (if multiple channels) */}
-        {creator.channels?.length > 1 && (
+        {(creator.channels?.length ?? 0) > 1 && (
           <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-            {creator.channels.map((ch: { id: string; slug: string; name: string }) => (
+            {creator.channels?.map((ch) => (
               <a key={ch.id} href={`/c/${params.creator}?channel=${ch.slug}`}
                 style={{
                   padding: "7px 16px", borderRadius: 22,
@@ -92,9 +88,8 @@ export default async function CreatorPage({ params, searchParams }: Props) {
           </div>
         )}
 
-        {/* Bento grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
-          {posts?.map((post: { id: string; media_url: string; tier: string; likes_count: number; caption: string }) => (
+          {posts?.map((post) => (
             <div key={post.id} style={{ borderRadius: 10, overflow: "hidden", aspectRatio: "1", position: "relative", background: "#181816" }}>
               {post.media_url && (
                 <img src={post.media_url} alt={post.caption ?? ""}
@@ -102,7 +97,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
               )}
               {post.tier === "premium" && (
                 <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 24 }}>🔒</span>
+                  <span style={{ fontSize: 24 }}>LOCKED</span>
                 </div>
               )}
             </div>

@@ -1,7 +1,6 @@
-/**
+﻿/**
  * BunnyCDN integration for video streaming and file storage.
  */
-
 const BUNNY_API_KEY = process.env.BUNNY_API_KEY!;
 const STORAGE_ZONE = process.env.BUNNY_STORAGE_ZONE!;
 const CDN_URL = process.env.BUNNY_CDN_URL!;
@@ -19,7 +18,7 @@ export async function uploadFile(path: string, fileBuffer: Buffer, mimeType: str
       AccessKey: BUNNY_API_KEY,
       "Content-Type": mimeType,
     },
-    body: fileBuffer,
+    body: new Uint8Array(fileBuffer),
   });
   if (!res.ok) throw new Error(`BunnyCDN upload failed: ${res.status}`);
   return `${CDN_URL}/${path}`;
@@ -64,7 +63,7 @@ export async function createLiveStream(title: string) {
  * Get a signed URL for a protected video (DRM watermarked).
  */
 export function getSignedVideoUrl(videoId: string, userId: string) {
-  const expiry = Math.floor(Date.now() / 1000) + 3600; // 1 hour
+  const expiry = Math.floor(Date.now() / 1000) + 3600;
   const token = Buffer.from(`${videoId}:${userId}:${expiry}`).toString("base64");
   return `https://iframe.mediadelivery.net/embed/${STREAM_LIBRARY_ID}/${videoId}?token=${token}`;
 }
