@@ -6,17 +6,14 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch creator profile
   const { data: creator } = await supabase
     .from("creators")
     .select("*, channels(*)")
     .eq("user_id", user.id)
     .single();
 
-  // If no creator profile yet, redirect to onboarding
   if (!creator) redirect("/onboarding");
 
-  // Fetch subscriber count
   const { count: subscriberCount } = await supabase
     .from("subscriptions")
     .select("id", { count: "exact" })
@@ -29,33 +26,22 @@ export default async function DashboardPage() {
         Welcome back, {creator.display_name}
       </h1>
       <p style={{ color: "#888078", marginBottom: 32 }}>Here&apos;s how your page is doing.</p>
-
-      {/* KPI cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
         {[
-          { label: "Subscribers",       value: subscriberCount ?? 0 },
-          { label: "Monthly revenue",   value: `$${((subscriberCount ?? 0) * (creator.subscription_price ?? 9.99)).toFixed(0)}` },
-          { label: "Posts this month",  value: 0 },
-          { label: "Profile views",     value: 0 },
+          { label: "Subscribers", value: subscriberCount ?? 0 },
+          { label: "Monthly revenue", value: `$${((subscriberCount ?? 0) * (creator.subscription_price ?? 9.99)).toFixed(0)}` },
+          { label: "Posts this month", value: 0 },
+          { label: "Profile views", value: 0 },
         ].map(k => (
-          <div key={k.label} style={{
-            background: "#181816", border: "1px solid #242422",
-            borderRadius: 14, padding: "20px",
-          }}>
+          <div key={k.label} style={{ background: "#181816", border: "1px solid #242422", borderRadius: 14, padding: "20px" }}>
             <div style={{ color: "#484440", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{k.label}</div>
             <div style={{ color: "#f2f0ec", fontSize: 24, fontWeight: 900, letterSpacing: "-0.03em" }}>{k.value}</div>
           </div>
         ))}
       </div>
-
-      {/* Quick actions */}
       <div style={{ display: "flex", gap: 10 }}>
-        <a href="/post/new" style={{ background: "#d4680a", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 700, textDecoration: "none" }}>
-          + New post
-        </a>
-        <a href="/analytics" style={{ background: "#181816", border: "1px solid #242422", color: "#888078", padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>
-          View analytics
-        </a>
+        <a href="/post/new" style={{ background: "#d4680a", color: "#fff", padding: "12px 24px", borderRadius: 10, fontWeight: 700, textDecoration: "none" }}>+ New post</a>
+        <a href="/analytics" style={{ background: "#181816", border: "1px solid #242422", color: "#888078", padding: "12px 24px", borderRadius: 10, textDecoration: "none" }}>View analytics</a>
       </div>
     </div>
   );
