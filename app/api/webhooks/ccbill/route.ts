@@ -4,14 +4,20 @@ import { createServiceClient } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   const body = await req.formData();
-  const payload = Object.fromEntries(body.entries()) as Record<string, string>;
+  const raw = Object.fromEntries(body.entries()) as Record<string, string>;
 
-  if (!verifyWebhook(payload as Parameters<typeof verifyWebhook>[0])) {
+  const payload = raw as unknown as Parameters<typeof verifyWebhook>[0];
+
+  if (!verifyWebhook(payload)) {
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   const supabase = await createServiceClient();
-  const { eventType, subscriptionId, email } = payload;
+  const { eventType, subscriptionId, email } = raw;
+
+  if (!eventType || !subscriptionId) {
+    return Response.json({ error: "Missing required fields" }, { status: 400 });
+  }
 
   switch (eventType) {
     case "NewSaleSuccess":
@@ -22,15 +28,15 @@ export async function POST(req: NextRequest) {
         event_type: eventType,
       });
       break;
-
     case "Cancellation":
-      await supabase.from("ccbill_subscriptions")
+      await supabase
+        .from("ccbill_subscriptions")
         .update({ status: "canceled" })
         .eq("ccbill_subscription_id", subscriptionId);
       break;
-
     case "RenewalSuccess":
-      await supabase.from("ccbill_subscriptions")
+      await supabase
+        .from("ccbill_subscriptions")
         .update({ status: "active", last_renewal: new Date().toISOString() })
         .eq("ccbill_subscription_id", subscriptionId);
       break;
