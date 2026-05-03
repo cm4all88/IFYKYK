@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase-client";
 import { useEffect, useState } from "react";
 import type { Database } from "@/lib/database.types";
 
-type Creator = Database["public"]["Tables"]["creators"]["Row"];
+type Creator = Database["public"]["Tables"]["creator_profiles"]["Row"];
 
 export function useCreator(handle: string) {
   const [creator, setCreator] = useState<Creator | null>(null);
