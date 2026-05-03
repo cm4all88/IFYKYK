@@ -157,7 +157,7 @@ export default function SignupPage() {
       if (!authData.user) { setFormError("Account creation failed. Try again?"); setSubmitting(false); return; }
 
       const { data: creator, error: creatorError } = await supabase
-        .from("creators")
+        .from("creator_profiles")
         .insert({ user_id: authData.user.id, handle: cleanHandle, display_name: displayName, creator_type })
         .select().single();
       if (creatorError || !creator) {
@@ -172,7 +172,7 @@ export default function SignupPage() {
 
       if (plan?.channels && plan.channels.length > 0) {
         const channelRows = plan.channels.map((ch, i) => ({
-          creator_id: creator.id,
+          creator_profile_id: creator.id,
           name: ch.name,
           slug: ch.slug,
           content_rating: ch.content_rating,

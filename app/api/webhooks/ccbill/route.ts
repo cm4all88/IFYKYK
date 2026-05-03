@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { verifyWebhook } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       }
 
       await supabase.from("subscriptions").insert({
-        creator_id: creatorId,
+        creator_profile_id: creatorId,
         fan_user_id: fanUserId,
         stripe_subscription_id: sub.id,
         stripe_customer_id: sub.customer as string,

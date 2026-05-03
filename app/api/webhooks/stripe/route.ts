@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       }
 
       await supabase.from("subscriptions").insert({
-        creator_id: creatorId,
+        creator_profile_id: creatorId,
         fan_user_id: fanUserId,
         stripe_subscription_id: sub.id,
         stripe_customer_id: sub.customer as string,

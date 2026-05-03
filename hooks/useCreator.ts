@@ -15,7 +15,7 @@ export function useCreator(handle: string) {
     async function fetchCreator() {
       setLoading(true);
       const { data, error } = await supabase
-        .from("creators")
+        .from("creator_profiles")
         .select("*")
         .eq("handle", handle)
         .single();
@@ -41,7 +41,7 @@ export function useCurrentCreator() {
       if (!user) { setLoading(false); return; }
 
       const { data } = await supabase
-        .from("creators")
+        .from("creator_profiles")
         .select("*")
         .eq("user_id", user.id)
         .single();

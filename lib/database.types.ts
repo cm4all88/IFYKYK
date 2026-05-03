@@ -18,7 +18,7 @@ export type Database = {
         Row: {
           ccbill_subscription_id: string
           created_at: string | null
-          creator_id: string | null
+          creator_profile_id: string | null
           event_type: string | null
           fan_email: string
           id: string
@@ -28,7 +28,7 @@ export type Database = {
         Insert: {
           ccbill_subscription_id: string
           created_at?: string | null
-          creator_id?: string | null
+          creator_profile_id?: string | null
           event_type?: string | null
           fan_email: string
           id?: string
@@ -38,7 +38,7 @@ export type Database = {
         Update: {
           ccbill_subscription_id?: string
           created_at?: string | null
-          creator_id?: string | null
+          creator_profile_id?: string | null
           event_type?: string | null
           fan_email?: string
           id?: string
@@ -48,9 +48,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ccbill_subscriptions_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -59,7 +59,7 @@ export type Database = {
         Row: {
           content_rating: string
           created_at: string | null
-          creator_id: string
+          creator_profile_id: string
           description: string | null
           id: string
           is_visible: boolean | null
@@ -71,7 +71,7 @@ export type Database = {
         Insert: {
           content_rating?: string
           created_at?: string | null
-          creator_id: string
+          creator_profile_id: string
           description?: string | null
           id?: string
           is_visible?: boolean | null
@@ -83,7 +83,7 @@ export type Database = {
         Update: {
           content_rating?: string
           created_at?: string | null
-          creator_id?: string
+          creator_profile_id?: string
           description?: string | null
           id?: string
           is_visible?: boolean | null
@@ -95,14 +95,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "channels_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      creators: {
+      creator_profiles: {
         Row: {
           avatar_url: string | null
           bio: string | null
@@ -110,12 +110,17 @@ export type Database = {
           cover_url: string | null
           created_at: string | null
           creator_type: string
+          date_of_birth: string | null
           display_name: string
           founded: boolean | null
+          graduated_at: string | null
           handle: string
           id: string
           is_active: boolean | null
+          kind: string
+          linked: boolean
           location: string | null
+          parental_consent_at: string | null
           stripe_account_id: string | null
           subscription_price: number | null
           updated_at: string | null
@@ -129,12 +134,17 @@ export type Database = {
           cover_url?: string | null
           created_at?: string | null
           creator_type: string
+          date_of_birth?: string | null
           display_name: string
           founded?: boolean | null
+          graduated_at?: string | null
           handle: string
           id?: string
           is_active?: boolean | null
+          kind?: string
+          linked?: boolean
           location?: string | null
+          parental_consent_at?: string | null
           stripe_account_id?: string | null
           subscription_price?: number | null
           updated_at?: string | null
@@ -148,12 +158,17 @@ export type Database = {
           cover_url?: string | null
           created_at?: string | null
           creator_type?: string
+          date_of_birth?: string | null
           display_name?: string
           founded?: boolean | null
+          graduated_at?: string | null
           handle?: string
           id?: string
           is_active?: boolean | null
+          kind?: string
+          linked?: boolean
           location?: string | null
+          parental_consent_at?: string | null
           stripe_account_id?: string | null
           subscription_price?: number | null
           updated_at?: string | null
@@ -200,7 +215,7 @@ export type Database = {
       live_offers: {
         Row: {
           created_at: string | null
-          creator_id: string
+          creator_profile_id: string
           expires_at: string | null
           id: string
           is_active: boolean | null
@@ -212,7 +227,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          creator_id: string
+          creator_profile_id: string
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -224,7 +239,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          creator_id?: string
+          creator_profile_id?: string
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -237,9 +252,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "live_offers_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -250,7 +265,7 @@ export type Database = {
           content_id: string | null
           content_type: string
           created_at: string | null
-          creator_id: string | null
+          creator_profile_id: string | null
           fan_user_id: string | null
           flag_reason: string | null
           flagged_text: string | null
@@ -263,7 +278,7 @@ export type Database = {
           content_id?: string | null
           content_type: string
           created_at?: string | null
-          creator_id?: string | null
+          creator_profile_id?: string | null
           fan_user_id?: string | null
           flag_reason?: string | null
           flagged_text?: string | null
@@ -276,7 +291,7 @@ export type Database = {
           content_id?: string | null
           content_type?: string
           created_at?: string | null
-          creator_id?: string | null
+          creator_profile_id?: string | null
           fan_user_id?: string | null
           flag_reason?: string | null
           flagged_text?: string | null
@@ -287,9 +302,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "moderation_events_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -297,7 +312,7 @@ export type Database = {
       pii_blocks: {
         Row: {
           created_at: string | null
-          creator_id: string | null
+          creator_profile_id: string | null
           direction: string | null
           id: string
           pii_type: string
@@ -305,7 +320,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          creator_id?: string | null
+          creator_profile_id?: string | null
           direction?: string | null
           id?: string
           pii_type: string
@@ -313,7 +328,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          creator_id?: string | null
+          creator_profile_id?: string | null
           direction?: string | null
           id?: string
           pii_type?: string
@@ -322,9 +337,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pii_blocks_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -335,10 +350,10 @@ export type Database = {
           caption: string | null
           channel_id: string | null
           collab_approved: boolean | null
-          collab_creator_id: string | null
+          collab_creator_profile_id: string | null
           content_rating: string
           created_at: string | null
-          creator_id: string
+          creator_profile_id: string
           id: string
           likes_count: number | null
           media_type: string | null
@@ -354,10 +369,10 @@ export type Database = {
           caption?: string | null
           channel_id?: string | null
           collab_approved?: boolean | null
-          collab_creator_id?: string | null
+          collab_creator_profile_id?: string | null
           content_rating?: string
           created_at?: string | null
-          creator_id: string
+          creator_profile_id: string
           id?: string
           likes_count?: number | null
           media_type?: string | null
@@ -373,10 +388,10 @@ export type Database = {
           caption?: string | null
           channel_id?: string | null
           collab_approved?: boolean | null
-          collab_creator_id?: string | null
+          collab_creator_profile_id?: string | null
           content_rating?: string
           created_at?: string | null
-          creator_id?: string
+          creator_profile_id?: string
           id?: string
           likes_count?: number | null
           media_type?: string | null
@@ -397,16 +412,16 @@ export type Database = {
           },
           {
             foreignKeyName: "posts_collab_creator_id_fkey"
-            columns: ["collab_creator_id"]
+            columns: ["collab_creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "posts_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -414,7 +429,7 @@ export type Database = {
       records_2257: {
         Row: {
           created_at: string | null
-          creator_id: string
+          creator_profile_id: string
           date_of_birth: string
           id: string
           id_document_type: string
@@ -425,7 +440,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          creator_id: string
+          creator_profile_id: string
           date_of_birth: string
           id?: string
           id_document_type: string
@@ -436,7 +451,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          creator_id?: string
+          creator_profile_id?: string
           date_of_birth?: string
           id?: string
           id_document_type?: string
@@ -448,9 +463,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "records_2257_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -463,8 +478,8 @@ export type Database = {
           id: string
           is_active: boolean | null
           max_months: number | null
-          referred_id: string
-          referrer_id: string
+          referred_profile_id: string
+          referrer_profile_id: string
           total_earned: number | null
         }
         Insert: {
@@ -474,8 +489,8 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_months?: number | null
-          referred_id: string
-          referrer_id: string
+          referred_profile_id: string
+          referrer_profile_id: string
           total_earned?: number | null
         }
         Update: {
@@ -485,23 +500,23 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           max_months?: number | null
-          referred_id?: string
-          referrer_id?: string
+          referred_profile_id?: string
+          referrer_profile_id?: string
           total_earned?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "referrals_referred_id_fkey"
-            columns: ["referred_id"]
+            columns: ["referred_profile_id"]
             isOneToOne: true
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "referrals_referrer_id_fkey"
-            columns: ["referrer_id"]
+            columns: ["referrer_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -510,7 +525,7 @@ export type Database = {
         Row: {
           channel_id: string | null
           created_at: string | null
-          creator_id: string
+          creator_profile_id: string
           current_period_end: string | null
           current_period_start: string | null
           fan_user_id: string
@@ -525,7 +540,7 @@ export type Database = {
         Insert: {
           channel_id?: string | null
           created_at?: string | null
-          creator_id: string
+          creator_profile_id: string
           current_period_end?: string | null
           current_period_start?: string | null
           fan_user_id: string
@@ -540,7 +555,7 @@ export type Database = {
         Update: {
           channel_id?: string | null
           created_at?: string | null
-          creator_id?: string
+          creator_profile_id?: string
           current_period_end?: string | null
           current_period_start?: string | null
           fan_user_id?: string
@@ -562,9 +577,9 @@ export type Database = {
           },
           {
             foreignKeyName: "subscriptions_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -573,7 +588,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string | null
-          creator_id: string
+          creator_profile_id: string
           creator_receives: number
           fan_user_id: string
           id: string
@@ -586,7 +601,7 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string | null
-          creator_id: string
+          creator_profile_id: string
           creator_receives: number
           fan_user_id: string
           id?: string
@@ -599,7 +614,7 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string | null
-          creator_id?: string
+          creator_profile_id?: string
           creator_receives?: number
           fan_user_id?: string
           id?: string
@@ -612,9 +627,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "tips_creator_id_fkey"
-            columns: ["creator_id"]
+            columns: ["creator_profile_id"]
             isOneToOne: false
-            referencedRelation: "creators"
+            referencedRelation: "creator_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -667,7 +682,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_creator_owner: { Args: { pid: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

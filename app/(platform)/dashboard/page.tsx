@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase-server";
+﻿import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   const { data: creator } = await supabase
-    .from("creators")
+    .from("creator_profiles")
     .select("*")
     .eq("user_id", user.id)
     .single();
@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   const { count: subscriberCount } = await supabase
     .from("subscriptions")
     .select("id", { count: "exact" })
-    .eq("creator_id", creator.id)
+    .eq("creator_profile_id", creator.id)
     .eq("status", "active");
 
   return (

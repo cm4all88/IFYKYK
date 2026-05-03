@@ -10,7 +10,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = await createClient();
   const { data: creator } = await supabase
-    .from("creators")
+    .from("creator_profiles")
     .select("display_name, bio, avatar_url")
     .eq("handle", params.creator)
     .single();
@@ -32,7 +32,7 @@ export default async function CreatorPage({ params, searchParams }: Props) {
   const supabase = await createClient();
 
   const { data: creator } = await supabase
-    .from("creators")
+    .from("creator_profiles")
     .select(`
       *,
       channels (*),
