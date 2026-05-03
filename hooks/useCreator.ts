@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 import { createClient } from "@/lib/supabase-client";
 import { useEffect, useState } from "react";
-import type { Database } from "@/types/database";
+import type { Database } from "@/lib/database.types";
 
 type Creator = Database["public"]["Tables"]["creators"]["Row"];
 
