@@ -1,138 +1,77 @@
-# Spotlightly
+# Spotlightly Deploy Tool
 
-> Your work. Your moment. Your money.
+One-time setup, then every batch deploys with one command.
 
-The creator platform that takes 0% of your earnings. Flat monthly fee. You own your audience, your content, and every dollar.
+## One-time setup
 
-## Stack
+1. Save `deploy.ps1` to your repo at `tools/deploy.ps1`:
+   ```powershell
+   New-Item -ItemType Directory -Force -Path ".\tools" | Out-Null
+   # then move deploy.ps1 from Downloads into .\tools\
+   ```
 
-- **Framework:** Next.js 14 (App Router)
-- **Database:** Supabase (PostgreSQL + Auth + RLS)
-- **Storage/Video:** BunnyCDN Storage + Stream
-- **Payments (SFW):** Stripe Connect
-- **Payments (18+):** CCBill (creator's own merchant account)
-- **AI:** Claude (advisor, chat moderation, clip captions)
-- **Moderation:** Hive AI
-- **ID Verification:** Veriff
-- **Deployment:** Vercel
-- **DNS:** Cloudflare
+2. Allow scripts to run (PowerShell defaults block local scripts). Run ONCE in any PowerShell:
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+   ```
+   Answer `Y` when asked. This lets you run scripts you wrote, but still blocks unsigned scripts from the internet.
 
-## Quick Start
+3. Done. You only do steps 1–2 once.
 
-```bash
-# 1. Clone
-git clone https://github.com/your-org/spotlightly.git
-cd spotlightly
+## How to deploy a batch (every time)
 
-# 2. Install
-npm install
+When I send you a batch, it'll be a folder of files including a `manifest.json`. Drop the whole folder into your `Downloads`. Then:
 
-# 3. Set up environment
-cp .env.example .env.local
-# Fill in all values in .env.local
-
-# 4. Set up Supabase
-npx supabase login
-npx supabase link --project-ref your-project-ref
-npx supabase db push
-
-# 5. Run locally
-npm run dev
+```powershell
+cd C:\Users\cmm2s\OneDrive\Documents\GitHub\IFYKYK
+.\tools\deploy.ps1
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+That's it. The script:
+- Finds the newest folder in Downloads with a `manifest.json`
+- Places every file at its correct destination (creates folders as needed)
+- Forces UTF-8-no-BOM encoding (avoids the encoding bug we hit before)
+- Applies any post-deploy text patches the manifest specifies
+- Reports what it did
+- Tells you what to do next (usually `npm run build`)
 
-## Project Structure
+Optional flags:
 
-```
-spotlightly/
-├── app/
-│   ├── (marketing)/        # Public marketing site — light theme
-│   ├── (platform)/         # Creator/fan app — dark theme
-│   ├── (auth)/             # Login, signup, verification
-│   ├── c/[creator]/        # Public creator pages
-│   └── api/                # API routes
-├── components/
-│   ├── icons/              # Custom Spotlightly SVG icons
-│   └── ui/                 # Base components
-├── lib/                    # Integrations (Supabase, Stripe, CCBill, etc.)
-├── config/                 # Business logic config (tiers, ratings, niches)
-├── supabase/migrations/    # Database schema
-├── types/                  # TypeScript types
-└── hooks/                  # React hooks
-```
+- `-From "C:\path\to\folder"` — deploy from a specific folder instead of auto-finding
+- `-DryRun` — show what would happen without changing any files
 
-## Environment Variables
+## For v3 specifically (your current batch)
 
-Copy `.env.example` to `.env.local` and fill in all values. See `.env.example` for documentation on each variable.
+The v3 batch I sent you didn't include a `manifest.json` because the deploy tool didn't exist yet. To deploy v3 with this tool:
 
-**Required before launch:**
-- Supabase project URL + keys
-- Stripe publishable + secret key + webhook secret
-- Anthropic API key
-- BunnyCDN API key + storage zone
+1. Put all 16 v3 files PLUS the `manifest.json` from this bundle into a single folder, e.g. `Downloads\spotlightly-v3\`
+2. From your repo root:
+   ```powershell
+   cd C:\Users\cmm2s\OneDrive\Documents\GitHub\IFYKYK
+   .\tools\deploy.ps1
+   ```
+3. Run the SQL migration manually in Supabase SQL Editor (`01-migrations.sql` doesn't go in the repo)
+4. `npm run build` to verify
+5. `git add -A && git commit -m "feat: v3 batch" && git push`
 
-**Required before 18+ content goes live:**
-- CCBill merchant credentials
-- Veriff API key
-- 2257 records custodian designated
+If any file is missing, the script tells you exactly which one. If a patch can't find its target text, it skips and tells you (means it's already applied or the file changed).
 
-**Required before auto-sharing:**
-- TikTok API credentials (apply at developers.tiktok.com)
-- Instagram/Meta Graph API (apply at developers.facebook.com — takes 1–4 weeks)
-- Twitter v2 API (apply at developer.twitter.com)
-- RedGIFs API (email dev@redgifs.com)
+## What goes in future batches
 
-## Deployment
+Every batch from here will be a folder containing:
+- All the `.ts` / `.tsx` / `.css` / `.json` source files
+- A `manifest.json` that knows where each one goes
+- Optionally `01-migrations.sql` or similar — these you still run manually in Supabase, they don't go in the repo
+- A `README.md` for context
 
-### Vercel (recommended)
+Drop the folder in Downloads, run `.\tools\deploy.ps1`, you're done in 5 seconds.
 
-1. Push to GitHub
-2. Connect repo to Vercel at vercel.com
-3. Add all environment variables in Vercel dashboard
-4. Deploy — every push to `main` deploys automatically
+## What it doesn't do
 
-### GitHub Secrets for CI/CD
+- Doesn't run SQL — that's still on you, paste into Supabase
+- Doesn't `npm run build` — runs after, you call it
+- Doesn't `git push` — you decide when to push
+- Doesn't manage env vars — that's `vercel env` and the `/admin` page
+- Doesn't deploy to production — Vercel does that on git push
 
-Add these to your GitHub repo secrets:
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`  
-- `VERCEL_PROJECT_ID`
-
-### Custom Domain
-
-1. Add `spotlightly.app` as custom domain in Vercel
-2. Point DNS at Vercel nameservers via Cloudflare
-3. Creator subdomains (`jadecuts.spotlightly.app`) handled via rewrites in `next.config.ts`
-
-## Compliance Checklist
-
-- [ ] Register DMCA agent at copyright.gov ($6)
-- [ ] Attorney review of TOS and Privacy Policy
-- [ ] Attorney review of Parental Agreement
-- [ ] 2257 custodian of records designated
-- [ ] 2257 compliance statement on all 18+ pages
-- [ ] Stripe Connect OAuth flow tested
-- [ ] CCBill test merchant account approved
-
-## Architecture Notes
-
-### Payment Flow
-- **SFW creators** use Stripe Connect. Fan pays creator's Stripe account. Platform fee charged separately.
-- **18+ creators** have their own CCBill merchant accounts. Platform is never in the payment chain.
-- Platform revenue comes from flat monthly creator subscription fees only.
-
-### Content Rating System
-- G/PG/M → Stripe payments
-- R/X → CCBill payments (requires Veriff ID verification + 2257 records)
-- Young creator accounts hard-blocked from R/X content
-
-### Subdomain Routing
-Creator pages at `handle.spotlightly.app` are handled by rewrites in `next.config.ts` → resolves to `/c/[handle]`.
-
-### Channel System
-Creators can have multiple channels (e.g., Hair & Style + Dance). Each channel has its own URL (`/c/jade/hair`), QR code, and subscription price. SFW channels use Stripe; 18+ channels use CCBill.
-
-## License
-
-Private — All rights reserved. Tahoma Industries LLC / Spotlightly.
+It's a file-placer, not a CI/CD pipeline. The thing that was eating an hour per batch was placing files. That's the part it solves.

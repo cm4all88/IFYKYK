@@ -1,67 +1,170 @@
 "use client";
-import { useState } from "react";
-import { createClient } from "@/lib/supabase-client";
+
+import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase-client";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setErr(null);
+    setSubmitting(true);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+
     if (error) {
-      setError(error.message);
-      setLoading(false);
+      setErr(error.message);
+      setSubmitting(false);
       return;
     }
+
     router.push("/dashboard");
     router.refresh();
-  };
+  }
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 20, padding: "40px", width: "100%", maxWidth: 400 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
-          <div style={{ width: 28, height: 28, background: "var(--amber)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#fff" }}>S</div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>Spotlightly</span>
+    <main className="lg">
+      <div className="lg-shell">
+        <Link href="/" className="lg-brand">
+          Spot<span>light</span>ly
+        </Link>
+
+        <div className="lg-card">
+          <p className="kicker">Sign in</p>
+          <h1 className="lg-title">
+            Welcome <em>back.</em>
+          </h1>
+
+          <form className="lg-form" onSubmit={onSubmit}>
+            <div className="lg-field">
+              <label className="label">Email</label>
+              <input
+                className="input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="lg-field">
+              <label className="label">Password</label>
+              <input
+                className="input"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            {err && <div className="lg-err">⚠ {err}</div>}
+
+            <button type="submit" className="btn btn--primary lg-submit" disabled={submitting}>
+              {submitting ? "Signing in..." : "Sign in →"}
+            </button>
+          </form>
+
+          <p className="lg-footer">
+            New here?{" "}
+            <Link href="/signup" className="lg-link">
+              Become a creator
+            </Link>
+          </p>
         </div>
-
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)", marginBottom: 6 }}>Sign in</h1>
-        <p style={{ color: "var(--text-sec)", fontSize: 14, marginBottom: 28 }}>Welcome back.</p>
-
-        <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", color: "var(--text-sec)", fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-              style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }} />
-          </div>
-          <div style={{ marginBottom: 22 }}>
-            <label style={{ display: "block", color: "var(--text-sec)", fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Password</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
-              style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--border)", borderRadius: 10, padding: "11px 14px", fontSize: 14, color: "var(--text)", outline: "none", boxSizing: "border-box" }} />
-          </div>
-
-          {error && <div style={{ color: "#c83030", fontSize: 13, marginBottom: 14, background: "rgba(200,48,48,0.07)", borderRadius: 8, padding: "8px 12px" }}>{error}</div>}
-
-          <button type="submit" disabled={loading}
-            style={{ width: "100%", background: "var(--amber)", border: "none", borderRadius: 10, padding: "13px", color: "#fff", fontSize: 15, fontWeight: 700, cursor: loading ? "wait" : "pointer" }}>
-            {loading ? "Signing in..." : "Sign in →"}
-          </button>
-        </form>
-
-        <p style={{ textAlign: "center", marginTop: 20, color: "var(--text-sec)", fontSize: 14 }}>
-          Don&apos;t have an account?{" "}
-          <a href="/signup" style={{ color: "var(--amber)", fontWeight: 600, textDecoration: "none" }}>Sign up</a>
-        </p>
       </div>
-    </div>
+
+      <style jsx>{`
+        .lg {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: var(--s-6);
+          background:
+            radial-gradient(ellipse 60% 40% at 50% 30%, rgba(245, 200, 66, 0.05) 0%, transparent 70%),
+            var(--bg);
+        }
+        .lg-shell {
+          width: 100%;
+          max-width: 440px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--s-8);
+        }
+        .lg-brand {
+          font-family: var(--font-serif);
+          font-size: 28px;
+          color: var(--text);
+        }
+        .lg-brand span { color: var(--accent); }
+
+        .lg-card {
+          width: 100%;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--r-3);
+          padding: var(--s-10);
+        }
+        .lg-title {
+          font-family: var(--font-serif);
+          font-size: 36px;
+          font-weight: 300;
+          line-height: 1.1;
+          color: #fff;
+          margin: var(--s-3) 0 var(--s-8);
+        }
+        .lg-title em { font-style: italic; color: var(--accent); }
+
+        .lg-form { display: flex; flex-direction: column; gap: var(--s-4); }
+        .lg-field { display: flex; flex-direction: column; }
+
+        .lg-err {
+          background: var(--red-soft);
+          border: 1px solid var(--red-border);
+          color: var(--red);
+          padding: var(--s-3) var(--s-4);
+          border-radius: var(--r-2);
+          font-size: 13px;
+        }
+
+        .lg-submit {
+          margin-top: var(--s-3);
+          padding: 16px 24px;
+        }
+
+        .lg-footer {
+          margin-top: var(--s-8);
+          font-size: 13px;
+          color: var(--muted);
+          text-align: center;
+        }
+        .lg-link {
+          color: var(--accent);
+          font-family: var(--font-mono);
+          font-size: 12px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+
+        @media (max-width: 500px) {
+          .lg-card { padding: var(--s-6); }
+          .lg-title { font-size: 30px; }
+        }
+      `}</style>
+    </main>
   );
 }

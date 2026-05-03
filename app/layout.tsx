@@ -1,3 +1,4 @@
+import "./design.css";
 import type { Metadata } from "next";
 import "./globals.css";
 

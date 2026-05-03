@@ -1,72 +1,93 @@
-﻿import { NextRequest } from "next/server";
-import { verifyWebhook } from "@/lib/stripe";
-import { createServiceClient } from "@/lib/supabase-server";
-import Stripe from "stripe";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
+import { getSecrets } from "@/lib/settings";
+import crypto from "node:crypto";
+
+export const runtime = "nodejs";
+
+/**
+ * Verify Stripe webhook signature manually (no SDK needed).
+ * Stripe signs with HMAC-SHA256 over `${timestamp}.${body}`.
+ */
+function verifyStripeSignature(
+  rawBody: string,
+  signatureHeader: string,
+  secret: string
+): boolean {
+  const parts = signatureHeader.split(",").reduce<Record<string, string>>((acc, p) => {
+    const [k, v] = p.split("=");
+    if (k && v) acc[k] = v;
+    return acc;
+  }, {});
+  const t = parts["t"];
+  const v1 = parts["v1"];
+  if (!t || !v1) return false;
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${t}.${rawBody}`)
+    .digest("hex");
+
+  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+}
 
 export async function POST(req: NextRequest) {
-  const body = await req.text();
-  const sig = req.headers.get("stripe-signature");
-
-  if (!sig) return Response.json({ error: "No signature" }, { status: 400 });
-
-  let event: Stripe.Event;
-  try {
-    event = verifyWebhook(body, sig);
-  } catch (err) {
-    console.error("Stripe webhook verification failed:", err);
-    return Response.json({ error: "Invalid signature" }, { status: 400 });
+  const { STRIPE_WEBHOOK_SECRET } = await getSecrets(["STRIPE_WEBHOOK_SECRET"]);
+  if (!STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
   }
 
-  const supabase = await createServiceClient();
+  const rawBody = await req.text();
+  const sig = req.headers.get("stripe-signature");
+  if (!sig || !verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRET)) {
+    console.error("Stripe webhook signature verification failed");
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  const event = JSON.parse(rawBody);
+  const supabase = await createClient();
 
   switch (event.type) {
-    case "customer.subscription.created": {
-      const sub = event.data.object as Stripe.Subscription;
-      const fanUserId = sub.metadata?.fan_user_id;
-      const creatorId = sub.metadata?.creator_id;
+    case "checkout.session.completed": {
+      const s = event.data.object;
+      const meta = s.metadata ?? {};
 
-      if (!fanUserId || !creatorId) {
-        console.error("Stripe sub created without metadata", sub.id);
-        return Response.json({ error: "Missing metadata" }, { status: 400 });
+      if (meta.type === "tip") {
+        // Record a tip
+        await supabase.from("tips").insert({
+          creator_profile_id: meta.creator_profile_id,
+          tipper_user_id: meta.user_id,
+          amount_cents: s.amount_total,
+          stripe_session_id: s.id,
+        });
+      } else {
+        // Subscription created — record in subscriptions table
+        await supabase.from("subscriptions").insert({
+          creator_profile_id: meta.creator_profile_id,
+          subscriber_user_id: meta.user_id,
+          channel_id: meta.channel_id || null,
+          stripe_subscription_id: s.subscription,
+          stripe_session_id: s.id,
+          status: "active",
+        });
       }
-
-      await supabase.from("subscriptions").insert({
-        creator_profile_id: creatorId,
-        fan_user_id: fanUserId,
-        stripe_subscription_id: sub.id,
-        stripe_customer_id: sub.customer as string,
-        status: sub.status,
-        current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-        current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-      });
       break;
     }
 
+    case "customer.subscription.deleted":
     case "customer.subscription.updated": {
-      const sub = event.data.object as Stripe.Subscription;
-      await supabase.from("subscriptions")
-        .update({
-          status: sub.status,
-          current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-        })
+      const sub = event.data.object;
+      await supabase
+        .from("subscriptions")
+        .update({ status: sub.status })
         .eq("stripe_subscription_id", sub.id);
       break;
     }
 
-    case "customer.subscription.deleted": {
-      const sub = event.data.object as Stripe.Subscription;
-      await supabase.from("subscriptions")
-        .update({ status: "canceled" })
-        .eq("stripe_subscription_id", sub.id);
-      break;
-    }
-
-    case "invoice.payment_succeeded": {
-      const invoice = event.data.object as Stripe.Invoice;
-      console.log("Payment succeeded for invoice:", invoice.id);
-      break;
-    }
+    default:
+      // Other events — log and ignore
+      console.log(`Unhandled Stripe event: ${event.type}`);
   }
 
-  return Response.json({ received: true });
+  return NextResponse.json({ received: true });
 }

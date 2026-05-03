@@ -1,27 +1,83 @@
-import { NextRequest } from "next/server";
-import { createServiceClient } from "@/lib/supabase-server";
-import { uploadFile } from "@/lib/bunny";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
+import { getSecrets } from "@/lib/settings";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+/**
+ * POST /api/upload
+ * Body: multipart/form-data with `file` field
+ * Returns: { url: string }
+ *
+ * Server uploads the file to BunnyCDN Storage, returns the public CDN URL.
+ * Authentication: must be a logged-in creator. Files go under user_id/ prefix.
+ */
 export async function POST(req: NextRequest) {
-  const supabase = await createServiceClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const { BUNNY_STORAGE_ZONE, BUNNY_STORAGE_KEY, BUNNY_CDN_HOST } = await getSecrets([
+    "BUNNY_STORAGE_ZONE",
+    "BUNNY_STORAGE_KEY",
+    "BUNNY_CDN_HOST",
+  ]);
+
+  if (!BUNNY_STORAGE_ZONE || !BUNNY_STORAGE_KEY || !BUNNY_CDN_HOST) {
+    return NextResponse.json(
+      { error: "File upload not configured. Set BunnyCDN keys in /admin." },
+      { status: 503 }
+    );
+  }
 
   const formData = await req.formData();
-  const file = formData.get("file") as File;
-  const postId = formData.get("postId") as string;
+  const file = formData.get("file");
 
-  if (!file) return Response.json({ error: "No file provided" }, { status: 400 });
-
-  const ext = file.name.split(".").pop();
-  const path = `creators/${user.id}/posts/${postId}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  try {
-    const url = await uploadFile(path, buffer, file.type);
-    return Response.json({ url, path });
-  } catch (err) {
-    console.error("Upload error:", err);
-    return Response.json({ error: "Upload failed" }, { status: 500 });
+  if (!(file instanceof File)) {
+    return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
+
+  // Validate type & size
+  const okTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!okTypes.includes(file.type)) {
+    return NextResponse.json(
+      { error: `Unsupported file type: ${file.type}. Use JPG, PNG, WebP, or GIF.` },
+      { status: 400 }
+    );
+  }
+  const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json({ error: "File exceeds 10 MB limit" }, { status: 400 });
+  }
+
+  // Build a unique path
+  const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+  const stamp = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8);
+  const path = `${user.id}/${stamp}-${rand}.${ext}`;
+
+  // Upload to Bunny Storage
+  const buffer = await file.arrayBuffer();
+  const uploadUrl = `https://storage.bunnycdn.com/${BUNNY_STORAGE_ZONE}/${path}`;
+
+  const uploadRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "AccessKey": BUNNY_STORAGE_KEY,
+      "Content-Type": file.type,
+    },
+    body: buffer,
+  });
+
+  if (!uploadRes.ok) {
+    const errBody = await uploadRes.text();
+    console.error("Bunny upload failed:", uploadRes.status, errBody);
+    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+  }
+
+  const publicUrl = `https://${BUNNY_CDN_HOST}/${path}`;
+  return NextResponse.json({ url: publicUrl });
 }
