@@ -17,7 +17,7 @@ interface Channel {
 
 interface PlanData {
   ready: boolean;
-  creator_type?: "sfw" | "adult" | "young";
+  creator_type?: "spotlight" | "backstage" | "opening_act";
   recommended_tier?: string;
   estimated_monthly_revenue?: string;
   channels?: Channel[];
@@ -146,7 +146,7 @@ export default function SignupPage() {
     setFormError(null);
 
     try {
-      const creator_type = plan?.creator_type ?? "sfw";
+      const creator_type = plan?.creator_type ?? "spotlight";
       const cleanHandle = handle.toLowerCase().replace(/[^a-z0-9_]/g, "");
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -182,8 +182,8 @@ export default function SignupPage() {
         await supabase.from("channels").insert(channelRows);
       }
 
-      if (creator_type === "adult") router.push("/verify");
-      else if (creator_type === "young") router.push("/verify/parent");
+      if (creator_type === "backstage") router.push("/verify");
+      else if (creator_type === "opening_act") router.push("/verify/parent");
       else router.push("/onboarding");
     } catch (err) {
       console.error(err);
