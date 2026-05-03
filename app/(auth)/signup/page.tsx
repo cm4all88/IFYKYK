@@ -29,7 +29,7 @@ type AccountForm = {
   parentalConsent: boolean;       // only used when path === "opening_act"
 };
 
-const HANDLE_RE = /^[a-z0-9][a-z0-9_\-]{2,29}$/;
+const HANDLE_RE = /^[a-z0-9][-a-z0-9_]{2,29}$/;
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -679,7 +679,7 @@ function AccountForm({
             value={form.spotlightHandle}
             onChange={(e) => update("spotlightHandle", e.target.value.toLowerCase())}
             placeholder="your-handle"
-            pattern="[a-z0-9][a-z0-9_\-]{2,29}"
+            pattern="[a-z0-9][-a-z0-9_]{2,29}"
             required
           />
         </label>
@@ -697,7 +697,7 @@ function AccountForm({
                 update("backstageHandle", e.target.value.toLowerCase())
               }
               placeholder="alter-ego"
-              pattern="[a-z0-9][a-z0-9_\-]{2,29}"
+              pattern="[a-z0-9][-a-z0-9_]{2,29}"
               required
             />
           </label>
