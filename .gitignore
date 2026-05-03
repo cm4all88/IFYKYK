@@ -36,3 +36,7 @@ Thumbs.db
 /supabase/.temp
 
 .vercel
+
+# Vercel env pulls
+.env.vercel.*
+.vercel
