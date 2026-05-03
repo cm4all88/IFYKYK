@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase-client";
+import type { Database } from "@/lib/database.types";
 
 // ──────────────────────────────────────────────────────────────────
 // Types — match the spec from the handoff (Part A signatures)
@@ -253,7 +254,7 @@ export default function SignupPage() {
       if (!userId) throw new Error("Signup succeeded but no user was returned.");
 
       // 2. Build the rows to insert
-      const rows: Array<Record<string, unknown>> = [];
+      const rows: Database["public"]["Tables"]["creator_profiles"]["Insert"][] = [];
 
       // Always create a 'spotlight' kind row. creator_type is what governs the tier.
       rows.push({

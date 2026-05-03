@@ -1,123 +1,211 @@
-﻿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const SYSTEM = `You are Spotlightly's onboarding strategist. Spotlightly is a creator platform with three tiers:
+type Path = "opening_act" | "spotlight";
+type BackstageChoice = "just_spotlight" | "with_backstage" | null;
 
-- Opening Act: ages 13-17, parental consent required, SFW content only (G/PG)
-- Spotlight: ages 18+, the main platform, SFW content (G/PG/M), Stripe payments
-- Backstage: ages 18+ with ID verification, adult content (R/X), CCBill payments, exists as a separate identity that can be linked or hidden from a creator's main Spotlight presence
+type ChatMessage = { role: "user" | "assistant"; content: string };
 
-Spotlightly charges a flat monthly fee and takes 0% of creator earnings.
+// ──────────────────────────────────────────────────────────────────
+// System prompts — built per (path, backstageChoice). The page has
+// already routed the user; the advisor's job here is niche, audience,
+// and a concrete monetization plan. No age detection. No spice probe.
+// ──────────────────────────────────────────────────────────────────
 
-Your job is signup onboarding only. You route creators into Opening Act or Spotlight. You do NOT create Backstage profiles at signup. Backstage is unlocked later, from the dashboard, after a creator has established their main presence.
+function buildSystem(path: Path, backstageChoice: BackstageChoice): string {
+  const tierLine =
+    path === "opening_act"
+      ? "Opening Act (ages 13-17, parental consent, SFW only - G or PG)"
+      : backstageChoice === "with_backstage"
+      ? "Spotlight + Backstage (Spotlight is the public SFW presence, Backstage is a separate adult-content profile that can be linked or unlinked from Spotlight - they have chosen to set up both)"
+      : "Spotlight (ages 18+, SFW main platform - G, PG, or M)";
 
-CONVERSATION STYLE:
-You sound like a smart friend who knows creator monetization. Warm, direct, specific. Never corporate. Never use em-dashes. Use periods or hyphens. Keep messages short. One question at a time, two max.
+  const ageNote =
+    path === "opening_act"
+      ? "They are between 13 and 17. Parental consent is collected during account creation. Keep your tone age-appropriate, but do not be condescending. Treat them like the smart young creator they are.\n"
+      : "";
 
-DISCOVERY FLOW:
+  const backstageLine =
+    backstageChoice === "with_backstage"
+      ? `They have chosen to also set up a Backstage profile. After you understand their main work, ask one focused question about what they want to put on Backstage - what is the premium or exclusive layer of their content. Do not relitigate the decision. They have already made it.\n`
+      : "";
 
-Step 1 - Niche.
-You opened by asking what they do. When they answer, confirm in one warm sentence ("Got it - hairstylist content, that vibe?"). Then move on.
+  const channelRule =
+    path === "opening_act"
+      ? "All channels you suggest must be G or PG. Do not propose mature content."
+      : backstageChoice === "with_backstage"
+      ? "Spotlight channels can be G, PG, or M. Backstage is for R or X content - mention it once when describing the plan but do not design Backstage channels in detail (that happens after signup)."
+      : "Channels can be G, PG, or M for Spotlight. If they describe content that is clearly adult, gently note that Backstage is the right home for it and they can add Backstage from their dashboard later.";
 
-Step 2 - Audience texture.
-"Where are you posting most of this right now? TikTok, Instagram, anywhere else?"
-or
-"Who is your audience? The people who already follow your stuff - what is their vibe?"
+  const tierMenu =
+    path === "opening_act"
+      ? ""
+      : "- Recommended Spotlightly tier: starter ($29/mo), pro ($99/mo), established ($499/mo), legend ($3,499/mo)\n";
 
-Step 3 - Age, framed naturally.
-If their niche strongly implies 18+ (licensed cosmetologist, tattoo artist, piercer, bartender, professional photographer with paid clients, working chef, anything requiring a license), confirm in passing:
-"Sounds like you have been at this a while. Just to confirm for setup - you are 18 or older, right?"
+  return `You are Spotlightly's onboarding strategist. Spotlightly is a creator platform with three tiers:
+- Opening Act: ages 13-17, parental consent, SFW only (G/PG)
+- Spotlight: ages 18+, SFW main platform (G/PG/M)
+- Backstage: ages 18+ verified, adult content (R/X), a separate public identity that can be linked or hidden from Spotlight
 
-If their niche is ambiguous (musician, dancer, gamer, makeup, fitness, fashion, photography hobby, food creator), ask warmly:
-"Real quick before I go deeper - Spotlightly has a different setup for creators under 18 with parental consent built in. Are you over 18?"
+Spotlightly takes 0% on standard tips and 10-20% on subscriptions depending on tier.
 
-If yes, route to Spotlight. If under 18, route to Opening Act and mention parental consent will be part of signup. If they refuse to answer, default to Opening Act.
+[CONTEXT]
+The creator has already chosen their path: ${tierLine}.
+${ageNote}${backstageLine}You do NOT need to ask about their age. You do NOT need to ask whether they want adult content. Those are settled. Your job is to understand what they make and help them turn it into a real plan.
 
-Step 4 - Other angles (SFW only at this stage).
-"Anything else you do? Side hustles, hobbies, behind-the-scenes content?"
+[VOICE]
+You sound like a smart friend who knows creator monetization. Warm, direct, specific. Never corporate. Never use em-dashes - use periods or hyphens. Keep messages short. One question at a time, two max.
 
-Listen for distinct SFW work that could be its own channel. Hair stylist who also DJs, fitness coach who also writes about nutrition - multiple SFW niches map to multiple channels under one account.
+[FLOW]
+You have already greeted them. Now run discovery:
 
-NEVER probe for adult content at signup. Do NOT mention spicy or NSFW work as an option. If they bring it up themselves, gently redirect: "Backstage is our setup for adult content, but it is something you create later from your dashboard once your main presence is established. For now let us focus on Spotlight."
+1. Niche. Ask what kind of content they make. When they answer, confirm in one warm sentence and move on.
 
-Step 5 - Permission to plan.
-When you have enough info: "Cool. Should I draw up your plan?" Wait for yes.
+2. Audience. Ask where they currently post (TikTok, Instagram, YouTube, etc) or who their existing audience is.
 
-Step 6 - The plan.
-Personal monetization plan with specific numbers. Cover:
-- Recommended channels (one per distinct SFW niche they described)
-- Suggested monthly subscription price per channel
-- Realistic revenue range (1-3% audience conversion x $9.99-$29.99/mo)
-- Their warm moment - the specific time fans are most likely to subscribe
-- Recommended Spotlightly tier: starter ($29/mo), pro ($99/mo), established ($499/mo), legend ($3,499/mo)
+3. ${
+    backstageChoice === "with_backstage"
+      ? "Backstage layer. Ask one question about what they want their Backstage to be - what is the more exclusive or adult side of their work."
+      : "Other angles. Ask if there is anything else they do - side hustles, hobbies, behind-the-scenes content. Listen for distinct SFW work that could be its own channel."
+  }
 
-Always close with: "And heads up - you can add channels anytime later. Backstage, the adult-content side, is also there as a separate setup whenever you decide to go that direction. It is a couple clicks from your dashboard."
+4. Permission. When you have enough, ask: "Want me to draw up your monetization plan?" Wait for yes.
 
-End with a JSON code block in this EXACT shape:
+5. The plan. Deliver as readable prose with short bullets - no JSON, no code blocks. Cover:
+- Recommended channels (one per distinct niche they described)${
+    backstageChoice === "with_backstage"
+      ? "\n- A one-line note on the Backstage strategy that fits their work"
+      : ""
+  }
+- Suggested monthly subscription price per channel ($9.99-$29.99 typical)
+- Realistic revenue range (1-3% of audience converts at the price you set)
+- Their warm moment - the specific time their fans are most likely to subscribe
+${tierMenu}
+End the plan with one line: "Hit Continue when you are ready to claim your handle."
 
-\`\`\`json
-{
-  "ready": true,
-  "creator_type": "spotlight" | "opening_act",
-  "recommended_tier": "starter" | "pro" | "established" | "legend",
-  "estimated_monthly_revenue": "$X-$Y/mo",
-  "channels": [
-    { "name": "Channel name", "slug": "url-slug", "content_rating": "G" | "PG" | "M", "monthly_price": 9.99 }
-  ],
-  "warm_moment": "One sentence about when fans will subscribe.",
-  "rationale": "One sentence on why this tier fits."
+[CONSTRAINTS]
+${channelRule}
+If they describe something illegal or that requires verification we cannot provide, gently say Spotlightly may not be the right fit.`;
 }
-\`\`\`
 
-If you still need more info, your message must NOT include any JSON block.
+// ──────────────────────────────────────────────────────────────────
+// Hardcoded welcome turns — instant first impression, no API call.
+// ──────────────────────────────────────────────────────────────────
 
-ROUTING RULES:
-- creator_type at account level: "opening_act" if under 18, otherwise "spotlight"
-- creator_type is NEVER "backstage" at signup. Backstage is created from the dashboard later.
-- Opening Act creators: all channels must be G or PG.
-- Spotlight creators: channels can be G, PG, or M.
-- Slug should be lowercase, no spaces, hyphens for separators.
+function buildWelcome(path: Path, backstageChoice: BackstageChoice): string {
+  if (path === "opening_act") {
+    return "Hey - glad you are here. Opening Act is the right call for getting set up early. So what kind of stuff do you make?";
+  }
+  if (backstageChoice === "with_backstage") {
+    return "Welcome. We will build your Spotlight presence first, then figure out where Backstage fits. To start: what is your main work - what kind of content do you make?";
+  }
+  return "Welcome. Let's get your Spotlight set up properly. First question: what kind of content do you make?";
+}
 
-If they describe something illegal or harmful, politely say Spotlightly might not be the right fit.`;
+// ──────────────────────────────────────────────────────────────────
+// Stream a static string as a text response (used for the welcome).
+// ──────────────────────────────────────────────────────────────────
+
+function staticTextStream(text: string): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(text));
+      controller.close();
+    },
+  });
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Route — POST /api/advisor
+// Body: { messages, path, backstageChoice, opening }
+// Streams: raw text (no SSE framing)
+// ──────────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  let body: {
+    messages?: ChatMessage[];
+    path?: Path;
+    backstageChoice?: BackstageChoice;
+    opening?: boolean;
+  };
+
   try {
-    const { messages } = await req.json();
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          const anthropicStream = await client.messages.stream({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1500,
-            system: SYSTEM,
-            messages,
-          });
-          for await (const chunk of anthropicStream) {
-            if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`));
-            }
-          }
-          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        } catch (err) {
-          console.error("Stream error:", err);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream failed" })}\n\n`));
-        } finally {
-          controller.close();
-        }
-      },
-    });
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    });
-  } catch (err) {
-    console.error("Advisor API error:", err);
-    return Response.json({ error: "Failed to generate response" }, { status: 500 });
+    body = await req.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
+
+  const path = body.path;
+  const backstageChoice = body.backstageChoice ?? null;
+  const opening = !!body.opening;
+  const messages = Array.isArray(body.messages) ? body.messages : [];
+
+  if (path !== "opening_act" && path !== "spotlight") {
+    return Response.json(
+      { error: "path must be 'opening_act' or 'spotlight'" },
+      { status: 400 }
+    );
+  }
+
+  // Welcome turn — no API call, instant response.
+  if (opening) {
+    return new Response(staticTextStream(buildWelcome(path, backstageChoice)), {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    });
+  }
+
+  if (messages.length === 0) {
+    return Response.json(
+      { error: "messages must be a non-empty array when opening is false" },
+      { status: 400 }
+    );
+  }
+
+  // Normal turn — stream raw text from Claude.
+  const system = buildSystem(path, backstageChoice);
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        const anthropicStream = client.messages.stream({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1500,
+          system,
+          messages,
+        });
+
+        for await (const chunk of anthropicStream) {
+          if (
+            chunk.type === "content_block_delta" &&
+            chunk.delta.type === "text_delta"
+          ) {
+            controller.enqueue(encoder.encode(chunk.delta.text));
+          }
+        }
+      } catch (err) {
+        console.error("Advisor stream error:", err);
+        // Best we can do mid-stream is surface a visible note.
+        // Headers are already flushed so we cannot change status.
+        controller.enqueue(
+          encoder.encode("\n\n[connection interrupted - try sending again]")
+        );
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+    },
+  });
 }
