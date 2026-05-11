@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* design.css owns all design tokens, fonts, and component styles.
+   This file just keeps Tailwind's reset + utility classes available
+   for any legacy code in components/ui/* that still uses them. */
