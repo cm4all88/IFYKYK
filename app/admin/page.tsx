@@ -111,7 +111,7 @@ async function saveSettings(formData: FormData) {
 
   // Upsert each one. Could be batched but row count is small enough that clarity wins.
   for (const { key, value } of updates) {
-    await supabase
+    await (supabase as any)
       .from("platform_settings")
       .update({ value, updated_at: new Date().toISOString() })
       .eq("key", key);
@@ -134,7 +134,7 @@ export default async function AdminPage(props: {
   if (!(await isAdmin())) notFound();
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from("platform_settings")
     .select("key, value, updated_at");
 
