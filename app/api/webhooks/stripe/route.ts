@@ -52,23 +52,25 @@ export async function POST(req: NextRequest) {
       const s = event.data.object;
       const meta = s.metadata ?? {};
 
+      const amountDollars = (s.amount_total ?? 0) / 100;
+      const platformPct = 0.15;
+
       if (meta.type === "tip") {
-        // Record a tip
         await supabase.from("tips").insert({
+          fan_user_id: meta.user_id,
           creator_profile_id: meta.creator_profile_id,
-          tipper_user_id: meta.user_id,
-          amount_cents: s.amount_total,
-          stripe_session_id: s.id,
+          amount: amountDollars,
+          creator_receives: amountDollars * (1 - platformPct),
+          platform_receives: amountDollars * platformPct,
+          stripe_payment_intent_id: s.payment_intent ?? s.id,
         });
       } else {
-        // Subscription created — record in subscriptions table
         await supabase.from("subscriptions").insert({
-          creator_profile_id: meta.creator_profile_id,
-          subscriber_user_id: meta.user_id,
-          channel_id: meta.channel_id || null,
+          fan_user_id: meta.user_id,
+          creator_id: meta.creator_profile_id,
           stripe_subscription_id: s.subscription,
-          stripe_session_id: s.id,
           status: "active",
+          price: amountDollars,
         });
       }
       break;
