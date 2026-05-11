@@ -1,10 +1,10 @@
-﻿import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const SYSTEM_PROMPT = `You are Spotlightly's creator monetization strategist. Help creators identify their best conversion moments and build personalized monetization strategies.
 
-Spotlightly charges creators a flat monthly fee (Starter $29/mo â†’ Legend $3,499/mo) and takes 0% of their earnings. The advisor helps creators understand their warm moments â€” the specific times when fans are most likely to subscribe.
+Spotlightly charges creators a flat monthly fee (Starter $29/mo → Legend $3,499/mo) and takes 0% of their earnings. The advisor helps creators understand their warm moments — the specific times when fans are most likely to subscribe.
 
 Be warm, direct, and specific. Never give generic advice. Always tailor recommendations to the creator's exact situation.`;
 
@@ -33,12 +33,13 @@ export async function streamAdvisorResponse(
 
 export async function moderateChatMessage(
   message: string,
-  context: { creatorType: "opening_act" | "spotlight" | "backstage" }
+  context: { creatorType: "spotlight" | "backstage" }
 ): Promise<{ allowed: boolean; reason?: string }> {
   const strictness = {
-    opening_act: "Maximum. Block any inappropriate language, adult references, requests for personal info, or off-platform contact.",
-    spotlight: "Standard. Block sexual content, harassment, slurs, threats, and PII requests.",
-    backstage: "Permissive. Block slurs, threats, doxxing attempts, and direct harassment only.",
+    spotlight:
+      "Standard. Block sexual content, harassment, slurs, threats, and PII requests.",
+    backstage:
+      "Permissive. Block slurs, threats, doxxing attempts, and direct harassment only.",
   }[context.creatorType];
 
   const response = await client.messages.create({
@@ -51,7 +52,8 @@ Respond with JSON only: { "allowed": boolean, "reason": "string or null" }`,
   });
 
   try {
-    const text = response.content[0].type === "text" ? response.content[0].text : "{}";
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "{}";
     return JSON.parse(text);
   } catch {
     return { allowed: true };

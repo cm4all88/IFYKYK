@@ -12,7 +12,6 @@ export default function BackstageCreatePage() {
   const [loading, setLoading] = useState(true);
   const [hasSpotlight, setHasSpotlight] = useState(false);
   const [hasBackstage, setHasBackstage] = useState(false);
-  const [isOpeningAct, setIsOpeningAct] = useState(false);
   const [spotlightHandle, setSpotlightHandle] = useState("");
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -36,7 +35,6 @@ export default function BackstageCreatePage() {
       const back = (data ?? []).find((r) => r.kind === "backstage");
       setHasSpotlight(!!spot);
       setHasBackstage(!!back);
-      setIsOpeningAct(spot?.creator_type === "opening_act");
       setSpotlightHandle(spot?.handle ?? "");
       setDisplayName(spot?.display_name ?? "");
       setLoading(false);
@@ -110,22 +108,6 @@ export default function BackstageCreatePage() {
     );
   }
 
-  if (isOpeningAct) {
-    return (
-      <main className="bs-shell">
-        <div className="bs-card">
-          <p className="kicker">Opening Act creators</p>
-          <h1 className="bs-title">Backstage opens at 18.</h1>
-          <p className="bs-text">
-            You can open a Backstage profile after you graduate to Spotlight on your 18th birthday. Until then, focus on building your Opening Act audience — they come with you.
-          </p>
-          <Link href="/dashboard" className="btn btn--secondary">
-            Back to dashboard
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   if (hasBackstage) {
     return (

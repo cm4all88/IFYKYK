@@ -81,7 +81,6 @@ export default async function CreatorPage(props: {
 
   const { spotlight, backstageHandle, channels, posts } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
-  const isOpeningAct = spotlight.creator_type === "opening_act";
 
   return (
     <>
@@ -111,7 +110,6 @@ export default async function CreatorPage(props: {
             <div className="cp-identity">
               <div className="cp-name-row">
                 <h1 className="cp-name">{displayName}</h1>
-                {isOpeningAct && <span className="badge badge--open">Opening Act</span>}
               </div>
               <p className="cp-handle">@{spotlight.handle}</p>
               {spotlight.bio && <p className="cp-bio">{spotlight.bio}</p>}

@@ -69,8 +69,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Revoke parental tokens
-    await supabase
-      .from("parental_tokens")
+    await (supabase.from as any)("parental_tokens")
       .update({ revoked_at: new Date().toISOString() })
       .eq("child_user_id", c.user_id)
       .is("revoked_at", null);

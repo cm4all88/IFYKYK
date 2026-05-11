@@ -14,11 +14,11 @@ async function loadAll(): Promise<Record<string, string | null>> {
   // so we rely on the request being from the admin user OR being unauthenticated.
   // For unauthenticated requests, RLS blocks reads.
   // The pattern: server components and route handlers that need secrets
-  // create their own privileged Supabase client using service role key
+  // create their own privileged (supabase as any) client using service role key
   // when settings are needed. For now, store secrets in env where possible
   // and fall back to platform_settings for keys that change frequently.
 
-  const { data } = await supabase
+  const { data } = await (supabase as any)
     .from("platform_settings")
     .select("key, value");
 

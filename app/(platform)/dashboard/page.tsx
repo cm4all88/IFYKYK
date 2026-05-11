@@ -19,7 +19,7 @@ type Profile = {
   avatar_url: string | null;
   cover_url: string | null;
   linked: boolean;
-  creator_type: "opening_act" | "spotlight" | "backstage";
+  creator_type: "spotlight" | "backstage";
 };
 
 type Tab = "spotlight" | "backstage";
@@ -188,7 +188,7 @@ export default function DashboardPage() {
           {spotlight && !backstage && (
             <div className="db-solo">
               <span className="db-solo-tag">
-                {spotlight.creator_type === "opening_act" ? "Opening Act" : "Spotlight"}
+                "Spotlight"
               </span>
               <span className="db-solo-handle">@{spotlight.handle}</span>
             </div>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
           </nav>
 
           {/* Backstage upsell — only if they don't have one yet and they're 18+ */}
-          {spotlight && !backstage && spotlight.creator_type !== "opening_act" && (
+          {spotlight && !backstage && (
             <div className="db-upsell">
               <p className="db-upsell-tag">Adult content · 18+</p>
               <h4 className="db-upsell-title">Open a Backstage</h4>
@@ -535,7 +535,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
       creator_profile_id: profile.id,
       caption: body.trim(),
       tier: "free",
-      content_rating: profile.creator_type === "opening_act" ? "PG" : profile.creator_type === "backstage" ? "R" : "M",
+      content_rating: profile.creator_type === "backstage" ? "R" : "M",
       status: "live",
     });
 
@@ -632,8 +632,8 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
       <div className="settings-block">
         <p className="label">Tier</p>
         <p className="settings-val">
-          {profile.creator_type === "opening_act"
-            ? "Opening Act (graduates to Spotlight at 18)"
+          {false
+            ? ""
             : profile.creator_type === "backstage"
             ? "Backstage (adult content)"
             : "Spotlight"}

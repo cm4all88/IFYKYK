@@ -4,7 +4,7 @@ import SiteHeader from "@/components/site-header";
 export const metadata = {
   title: "Spotlightly · Every creator deserves a spotlight",
   description:
-    "The creator platform built for every stage of the journey. Opening Act, Spotlight, Backstage — one venue, your whole career.",
+    "The creator platform built for your whole career. Spotlight and Backstage — one venue, one wallet, one dashboard.",
 };
 
 export default function LandingPage() {
@@ -25,9 +25,9 @@ export default function LandingPage() {
           </h1>
 
           <p className="hero-lede">
-            We built the whole venue. Start your stage at thirteen. Headline at
-            twenty. Open a Backstage when you're ready. One platform that holds
-            your whole career.
+            We built the whole venue. Center stage for your main work.
+            Backstage for the rest. One platform, one payout, your whole
+            career.
           </p>
 
           <div className="hero-actions">
@@ -48,36 +48,19 @@ export default function LandingPage() {
       {/* TIERS */}
       <section className="tiers">
         <div className="tiers-inner">
-          <p className="kicker">Three Stages · One Venue</p>
+          <p className="kicker">Two Stages · One Venue</p>
           <h2 className="section-h">
             Where does <em>your story start?</em>
           </h2>
 
           <div className="tier-grid">
-            <article className="tier tier--open">
-              <div className="tier-rule" />
-              <p className="tier-tag">Ages 13–17 · Parental consent</p>
-              <h3 className="tier-name">Opening Act</h3>
-              <p className="tier-desc">
-                Your first audience. Safe, age-appropriate tools for young
-                creators building toward their headline moment. Auto-graduates
-                to Spotlight at eighteen.
-              </p>
-              <ul className="tier-feats">
-                <li>Custom subdomain</li>
-                <li>SFW content only</li>
-                <li>Parental dashboard</li>
-                <li>Subscriber base carries to Spotlight</li>
-              </ul>
-            </article>
-
             <article className="tier tier--spot">
               <div className="tier-rule" />
               <p className="tier-tag">Ages 18+ · Default tier</p>
               <h3 className="tier-name">Spotlight</h3>
               <p className="tier-desc">
                 Center stage. Where most careers get built. Subscriptions, tips,
-                locked posts, live, merch. The product you'll use every day.
+                locked posts, live, merch. The product you&apos;ll use every day.
               </p>
               <ul className="tier-feats">
                 <li>Full monetization stack</li>
@@ -118,14 +101,14 @@ export default function LandingPage() {
               <em>Your choice which ones are connected.</em>
             </h2>
             <p className="diff-lede">
-              The single biggest reason creators don't post adult content isn't
-              legal complexity. It's exposure. Employers, family, mainstream
-              followers. Spotlightly solves this with an architecture no one
-              else has thought through this cleanly.
+              The single biggest reason creators don&apos;t post adult content
+              isn&apos;t legal complexity. It&apos;s exposure. Employers, family,
+              mainstream followers. Spotlightly solves this with an architecture
+              no one else has thought through this cleanly.
             </p>
             <p className="diff-body">
               Behind the scenes, your Spotlight and Backstage are unified. One
-              login. One wallet. One payout. Publicly, they're treated as
+              login. One wallet. One payout. Publicly, they&apos;re treated as
               completely separate — unless you choose to link them. Default is
               unlinked.
             </p>
@@ -144,8 +127,8 @@ export default function LandingPage() {
               <p className="state-tag">🔗 Linked · Opt-in</p>
               <p className="state-text">
                 A Backstage badge appears on your Spotlight. Fans navigate
-                directly. You're using Backstage as an upsell from your main
-                brand.
+                directly. You&apos;re using Backstage as an upsell from your
+                main brand.
               </p>
             </div>
           </div>
@@ -202,8 +185,8 @@ export default function LandingPage() {
             We built the <em>whole venue.</em>
           </h2>
           <p className="closing-text">
-            Your audience shouldn't have to follow you across three platforms as
-            you grow. Start here. Stay here.
+            Your audience shouldn&apos;t have to follow you across three
+            platforms as you grow. Start here. Stay here.
           </p>
           <Link href="/signup" className="btn btn--primary closing-cta">
             Claim your handle
@@ -221,6 +204,7 @@ export default function LandingPage() {
             A Tahoma Systems product · Every creator deserves a spotlight.
           </p>
         </div>
-      </footer></main>
+      </footer>
+    </main>
   );
 }

@@ -6,11 +6,10 @@ import { createClient } from "@/lib/supabase-client";
 import type { Database } from "@/lib/database.types";
 
 // ──────────────────────────────────────────────────────────────────
-// Types — match the spec from the handoff (Part A signatures)
+// Types
 // ──────────────────────────────────────────────────────────────────
 
-type Phase = "pick_path" | "pick_backstage" | "chat" | "account";
-type Path = "opening_act" | "spotlight";
+type Phase = "pick_backstage" | "chat" | "account";
 type BackstageChoice = "just_spotlight" | "with_backstage";
 
 type ChatMessage = {
@@ -23,10 +22,7 @@ type AccountForm = {
   password: string;
   displayName: string;
   spotlightHandle: string;
-  backstageHandle: string;       // only used when backstageChoice === "with_backstage"
-  dateOfBirth: string;            // only used when path === "opening_act"
-  parentalEmail: string;          // only used when path === "opening_act"
-  parentalConsent: boolean;       // only used when path === "opening_act"
+  backstageHandle: string; // only used when backstageChoice === "with_backstage"
 };
 
 const HANDLE_RE = /^[a-zA-Z0-9_-]{3,30}$/;
@@ -39,8 +35,7 @@ export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  const [phase, setPhase] = useState<Phase>("pick_path");
-  const [path, setPath] = useState<Path | null>(null);
+  const [phase, setPhase] = useState<Phase>("pick_backstage");
   const [backstageChoice, setBackstageChoice] = useState<BackstageChoice | null>(null);
 
   // Chat state
@@ -58,9 +53,6 @@ export default function SignupPage() {
     displayName: "",
     spotlightHandle: "",
     backstageHandle: "",
-    dateOfBirth: "",
-    parentalEmail: "",
-    parentalConsent: false,
   });
   const [submitting, setSubmitting] = useState(false);
   const [formErr, setFormErr] = useState<string | null>(null);
@@ -69,42 +61,23 @@ export default function SignupPage() {
   // Phase transitions
   // ────────────────────────────────────────────────────────────────
 
-  function pickPath(p: Path) {
-    setPath(p);
-    if (p === "opening_act") {
-      // Teens never see the Backstage upsell. Skip straight to chat.
-      setBackstageChoice(null);
-      setPhase("chat");
-    } else {
-      setPhase("pick_backstage");
-    }
-  }
-
   function pickBackstage(c: BackstageChoice) {
     setBackstageChoice(c);
     setPhase("chat");
   }
 
-  function backToPathPicker() {
-    setPath(null);
-    setBackstageChoice(null);
-    setMessages([]);
-    setPhase("pick_path");
-  }
-
   function continueToAccount() {
     abortRef.current?.abort();
-    setStreaming(false);
     setPhase("account");
   }
 
   // ────────────────────────────────────────────────────────────────
-  // Chat / streaming
+  // Scroll chat to bottom on new messages
   // ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, streaming]);
+  }, [messages]);
 
   // Kick off the conversation when we land on the chat phase
   useEffect(() => {
@@ -133,7 +106,6 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: opts.isOpening ? [] : history,
-          path,
           backstageChoice,
           opening: !!opts.isOpening,
         }),
@@ -153,7 +125,6 @@ export default function SignupPage() {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         acc += chunk;
-        // Flush whatever we've got into the trailing assistant bubble
         setMessages((m) => {
           const next = [...m];
           const last = next[next.length - 1];
@@ -164,7 +135,6 @@ export default function SignupPage() {
         });
       }
 
-      // If the stream produced nothing, surface a clear error instead of an empty bubble
       if (acc.trim().length === 0) {
         setMessages((m) => m.slice(0, -1));
         setStreamErr("The advisor didn't respond. Try sending again.");
@@ -206,19 +176,6 @@ export default function SignupPage() {
       return "Spotlight handle must be 3–30 chars: lowercase letters, numbers, dashes, underscores.";
     }
 
-    if (path === "opening_act") {
-      if (!f.dateOfBirth) return "Date of birth is required.";
-      const dob = new Date(f.dateOfBirth);
-      const now = new Date();
-      const age = (now.getTime() - dob.getTime()) / (365.25 * 24 * 3600 * 1000);
-      if (age < 13) return "Opening Act requires creators to be at least 13.";
-      if (age >= 18) return "You're 18 or older — please go back and choose Spotlight.";
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.parentalEmail)) {
-        return "A parent or guardian's email is required.";
-      }
-      if (!f.parentalConsent) return "Parental consent must be confirmed.";
-    }
-
     if (backstageChoice === "with_backstage") {
       if (!HANDLE_RE.test(f.backstageHandle)) {
         return "Backstage handle must be 3–30 chars: lowercase letters, numbers, dashes, underscores.";
@@ -256,23 +213,15 @@ export default function SignupPage() {
       // 2. Build the rows to insert
       const rows: Database["public"]["Tables"]["creator_profiles"]["Insert"][] = [];
 
-      // Always create a 'spotlight' kind row. creator_type is what governs the tier.
       rows.push({
         user_id: userId,
         kind: "spotlight",
         handle: form.spotlightHandle,
         display_name: form.displayName,
-        creator_type: path === "opening_act" ? "opening_act" : "spotlight",
+        creator_type: "spotlight",
         linked: false,
-        ...(path === "opening_act"
-          ? {
-              date_of_birth: form.dateOfBirth,
-              parental_consent_at: new Date().toISOString(),
-            }
-          : {}),
       });
 
-      // If they opted into Backstage, create the second profile row
       if (backstageChoice === "with_backstage") {
         rows.push({
           user_id: userId,
@@ -284,7 +233,9 @@ export default function SignupPage() {
         });
       }
 
-      const { error: insertErr } = await supabase.from("creator_profiles").insert(rows);
+      const { error: insertErr } = await supabase
+        .from("creator_profiles")
+        .insert(rows);
       if (insertErr) throw insertErr;
 
       router.push("/dashboard");
@@ -305,22 +256,16 @@ export default function SignupPage() {
           <div className="brand">
             Spot<span>light</span>ly
           </div>
-          <PhaseDots phase={phase} path={path} />
+          <PhaseDots phase={phase} />
         </header>
 
         <div className="stage">
-          {phase === "pick_path" && <PathPicker onPick={pickPath} />}
-
           {phase === "pick_backstage" && (
-            <BackstagePicker
-              onPick={pickBackstage}
-              onBack={backToPathPicker}
-            />
+            <BackstagePicker onPick={pickBackstage} />
           )}
 
           {phase === "chat" && (
             <ChatStage
-              path={path!}
               backstageChoice={backstageChoice}
               messages={messages}
               chatInput={chatInput}
@@ -335,7 +280,6 @@ export default function SignupPage() {
 
           {phase === "account" && (
             <AccountForm
-              path={path!}
               backstageChoice={backstageChoice}
               form={form}
               setForm={setForm}
@@ -356,12 +300,8 @@ export default function SignupPage() {
 // Sub-components
 // ──────────────────────────────────────────────────────────────────
 
-function PhaseDots({ phase, path }: { phase: Phase; path: Path | null }) {
-  // Hide the backstage step if we're on the opening_act track
-  const steps: Phase[] =
-    path === "opening_act"
-      ? ["pick_path", "chat", "account"]
-      : ["pick_path", "pick_backstage", "chat", "account"];
+function PhaseDots({ phase }: { phase: Phase }) {
+  const steps: Phase[] = ["pick_backstage", "chat", "account"];
   const idx = steps.indexOf(phase);
 
   return (
@@ -376,73 +316,22 @@ function PhaseDots({ phase, path }: { phase: Phase; path: Path | null }) {
   );
 }
 
-function PathPicker({ onPick }: { onPick: (p: Path) => void }) {
+function BackstagePicker({
+  onPick,
+}: {
+  onPick: (c: BackstageChoice) => void;
+}) {
   return (
     <div className="picker">
       <p className="kicker">Step One</p>
       <h1 className="title">
-        Where does <em>your story</em> start?
-      </h1>
-      <p className="lede">
-        Pick the stage you're stepping onto. You can grow into the others later.
-      </p>
-
-      <div className="cards two">
-        <button className="choice open" onClick={() => onPick("opening_act")}>
-          <div className="choice-rule" />
-          <div className="choice-tag">Ages 13–17</div>
-          <div className="choice-name">Opening Act</div>
-          <p className="choice-desc">
-            Your first audience. Safe, age-appropriate tools for young creators
-            building toward their headline moment. Parental consent required.
-          </p>
-          <div className="choice-meta">
-            <span>SFW only</span>
-            <span>Parental dashboard</span>
-            <span>Auto-graduates at 18</span>
-          </div>
-        </button>
-
-        <button className="choice spot" onClick={() => onPick("spotlight")}>
-          <div className="choice-rule" />
-          <div className="choice-tag">Ages 18+</div>
-          <div className="choice-name">Spotlight</div>
-          <p className="choice-desc">
-            Center stage. The default tier where most careers get built —
-            subscriptions, locked posts, tips, live, merch. SFW content.
-          </p>
-          <div className="choice-meta">
-            <span>Full monetization</span>
-            <span>Custom subdomain</span>
-            <span>Stripe payouts</span>
-          </div>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function BackstagePicker({
-  onPick,
-  onBack,
-}: {
-  onPick: (c: BackstageChoice) => void;
-  onBack: () => void;
-}) {
-  return (
-    <div className="picker">
-      <button className="back-link" onClick={onBack}>
-        ← back
-      </button>
-      <p className="kicker">Step Two</p>
-      <h1 className="title">
         Are you opening <em>a Backstage</em> too?
       </h1>
       <p className="lede">
-        Backstage is our adult-content tier. It's a separate public profile —
-        nobody sees the connection to your Spotlight unless you choose to link
-        them. You can add it later from your dashboard, but if you know now, it
-        saves a step.
+        Backstage is our adult-content tier. It&apos;s a separate public
+        profile — nobody sees the connection to your Spotlight unless you choose
+        to link them. You can add it later from your dashboard, but if you know
+        now, it saves a step.
       </p>
 
       <div className="cards two">
@@ -473,8 +362,8 @@ function BackstagePicker({
           <div className="choice-name">Spotlight + Backstage</div>
           <p className="choice-desc">
             Two public profiles, one dashboard, one wallet. Linked or unlinked
-            is your call — and it's off by default. Age verification and 2257
-            records handled before you publish.
+            is your call — and it&apos;s off by default. Age verification and
+            2257 records handled before you publish.
           </p>
           <div className="choice-meta">
             <span>Two handles</span>
@@ -488,7 +377,6 @@ function BackstagePicker({
 }
 
 function ChatStage({
-  path,
   backstageChoice,
   messages,
   chatInput,
@@ -499,7 +387,6 @@ function ChatStage({
   onContinue,
   chatEndRef,
 }: {
-  path: Path;
   backstageChoice: BackstageChoice | null;
   messages: ChatMessage[];
   chatInput: string;
@@ -515,22 +402,23 @@ function ChatStage({
 
   return (
     <div className="chat-stage">
-      <p className="kicker">Step {path === "opening_act" ? "Two" : "Three"}</p>
+      <p className="kicker">Step Two</p>
       <h1 className="title">
-        Now let's <em>shape your stage.</em>
+        Now let&apos;s <em>shape your stage.</em>
       </h1>
       <p className="lede">
-        A quick conversation about what you make and who it's for. We'll use it
-        to set up your profile sensibly. No wrong answers.
+        A quick conversation about what you make and who it&apos;s for.
+        We&apos;ll use it to set up your profile sensibly. No wrong answers.
       </p>
 
-      <PathBadge path={path} backstageChoice={backstageChoice} />
+      <PathBadge backstageChoice={backstageChoice} />
 
       <div className="chat">
         <div className="chat-scroll">
           {messages.map((m, i) => (
             <div key={i} className={`bubble ${m.role}`}>
-              {m.content || (streaming && i === messages.length - 1 ? <Dots /> : null)}
+              {m.content ||
+                (streaming && i === messages.length - 1 ? <Dots /> : null)}
             </div>
           ))}
           {streamErr && <div className="bubble error">⚠ {streamErr}</div>}
@@ -565,28 +453,16 @@ function ChatStage({
 }
 
 function PathBadge({
-  path,
   backstageChoice,
 }: {
-  path: Path;
   backstageChoice: BackstageChoice | null;
 }) {
-  const items: { label: string; cls: string }[] = [];
-  if (path === "opening_act") {
-    items.push({ label: "Opening Act", cls: "open" });
-  } else {
-    items.push({ label: "Spotlight", cls: "spot" });
-    if (backstageChoice === "with_backstage") {
-      items.push({ label: "+ Backstage", cls: "back" });
-    }
-  }
   return (
     <div className="path-badge">
-      {items.map((it) => (
-        <span key={it.label} className={`pb ${it.cls}`}>
-          {it.label}
-        </span>
-      ))}
+      <span className="pb spot">Spotlight</span>
+      {backstageChoice === "with_backstage" && (
+        <span className="pb back">+ Backstage</span>
+      )}
     </div>
   );
 }
@@ -602,7 +478,6 @@ function Dots() {
 }
 
 function AccountForm({
-  path,
   backstageChoice,
   form,
   setForm,
@@ -610,7 +485,6 @@ function AccountForm({
   formErr,
   onSubmit,
 }: {
-  path: Path;
   backstageChoice: BackstageChoice | null;
   form: AccountForm;
   setForm: React.Dispatch<React.SetStateAction<AccountForm>>;
@@ -628,9 +502,7 @@ function AccountForm({
       <h1 className="title">
         Claim <em>your handle.</em>
       </h1>
-      <p className="lede">
-        Last bit. After this you're in the dashboard.
-      </p>
+      <p className="lede">Last bit. After this you&apos;re in the dashboard.</p>
 
       <form className="account-form" onSubmit={onSubmit}>
         <div className="field-row">
@@ -677,7 +549,9 @@ function AccountForm({
           <input
             type="text"
             value={form.spotlightHandle}
-            onChange={(e) => update("spotlightHandle", e.target.value.toLowerCase())}
+            onChange={(e) =>
+              update("spotlightHandle", e.target.value.toLowerCase())
+            }
             placeholder="your-handle"
             required
           />
@@ -687,7 +561,9 @@ function AccountForm({
           <label>
             <span>
               Backstage handle
-              <em className="hint">A different handle keeps your identities separate</em>
+              <em className="hint">
+                A different handle keeps your identities separate
+              </em>
             </span>
             <input
               type="text"
@@ -699,43 +575,6 @@ function AccountForm({
               required
             />
           </label>
-        )}
-
-        {path === "opening_act" && (
-          <>
-            <label>
-              <span>Date of birth</span>
-              <input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={(e) => update("dateOfBirth", e.target.value)}
-                required
-              />
-            </label>
-
-            <label>
-              <span>Parent or guardian's email</span>
-              <input
-                type="email"
-                value={form.parentalEmail}
-                onChange={(e) => update("parentalEmail", e.target.value)}
-                placeholder="they'll be asked to confirm consent"
-                required
-              />
-            </label>
-
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={form.parentalConsent}
-                onChange={(e) => update("parentalConsent", e.target.checked)}
-              />
-              <span>
-                I confirm a parent or guardian has agreed to the creation of
-                this account.
-              </span>
-            </label>
-          </>
         )}
 
         {formErr && <div className="form-err">⚠ {formErr}</div>}
@@ -870,21 +709,6 @@ function SignupStyles() {
         color: rgba(232, 232, 240, 0.7);
         max-width: 580px;
         margin-bottom: 40px;
-      }
-
-      .back-link {
-        background: none;
-        border: none;
-        color: var(--muted);
-        font-family: "DM Mono", monospace;
-        font-size: 11px;
-        letter-spacing: 0.1em;
-        cursor: pointer;
-        padding: 0;
-        margin-bottom: 24px;
-      }
-      .back-link:hover {
-        color: var(--text);
       }
 
       /* CHOICE CARDS */
@@ -1185,8 +1009,7 @@ function SignupStyles() {
 
       .account-form input[type="text"],
       .account-form input[type="email"],
-      .account-form input[type="password"],
-      .account-form input[type="date"] {
+      .account-form input[type="password"] {
         background: var(--surface-2);
         border: 1px solid var(--border);
         padding: 14px 16px;
@@ -1202,25 +1025,6 @@ function SignupStyles() {
       }
       .account-form input::placeholder {
         color: var(--muted);
-      }
-
-      .account-form .checkbox {
-        flex-direction: row;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 14px 0;
-      }
-      .account-form .checkbox input {
-        margin-top: 3px;
-        accent-color: var(--accent-spot);
-      }
-      .account-form .checkbox > span {
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-        text-transform: none;
-        letter-spacing: 0;
-        color: rgba(232, 232, 240, 0.75);
-        line-height: 1.6;
       }
 
       .form-err {
