@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
           stripe_payment_intent_id: s.payment_intent ?? s.id,
         });
       } else {
-        await supabase.from("subscriptions").insert({
+        await (supabase as any).from("subscriptions").insert({
+          creator_profile_id: meta.creator_profile_id,
           fan_user_id: meta.user_id,
-          creator_id: meta.creator_profile_id,
           stripe_subscription_id: s.subscription,
           status: "active",
           price: amountDollars,
