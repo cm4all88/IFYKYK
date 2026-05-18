@@ -297,7 +297,7 @@ function OverviewPane({
   return (
     <div className="pane">
       <div className="pane-head">
-        <p className="kicker">Overview · {profile.kind === "spotlight" ? Spotlight : "Backstage"}</p>
+        <p className="kicker">Overview · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
         <h1 className="pane-title">
           Welcome back, <em>{profile.display_name ?? profile.handle}</em>.
         </h1>
@@ -416,7 +416,7 @@ function ProfilePane({
   return (
     <div className="pane">
       <div className="pane-head">
-        <p className="kicker">Profile · {profile.kind === "spotlight" ? Spotlight : "Backstage"}</p>
+        <p className="kicker">Profile · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
         <h1 className="pane-title">
           Make it <em>yours.</em>
         </h1>
@@ -564,7 +564,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     <div className="pane">
       <div className="pane-head pane-head--row">
         <div>
-          <p className="kicker">Posts · {profile.kind === "spotlight" ? Spotlight : "Backstage"}</p>
+          <p className="kicker">Posts · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
           <h1 className="pane-title">Your work.</h1>
         </div>
         <button
