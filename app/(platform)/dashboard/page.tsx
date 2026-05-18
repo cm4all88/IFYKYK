@@ -388,18 +388,18 @@ function OverviewPane({
 
       {/* Quick actions */}
       <div className="quick">
-        <button onClick={() => setPane("profile")} className="quick-card" style={{ textAlign: "left", background: "none", border: "inherit", cursor: "pointer", padding: "inherit", width: "100%", font: "inherit" }}>
+        <Link href="/dashboard?pane=profile" className="quick-card">
           <h4>Edit your profile</h4>
           <p>Bio, avatar, cover. Make it yours.</p>
-        </button>
-        <button onClick={() => setPane("posts")} className="quick-card" style={{ textAlign: "left", background: "none", border: "inherit", cursor: "pointer", padding: "inherit", width: "100%", font: "inherit" }}>
+        </Link>
+        <Link href="/dashboard?pane=posts" className="quick-card">
           <h4>New post</h4>
           <p>Get something out there.</p>
-        </button>
-        <button onClick={() => setPane("payments")} className="quick-card" style={{ textAlign: "left", background: "none", border: "inherit", cursor: "pointer", padding: "inherit", width: "100%", font: "inherit" }}>
+        </Link>
+        <Link href="/dashboard?pane=payments" className="quick-card">
           <h4>Connect Stripe</h4>
           <p>Required before fans can pay you.</p>
-        </button>
+        </Link>
         <Link href="/messages" className="quick-card">
           <h4>Messages</h4>
           <p>Fan inbox and Front Row messages.</p>
