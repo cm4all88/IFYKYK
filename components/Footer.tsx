@@ -34,8 +34,8 @@ export default function Footer() {
           gap: var(--s-4);
         }
         .site-footer-brand {
-          font-family: var(--font-display);
-          font-weight: 700;
+          font-family: var(--font-serif);
+          font-weight: 400;
           font-size: 18px;
           font-weight: 300;
           color: var(--text-soft);

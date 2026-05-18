@@ -266,27 +266,29 @@ img { max-width: 100%; display: block; }
 /* HERO */
 .hero {
   position: relative;
-  min-height: 100vh;
+  min-height: 92vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   overflow: hidden;
   background: var(--bg);
+  padding-top: 80px;
 }
 
 /* The spotlight — the signature mechanic */
 .hero-spotlight {
   position: absolute;
-  top: -10%;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: min(900px, 100vw);
-  height: 120%;
+  width: min(1000px, 100vw);
+  height: 100%;
   background:
-    radial-gradient(ellipse 50% 70% at 50% 0%,
-      rgba(240,180,41,0.18) 0%,
-      rgba(240,180,41,0.06) 35%,
-      transparent 65%);
+    radial-gradient(ellipse 55% 65% at 50% 5%,
+      rgba(240,180,41,0.2) 0%,
+      rgba(240,180,41,0.08) 40%,
+      transparent 68%);
   pointer-events: none;
   animation: spotlight-breathe 6s ease-in-out infinite alternate;
 }
@@ -296,8 +298,8 @@ img { max-width: 100%; display: block; }
   left: 50%;
   transform: translateX(-50%);
   width: 1px;
-  height: 100%;
-  background: linear-gradient(to bottom, rgba(240,180,41,0.4) 0%, transparent 60%);
+  height: 65%;
+  background: linear-gradient(to bottom, rgba(240,180,41,0.5) 0%, rgba(240,180,41,0.15) 60%, transparent 100%);
   pointer-events: none;
 }
 @keyframes spotlight-breathe {
@@ -379,10 +381,10 @@ img { max-width: 100%; display: block; }
 }
 
 .hero-lede {
-  font-size: clamp(16px, 2vw, 20px);
-  line-height: 1.65;
-  color: var(--text-soft);
-  max-width: 560px;
+  font-size: clamp(16px, 1.8vw, 18px);
+  line-height: 1.7;
+  color: rgba(242,242,240,0.82);
+  max-width: 520px;
   margin: 0 auto var(--s-10);
   font-weight: 400;
 }
@@ -393,6 +395,10 @@ img { max-width: 100%; display: block; }
   justify-content: center;
   flex-wrap: wrap;
   margin-bottom: var(--s-12);
+}
+.hero-actions .btn--secondary {
+  border-radius: var(--r-pill);
+  padding: 13px 24px;
 }
 .hero-cta {
   font-size: 15px;
@@ -421,12 +427,12 @@ img { max-width: 100%; display: block; }
 .hero-stat-num {
   display: block;
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: var(--accent);
+  color: var(--accent-bright);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .hero-stat-label {
   display: block;

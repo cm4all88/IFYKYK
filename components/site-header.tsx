@@ -64,10 +64,10 @@ export default async function SiteHeader({
           display: flex; align-items: center; justify-content: space-between; gap: var(--s-6);
         }
         .sh-brand {
-          font-family: var(--font-display);
-          font-size: 20px;
-          font-weight: 800;
-          letter-spacing: -0.03em;
+          font-family: var(--font-serif);
+          font-size: 24px;
+          font-weight: 400;
+          letter-spacing: -0.01em;
           color: var(--text);
         }
         .sh-brand span { color: var(--accent); }
