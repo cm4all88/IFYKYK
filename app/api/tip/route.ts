@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL(`/login?return=/${profile?.handle ?? ""}`, req.url));
+  if (!user) return NextResponse.redirect(new URL("/login", req.url));
 
   const { data: profile } = await supabase
     .from("creator_profiles")
