@@ -726,6 +726,133 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
 // Helpers
 // ──────────────────────────────────────────────────────────────────
 
+// ──────────────────────────────────────────────────────────────────
+// PANE: Payments — Stripe Connect + CCBill setup
+// ──────────────────────────────────────────────────────────────────
+function PaymentsPane({ profile }: { profile: Profile }) {
+  const [connecting, setConnecting] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+  const stripeConnected = !!(profile as any).stripe_account_id;
+
+  async function connectStripe() {
+    setConnecting(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/stripe/connect/start", { method: "POST" });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      window.location.href = data.url;
+    } catch (e: any) {
+      setErr(e.message);
+      setConnecting(false);
+    }
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Payments</p>
+        <h1 className="pane-title">Get <em>paid.</em></h1>
+        <p className="pane-lede">Connect your payment accounts so fans can subscribe and tip you. Payment buttons on your public page stay disabled until Stripe is connected.</p>
+      </div>
+      {err && <div style={{ background:"var(--red-soft)",border:"1px solid var(--red-border)",borderRadius:"var(--r-2)",padding:"12px 18px",marginBottom:"var(--s-6)",fontSize:13,color:"var(--red)" }}>⚠ {err}</div>}
+      <div style={{ display:"flex",flexDirection:"column",gap:2,marginBottom:"var(--s-10)" }}>
+        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",borderTop:"2px solid var(--accent)",padding:"var(--s-8) var(--s-6)" }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"var(--s-4)" }}>
+            <div>
+              <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Spotlight payments</p>
+              <h3 style={{ fontFamily:"var(--font-serif)",fontSize:26,fontWeight:400,color:"#fff",margin:0 }}>Stripe Connect</h3>
+            </div>
+            <span style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".14em",textTransform:"uppercase" as const,padding:"4px 10px",border:"1px solid",borderRadius:"var(--r-1)",color:stripeConnected?"var(--accent-open)":"var(--muted)",borderColor:stripeConnected?"rgba(110,231,183,.25)":"var(--border)",background:stripeConnected?"rgba(110,231,183,.08)":"rgba(255,255,255,.03)" }}>
+              {stripeConnected ? "Connected" : "Not connected"}
+            </span>
+          </div>
+          <p style={{ fontSize:13,color:"var(--text-soft)",lineHeight:1.75,marginBottom:"var(--s-5)" }}>
+            {stripeConnected ? "Your Stripe account is connected. Fans can subscribe and tip you." : "Takes about 3 minutes — you'll need your legal name, address, SSN (last 4), and bank account."}
+          </p>
+          {stripeConnected ? (
+            <a href="https://dashboard.stripe.com" target="_blank" rel="noopener" className="btn btn--secondary btn--small">Stripe Dashboard →</a>
+          ) : (
+            <button onClick={connectStripe} disabled={connecting} className="btn btn--primary">
+              {connecting ? "Redirecting to Stripe..." : "Connect Stripe — 3 minutes"}
+            </button>
+          )}
+        </div>
+        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",padding:"var(--s-6)" }}>
+          <h3 style={{ fontFamily:"var(--font-serif)",fontSize:20,fontWeight:400,color:"#fff",marginBottom:"var(--s-3)" }}>Fee summary</h3>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--s-1)" }}>
+            {[
+              { label:"Your monthly Spotlightly fee", val:"Flat, based on subscriber count" },
+              { label:"Stripe processing", val:"2.9% + 30¢ per transaction (Stripe's fee, not ours)" },
+              { label:"Tips", val:"0% — you keep 100%" },
+              { label:"Subscriptions", val:"0% — you keep 100% (minus Stripe)" },
+              { label:"Front Row Messages", val:"50% to you, 50% platform" },
+              { label:"Super Tips", val:"85% to you, 15% platform" },
+            ].map((r, i) => (
+              <div key={i} style={{ background:"var(--surface-2)",border:"1px solid var(--border)",padding:"var(--s-3) var(--s-4)" }}>
+                <div style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase" as const,color:"var(--muted)",marginBottom:4 }}>{r.label}</div>
+                <div style={{ fontSize:13,color:"var(--text)" }}>{r.val}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Moderation — creator's flagged content
+// ──────────────────────────────────────────────────────────────────
+function ModerationPane({ profile }: { profile: Profile }) {
+  const [events, setEvents] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const supabase = createClient();
+
+  React.useEffect(() => {
+    async function load() {
+      const { data } = await (supabase as any)
+        .from("moderation_events")
+        .select("*")
+        .eq("creator_id", (profile as any).id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setEvents(data ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Moderation</p>
+        <h1 className="pane-title">Your <em>flags.</em></h1>
+        <p className="pane-lede">AI reviews every post before it goes live. Flagged content appears here.</p>
+      </div>
+      {loading && <p style={{ color:"var(--muted)",fontSize:14 }}>Loading...</p>}
+      {!loading && events.length === 0 && (
+        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",padding:"var(--s-10)",textAlign:"center" as const }}>
+          <p style={{ fontFamily:"var(--font-serif)",fontSize:22,fontStyle:"italic",color:"#fff",marginBottom:"var(--s-2)" }}>All clear.</p>
+          <p style={{ fontSize:13,color:"var(--muted)" }}>No flagged content on your profile.</p>
+        </div>
+      )}
+      <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
+        {events.map((e: any) => (
+          <div key={e.id} style={{ background:"var(--surface)",border:"1px solid var(--border)",borderLeft:`3px solid ${e.severity==="critical"||e.severity==="high"?"var(--red)":"var(--accent)"}`,padding:"var(--s-5) var(--s-6)" }}>
+            <div style={{ display:"flex",gap:"var(--s-3)",marginBottom:"var(--s-3)",flexWrap:"wrap" as const }}>
+              <span style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase" as const,padding:"3px 8px",borderRadius:"var(--r-1)",border:"1px solid",color:e.severity==="critical"||e.severity==="high"?"var(--red)":"var(--accent)",background:e.severity==="critical"||e.severity==="high"?"var(--red-soft)":"rgba(245,200,66,.08)",borderColor:e.severity==="critical"||e.severity==="high"?"var(--red-border)":"rgba(245,200,66,.25)" }}>{e.severity}</span>
+            </div>
+            <p style={{ fontSize:13,color:"var(--text-soft)",lineHeight:1.65,marginBottom:"var(--s-2)" }}>{e.flag_reason ?? "Content flagged for review"}</p>
+            <p style={{ fontFamily:"var(--font-mono)",fontSize:10,color:"var(--muted)" }}>{new Date(e.created_at).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 function PaneButton({
   current,
   target,
