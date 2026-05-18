@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    // Pass creator handle as return URL so fan lands back after login
+    const handle = (await (supabase as any).from("creator_profiles").select("handle").eq("id", creatorProfileId).maybeSingle()).data?.handle ?? "";
+    return NextResponse.redirect(new URL(`/login?return=/${handle}`, req.url));
   }
 
   // Look up creator + (optional) channel for pricing
@@ -60,8 +62,8 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][unit_amount]": String(priceCents),
     "line_items[0][price_data][recurring][interval]": "month",
     "line_items[0][quantity]": "1",
-    "success_url": `${new URL(req.url).origin}/c/${profile.handle}?subscribed=1`,
-    "cancel_url": `${new URL(req.url).origin}/c/${profile.handle}`,
+    "success_url": `${new URL(req.url).origin}/${profile.handle}?subscribed=1`,
+    "cancel_url": `${new URL(req.url).origin}/${profile.handle}`,
     "client_reference_id": user.id,
     "metadata[creator_profile_id]": creatorProfileId,
     "metadata[channel_id]": typeof channelId === "string" ? channelId : "",

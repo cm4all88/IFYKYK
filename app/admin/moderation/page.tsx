@@ -137,7 +137,7 @@ export default async function ModerationPage(props: {
                   <span className={`badge ${severityColor[e.severity] ?? "badge--dim"}`}>{e.severity}</span>
                   <span className="badge badge--dim">{e.content_type}</span>
                   {e.creator_profiles && (
-                    <a href={`/c/${e.creator_profiles.handle}`} target="_blank" style={{ fontSize: 12, color: "var(--spot)", textDecoration: "none" }}>
+                    <a href={`/${e.creator_profiles.handle}`} target="_blank" style={{ fontSize: 12, color: "var(--spot)", textDecoration: "none" }}>
                       @{e.creator_profiles.handle}
                     </a>
                   )}

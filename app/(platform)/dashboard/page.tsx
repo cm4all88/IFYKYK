@@ -1,9 +1,11 @@
 "use client";
+import React from "react";
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // ──────────────────────────────────────────────────────────────────
 // Types — defensive, mirror what's actually in the DB
@@ -23,7 +25,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "settings";
+type Pane = "overview" | "profile" | "posts" | "payments" | "moderation" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -43,7 +45,7 @@ export default function DashboardPage() {
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "settings"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "payments", "moderation", "settings"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -149,9 +151,10 @@ export default function DashboardPage() {
           </Link>
 
           <div className="db-top-right">
+              <ThemeToggle />
             {spotlight && (
               <Link
-                href={`/c/${spotlight.handle}`}
+                href={`/${spotlight.handle}`}
                 className="db-view-link"
                 target="_blank"
                 rel="noopener"
@@ -217,6 +220,30 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="settings" onClick={setPane}>
               Settings
             </PaneButton>
+            <PaneButton current={pane} target="payments" onClick={setPane}>
+              Payments
+            </PaneButton>
+            <PaneButton current={pane} target="moderation" onClick={setPane}>
+              Moderation
+            </PaneButton>
+
+            <div style={{ margin: "var(--s-4) 0 var(--s-2)", padding: "0 0 var(--s-2)", borderBottom: "1px solid var(--border)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)" }}>Pages</span>
+            </div>
+            {[
+              { href: "/messages", label: "Messages" },
+              { href: "/live", label: "Go Live" },
+              { href: "/merch", label: "Merch" },
+              { href: "/archive", label: "Archive" },
+              { href: "/help", label: "Help" },
+            ].map(item => (
+              <Link key={item.href} href={item.href} style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".08em", color: "var(--muted)", padding: "7px var(--s-4)", borderLeft: "2px solid transparent", transition: "all .15s" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--text)"; (e.currentTarget as HTMLAnchorElement).style.borderLeftColor = "var(--border-strong)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--muted)"; (e.currentTarget as HTMLAnchorElement).style.borderLeftColor = "transparent"; }}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           {/* Backstage upsell — only if they don't have one yet and they're 18+ */}
@@ -268,6 +295,12 @@ export default function DashboardPage() {
 
           {pane === "settings" && active && (
             <SettingsPane profile={active} userEmail={userEmail} />
+          )}
+          {pane === "payments" && spotlight && (
+            <PaymentsPane profile={spotlight} />
+          )}
+          {pane === "moderation" && spotlight && (
+            <ModerationPane profile={spotlight} />
           )}
         </section>
       </div>
@@ -355,13 +388,37 @@ function OverviewPane({
 
       {/* Quick actions */}
       <div className="quick">
-        <Link href="#profile" className="quick-card">
+        <button onClick={() => setPane("profile")} className="quick-card" style={{ textAlign: "left", background: "none", border: "inherit", cursor: "pointer", padding: "inherit", width: "100%", font: "inherit" }}>
           <h4>Edit your profile</h4>
           <p>Bio, avatar, cover. Make it yours.</p>
+        </button>
+        <button onClick={() => setPane("posts")} className="quick-card" style={{ textAlign: "left", background: "none", border: "inherit", cursor: "pointer", padding: "inherit", width: "100%", font: "inherit" }}>
+          <h4>New post</h4>
+          <p>Get something out there.</p>
+        </button>
+        <button onClick={() => setPane("payments")} className="quick-card" style={{ textAlign: "left", background: "none", border: "inherit", cursor: "pointer", padding: "inherit", width: "100%", font: "inherit" }}>
+          <h4>Connect Stripe</h4>
+          <p>Required before fans can pay you.</p>
+        </button>
+        <Link href="/messages" className="quick-card">
+          <h4>Messages</h4>
+          <p>Fan inbox and Front Row messages.</p>
         </Link>
-        <Link href="#posts" className="quick-card">
-          <h4>Write your first post</h4>
-          <p>Get something out there. Even a hello.</p>
+        <Link href="/live" className="quick-card">
+          <h4>Go Live</h4>
+          <p>Stream to fans. First hour free.</p>
+        </Link>
+        <Link href="/merch" className="quick-card">
+          <h4>Merch</h4>
+          <p>Sell branded products via Printful.</p>
+        </Link>
+        <Link href="/archive" className="quick-card">
+          <h4>Archive</h4>
+          <p>View and restore archived posts.</p>
+        </Link>
+        <Link href="/help" className="quick-card">
+          <h4>Help</h4>
+          <p>Setup guide and support.</p>
         </Link>
       </div>
     </div>
@@ -652,7 +709,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
       <div className="settings-block">
         <p className="label">Public URL</p>
         <p className="settings-val">
-          <Link href={`/c/${profile.handle}`} className="settings-link" target="_blank">
+          <Link href={`/${profile.handle}`} className="settings-link" target="_blank">
             spotlightly.app/c/{profile.handle} →
           </Link>
         </p>

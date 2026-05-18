@@ -168,7 +168,7 @@ export default async function CreatorsPage(props: {
                         </form>
                       )}
                       <a
-                        href={`/c/${c.handle}`}
+                        href={`/${c.handle}`}
                         target="_blank"
                         className="adm-btn adm-btn--ghost"
                         style={{ padding: "5px 12px" }}

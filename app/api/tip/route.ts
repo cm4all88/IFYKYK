@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", req.url));
+  if (!user) return NextResponse.redirect(new URL(`/login?return=/${profile?.handle ?? ""}`, req.url));
 
   const { data: profile } = await supabase
     .from("creator_profiles")
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][product_data][name]": `Tip for @${profile.handle}`,
     "line_items[0][price_data][unit_amount]": String(Math.round(amountUsd * 100)),
     "line_items[0][quantity]": "1",
-    "success_url": `${new URL(req.url).origin}/c/${profile.handle}?tipped=1`,
-    "cancel_url": `${new URL(req.url).origin}/c/${profile.handle}`,
+    "success_url": `${new URL(req.url).origin}/${profile.handle}?tipped=1`,
+    "cancel_url": `${new URL(req.url).origin}/${profile.handle}`,
     "client_reference_id": user.id,
     "metadata[creator_profile_id]": creatorProfileId,
     "metadata[user_id]": user.id,

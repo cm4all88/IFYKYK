@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
+import Footer from "@/components/Footer";
 
 export const metadata = {
   title: "Spotlightly · Every creator deserves a spotlight",
@@ -311,17 +312,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="lp-footer">
-        <div className="lp-footer-inner">
-          <Link href="/" className="lp-footer-brand">
-            Spot<span>light</span>ly
-          </Link>
-          <p className="lp-footer-meta">
-            A Tahoma Systems product · Every creator deserves a spotlight.
-          </p>
-        </div>
-      </footer>
+      <Footer />
 
       <style>{`
         /* ── COMPARE ── */

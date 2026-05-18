@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default async function SiteHeader({
   variant = "default",
@@ -19,6 +20,7 @@ export default async function SiteHeader({
         </Link>
 
         <nav className="sh-nav">
+          <ThemeToggle />
           {user ? (
             <>
               <Link href="/dashboard" className="sh-link">

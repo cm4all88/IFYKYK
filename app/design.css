@@ -8,22 +8,22 @@
 
 :root {
   /* Surfaces */
-  --bg: #0a0a0f;
-  --bg-elevated: #0d0d14;
-  --surface: #111118;
-  --surface-2: #161620;
-  --surface-3: #1c1c28;
+  --bg: #0c0c12;
+  --bg-elevated: #101018;
+  --surface: #14141e;
+  --surface-2: #1a1a26;
+  --surface-3: #202030;
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.22);
 
   /* Text */
-  --text: #e8e8f0;
-  --text-soft: rgba(232, 232, 240, 0.75);
-  --text-faint: rgba(232, 232, 240, 0.55);
-  --muted: #6b6b80;
-  --muted-faint: #4a4a5c;
+  --text: #eeeef8;
+  --text-soft: rgba(238, 238, 248, 0.82);
+  --text-faint: rgba(238, 238, 248, 0.6);
+  --muted: #8080a0;
+  --muted-faint: #55556a;
 
   /* Accents — bible's canonical tier colors */
   --accent: #f5c842;          /* Spotlight gold, primary brand */
@@ -72,6 +72,54 @@
   --container-wide: 1200px;
   --container-narrow: 720px;
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Light mode — [data-theme="light"] on <html>
+   ────────────────────────────────────────────────────────────────── */
+
+[data-theme="light"] {
+  --bg: #f6f5f0;
+  --bg-elevated: #eeede6;
+  --surface: #ffffff;
+  --surface-2: #f0efe8;
+  --surface-3: #e8e7df;
+
+  --border: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.22);
+
+  --text: #111118;
+  --text-soft: rgba(17, 17, 24, 0.78);
+  --text-faint: rgba(17, 17, 24, 0.55);
+  --muted: #7070888;
+  --muted-faint: #9090a8;
+
+  --accent: #c49a08;
+  --accent-soft: rgba(196, 154, 8, 0.1);
+  --accent-border: rgba(196, 154, 8, 0.3);
+  --accent-spot: #c49a08;
+  --accent-open: #0d9e6e;
+  --accent-back: #8b3bc4;
+
+  --red: #dc2626;
+  --red-soft: rgba(220, 38, 38, 0.08);
+  --red-border: rgba(220, 38, 38, 0.2);
+}
+
+/* Smooth theme transitions */
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+/* Exclude transitions that cause jank */
+button, a, input, textarea, select, img, video {
+  transition: none;
+}
+button { transition: opacity 0.15s, transform 0.15s; }
+a { transition: color 0.15s; }
+input, textarea, select { transition: border-color 0.15s; }
+
 
 /* ──────────────────────────────────────────────────────────────────
    Reset + base

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase-client";
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const returnUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("return") || "/dashboard" : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +28,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(returnUrl);
     router.refresh();
   }
 
@@ -80,7 +81,7 @@ export default function LoginPage() {
           <p className="lg-footer">
             New here?{" "}
             <Link href="/signup" className="lg-link">
-              Become a creator
+              Create an account
             </Link>
           </p>
         </div>
