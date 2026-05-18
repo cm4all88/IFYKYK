@@ -34,7 +34,8 @@ export default function Footer() {
           gap: var(--s-4);
         }
         .site-footer-brand {
-          font-family: var(--font-serif);
+          font-family: var(--font-display);
+          font-weight: 700;
           font-size: 18px;
           font-weight: 300;
           color: var(--text-soft);
@@ -46,7 +47,8 @@ export default function Footer() {
           gap: var(--s-6);
         }
         .site-footer-nav a {
-          font-family: var(--font-mono);
+          font-family: var(--font-display);
+          font-weight: 500;
           font-size: 10px;
           letter-spacing: 0.15em;
           text-transform: uppercase;

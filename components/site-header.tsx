@@ -47,73 +47,62 @@ export default async function SiteHeader({
 
       <style>{`
         .sh {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          background: rgba(10, 10, 15, 0.8);
+          position: sticky; top: 0; z-index: 50;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          background: rgba(9,9,12,0.85);
           border-bottom: 1px solid var(--border);
         }
         .sh--marketing {
-          background: rgba(10, 10, 15, 0.4);
-          border-bottom-color: rgba(255,255,255,0.04);
+          background: transparent;
+          border-bottom-color: transparent;
         }
         .sh-inner {
           max-width: var(--container-wide);
           margin: 0 auto;
-          padding: var(--s-4) var(--s-6);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: var(--s-6);
+          padding: 16px var(--s-6);
+          display: flex; align-items: center; justify-content: space-between; gap: var(--s-6);
         }
         .sh-brand {
-          font-family: var(--font-serif);
-          font-size: 24px;
-          font-weight: 300;
-          color: #fff;
-          letter-spacing: -0.01em;
+          font-family: var(--font-display);
+          font-size: 20px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: var(--text);
         }
         .sh-brand span { color: var(--accent); }
-
-        .sh-nav {
-          display: flex;
-          align-items: center;
-          gap: var(--s-2);
-        }
+        .sh-nav { display: flex; align-items: center; gap: var(--s-2); }
         .sh-link {
-          font-family: var(--font-mono);
-          font-size: 11px;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          color: rgba(232,232,240,0.7);
-          padding: 10px 16px;
-          background: none;
-          border: none;
+          font-family: var(--font-display);
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-soft);
+          padding: 9px 14px;
+          background: none; border: none;
           transition: color var(--t-fast);
           cursor: pointer;
         }
-        .sh-link:hover { color: #fff; }
+        .sh-link:hover { color: var(--text); }
         .sh-link-btn { font: inherit; }
-
         .sh-cta {
-          font-family: var(--font-mono);
-          font-size: 11px;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          color: var(--bg);
+          font-family: var(--font-display);
+          font-size: 13px;
+          font-weight: 700;
+          color: #0A0A0D;
           background: var(--accent);
-          padding: 10px 18px;
-          border-radius: var(--r-2);
-          font-weight: 500;
-          transition: transform var(--t-fast) var(--ease);
+          padding: 9px 18px;
+          border-radius: var(--r-pill);
+          transition: all var(--t-fast);
+          box-shadow: 0 0 0 1px rgba(240,180,41,0.3) inset;
         }
-        .sh-cta:hover { transform: translateY(-1px); }
-
-        @media (max-width: 600px) {
+        .sh-cta:hover {
+          background: var(--accent-bright);
+          box-shadow: 0 4px 20px rgba(240,180,41,0.35);
+          transform: translateY(-1px);
+        }
+        @media (max-width:600px) {
           .sh-inner { padding: var(--s-3) var(--s-4); }
-          .sh-link { padding: 8px 10px; font-size: 10px; }
+          .sh-link { padding: 7px 10px; font-size: 12px; }
         }
       `}</style>
     </header>
