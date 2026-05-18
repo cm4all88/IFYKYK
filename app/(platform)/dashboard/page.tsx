@@ -531,7 +531,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     setPosting(true);
     setErr(null);
 
-    const { error } = await supabase.from("posts").insert({
+    const { error } = await (supabase as any).from("posts").insert({
       creator_profile_id: profile.id,
       caption: body.trim(),
       tier: "free",

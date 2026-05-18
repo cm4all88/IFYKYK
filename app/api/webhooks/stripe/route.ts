@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       const platformPct = 0.15;
 
       if (meta.type === "tip") {
-        await supabase.from("tips").insert({
+        await (supabase as any).from("tips").insert({
           fan_user_id: meta.user_id,
           creator_profile_id: meta.creator_profile_id,
           amount: amountDollars,

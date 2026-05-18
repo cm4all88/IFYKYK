@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         return Response.json({ error: "Missing metadata" }, { status: 400 });
       }
 
-      await supabase.from("subscriptions").insert({
+      await (supabase as any).from("subscriptions").insert({
         creator_profile_id: creatorId,
         fan_user_id: fanUserId,
         stripe_subscription_id: sub.id,

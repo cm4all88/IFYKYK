@@ -64,7 +64,7 @@ export default function BackstageCreatePage() {
       return;
     }
 
-    const { error } = await supabase.from("creator_profiles").insert({
+    const { error } = await (supabase as any).from("creator_profiles").insert({
       user_id: user.id,
       kind: "backstage",
       handle,
