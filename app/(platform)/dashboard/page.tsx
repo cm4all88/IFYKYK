@@ -39,6 +39,15 @@ export default function DashboardPage() {
   const [backstage, setBackstage] = useState<Profile | null>(null);
   const [tab, setTab] = useState<Tab>("spotlight");
   const [pane, setPane] = useState<Pane>("overview");
+
+  // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("pane") as Pane;
+    if (p && ["overview", "profile", "posts", "settings"].includes(p)) {
+      setPane(p);
+    }
+  }, []);
+
   const [linkedToggle, setLinkedToggle] = useState(false);
   const [savingLink, setSavingLink] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -188,7 +197,7 @@ export default function DashboardPage() {
           {spotlight && !backstage && (
             <div className="db-solo">
               <span className="db-solo-tag">
-                "Spotlight"
+                Spotlight
               </span>
               <span className="db-solo-handle">@{spotlight.handle}</span>
             </div>
@@ -288,7 +297,7 @@ function OverviewPane({
   return (
     <div className="pane">
       <div className="pane-head">
-        <p className="kicker">Overview · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
+        <p className="kicker">Overview · {profile.kind === "spotlight" ? Spotlight : "Backstage"}</p>
         <h1 className="pane-title">
           Welcome back, <em>{profile.display_name ?? profile.handle}</em>.
         </h1>
@@ -407,7 +416,7 @@ function ProfilePane({
   return (
     <div className="pane">
       <div className="pane-head">
-        <p className="kicker">Profile · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
+        <p className="kicker">Profile · {profile.kind === "spotlight" ? Spotlight : "Backstage"}</p>
         <h1 className="pane-title">
           Make it <em>yours.</em>
         </h1>
@@ -555,7 +564,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     <div className="pane">
       <div className="pane-head pane-head--row">
         <div>
-          <p className="kicker">Posts · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
+          <p className="kicker">Posts · {profile.kind === "spotlight" ? Spotlight : "Backstage"}</p>
           <h1 className="pane-title">Your work.</h1>
         </div>
         <button
@@ -636,7 +645,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
             ? ""
             : profile.creator_type === "backstage"
             ? "Backstage (adult content)"
-            : "Spotlight"}
+            : Spotlight}
         </p>
       </div>
 
@@ -716,8 +725,9 @@ function DashboardStyles() {
       }
       .db-brand {
         font-family: var(--font-serif);
-        font-size: 22px;
-        color: var(--text);
+        font-size: 24px;
+        color: #fff;
+        letter-spacing: -0.01em;
       }
       .db-brand span { color: var(--accent); }
 
@@ -801,7 +811,7 @@ function DashboardStyles() {
       .db-solo {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-left: 2px solid var(--accent);
+        border-left: 3px solid var(--accent);
         border-radius: var(--r-3);
         padding: var(--s-4) var(--s-5);
         margin-bottom: var(--s-6);
@@ -817,6 +827,7 @@ function DashboardStyles() {
         color: var(--accent);
       }
       .db-solo-handle {
+        color: var(--text);
         font-family: var(--font-mono);
         font-size: 13px;
         color: var(--text);

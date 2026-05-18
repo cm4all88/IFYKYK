@@ -434,7 +434,7 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
     <form action="/api/subscribe" method="post">
       <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
       <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
-        {stripeReady ? "Subscribe" : "Subscribe · soon"}
+        Subscribe
       </button>
     </form>
   );
@@ -446,7 +446,7 @@ async function TipButton({ creatorProfileId }: { creatorProfileId: string }) {
     <form action="/api/tip" method="post">
       <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
       <button type="submit" className="btn btn--secondary" disabled={!stripeReady}>
-        {stripeReady ? "Tip" : "Tip · soon"}
+        Tip
       </button>
     </form>
   );

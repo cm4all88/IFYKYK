@@ -31,7 +31,7 @@ function buildSystem(backstageChoice: BackstageChoice): string {
 - Spotlight: ages 18+, SFW main platform (G/PG/M)
 - Backstage: ages 18+ verified, adult content (R/X), a separate public identity that can be linked or hidden from Spotlight
 
-Spotlightly takes 0% on standard tips and 10-20% on subscriptions depending on tier.
+Spotlightly charges creators a flat monthly fee based on their subscriber count — Starter $29/mo (up to 100 subscribers) through Legend $3,499/mo (unlimited). Spotlightly takes 0% of what creators earn. Creators keep 100% of their fan subscription revenue and 100% of tips. The only processing fee is Stripe's: 2.9% + 30¢ per transaction — that's Stripe's cut, not Spotlightly's. This is the core pitch against OnlyFans (which takes 20% of everything forever).
 
 [CONTEXT]
 The creator has already chosen their path: ${tierLine}.

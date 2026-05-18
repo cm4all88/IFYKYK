@@ -54,8 +54,8 @@ export default async function SiteHeader({
           border-bottom: 1px solid var(--border);
         }
         .sh--marketing {
-          background: transparent;
-          border-bottom-color: transparent;
+          background: rgba(10, 10, 15, 0.4);
+          border-bottom-color: rgba(255,255,255,0.04);
         }
         .sh-inner {
           max-width: var(--container-wide);
@@ -68,9 +68,9 @@ export default async function SiteHeader({
         }
         .sh-brand {
           font-family: var(--font-serif);
-          font-size: 22px;
+          font-size: 24px;
           font-weight: 300;
-          color: var(--text);
+          color: #fff;
           letter-spacing: -0.01em;
         }
         .sh-brand span { color: var(--accent); }
@@ -85,14 +85,14 @@ export default async function SiteHeader({
           font-size: 11px;
           letter-spacing: 0.15em;
           text-transform: uppercase;
-          color: var(--text-soft);
+          color: rgba(232,232,240,0.7);
           padding: 10px 16px;
           background: none;
           border: none;
           transition: color var(--t-fast);
           cursor: pointer;
         }
-        .sh-link:hover { color: var(--text); }
+        .sh-link:hover { color: #fff; }
         .sh-link-btn { font: inherit; }
 
         .sh-cta {
