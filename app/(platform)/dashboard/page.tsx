@@ -645,7 +645,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
             ? ""
             : profile.creator_type === "backstage"
             ? "Backstage (adult content)"
-            : Spotlight}
+            : "Spotlight"}
         </p>
       </div>
 
