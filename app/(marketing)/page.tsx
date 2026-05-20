@@ -58,7 +58,103 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── THE VENUE ── What this place is. */}
+      {/* ── PLATFORM REALITY — The money problem with social ── */}
+      <section className="reality-section">
+        <div className="reality-inner">
+          <p className="kicker">The problem with social platforms</p>
+          <h2 className="section-h">
+            You built the audience.<br />
+            <em>They kept the money.</em>
+          </h2>
+          <p style={{ fontSize:17, color:"var(--text-soft)", lineHeight:1.75, maxWidth:620, marginBottom:"var(--s-12)" }}>
+            TikTok, Instagram, and Twitter need your content to survive.
+            You post every day. They sell ads against it.
+            The math on what they pay back is almost insulting.
+          </p>
+
+          <div className="reality-grid">
+            <div className="reality-card reality-card--bad">
+              <div className="reality-platform">TikTok</div>
+              <div className="reality-pay">$0.02–$0.04</div>
+              <div className="reality-unit">per 1,000 views</div>
+              <div className="reality-note">
+                A video with 1 million views pays you $20–$40.
+                TikTok made far more than that selling ads against it.
+              </div>
+            </div>
+
+            <div className="reality-card reality-card--bad">
+              <div className="reality-platform">Instagram</div>
+              <div className="reality-pay">Today.</div>
+              <div className="reality-unit">subscriptions can be cancelled tomorrow</div>
+              <div className="reality-note">
+                Meta can cancel Instagram subscriptions the same way
+                they cancelled the Reels Play Bonus — overnight, no warning,
+                your income gone. If your livelihood depends on a feature
+                a platform controls, it was never really yours.
+              </div>
+            </div>
+
+            <div className="reality-card reality-card--bad">
+              <div className="reality-platform">X / Twitter</div>
+              <div className="reality-pay">Minimal</div>
+              <div className="reality-unit">requires X Premium + massive reach</div>
+              <div className="reality-note">
+                Ad revenue share requires a paid subscription and
+                millions of impressions. Most creators see almost nothing.
+              </div>
+            </div>
+
+            <div className="reality-card reality-card--good">
+              <div className="reality-platform">Spotlightly</div>
+              <div className="reality-pay">100%</div>
+              <div className="reality-unit">of what your fans pay</div>
+              <div className="reality-note">
+                Your audience is already there. Spotlightly is where
+                they pay you directly — subscriptions, tips, exclusive
+                content. You set the price. You keep the money.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ background:"rgba(239,68,68,0.05)", border:"1px solid var(--red-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-6)", marginBottom:"var(--s-4)", fontSize:14, color:"var(--text-soft)", lineHeight:1.75 }}>
+            <strong style={{ color:"var(--red)" }}>Platform risk is real.</strong>{" "}
+            TikTok nearly got banned in the US. Instagram killed the Reels bonus.
+            Twitter changed its monetization rules multiple times in a year.
+            When your income depends on a feature a platform controls,
+            they can take it away without warning.{" "}
+            <strong style={{ color:"var(--text)" }}>Your Spotlightly page is yours. Nobody can cancel it.</strong>
+          </div>
+
+          <div className="reality-strategy">
+            <div className="reality-strategy-head">The strategy that works</div>
+            <div className="reality-strategy-steps">
+              <div className="reality-step">
+                <span className="reality-step-num">1</span>
+                <div>
+                  <strong>Post on TikTok, Instagram, YouTube</strong> — build your audience where the discovery happens. Those platforms are great for reach.
+                </div>
+              </div>
+              <div className="reality-step-arrow">→</div>
+              <div className="reality-step">
+                <span className="reality-step-num">2</span>
+                <div>
+                  <strong>Put your Spotlightly link in your bio</strong> — one URL replaces Linktree and does something Linktree can't: it lets fans subscribe and pay you directly.
+                </div>
+              </div>
+              <div className="reality-step-arrow">→</div>
+              <div className="reality-step">
+                <span className="reality-step-num">3</span>
+                <div>
+                  <strong>Post your best work on Spotlightly</strong> — the content your fans will actually pay for. Subscribers get it. Everyone else gets a preview.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── THE VENUE ── What this place is. */}}
       <section className="venue-section">
         <div className="venue-inner">
           <p className="kicker">The venue metaphor</p>
@@ -165,73 +261,253 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── THE MONEY TRUTH — Pricing, honest and last ── */}
-      <section className="money-section">
-        <div className="money-inner">
-          <p className="kicker">How you get paid</p>
-          <h2 className="section-h">They take 20%. <em>We don&apos;t.</em></h2>
+      {/* ── CREATOR CONTROL — Know your fans, own your space ── */}
+      <section className="control-section">
+        <div className="control-inner">
+          <p className="kicker">Creator safety & control</p>
+          <h2 className="section-h">
+            You know exactly<br />
+            <em>who's in the room.</em>
+          </h2>
+          <p style={{ fontSize:17, color:"var(--text-soft)", lineHeight:1.75, maxWidth:620, marginBottom:"var(--s-12)" }}>
+            Every fan who subscribes verifies their identity — email and phone number,
+            confirmed before they access your content. Not anonymous. Not throwaway accounts.
+            Real people, accountable to their information.
+          </p>
 
-          <div className="money-split">
-            <div className="money-left">
-              <p className="money-lead">
-                Spotlightly charges a <strong>flat monthly fee</strong> based on
-                your subscriber count and takes <strong>zero percent</strong> of
-                your earnings. Your subscriptions and tips are yours.
+          <div className="control-grid">
+            <div className="control-card">
+              <div className="control-icon">👤</div>
+              <h3 className="control-title">Know who your fans are</h3>
+              <p className="control-body">
+                Every subscriber verifies their email and phone number at signup.
+                You see your audience as real, accountable people — not anonymous usernames.
               </p>
-              <p className="money-sub">
-                OnlyFans takes 20% of everything — forever.
-                At 1,000 subscribers, that&apos;s $2,000 a month they keep.
-                On Spotlightly, you&apos;d pay $249 and keep the rest.
-              </p>
-
-              <div className="breakeven-pill">
-                Spotlightly becomes cheaper than OnlyFans at just
-                <strong> $145/month in gross revenue</strong> — roughly 15 subscribers.
-              </div>
             </div>
-
-            <div className="money-right">
-              <div className="compare-table">
-                <div className="compare-header">
-                  <div />
-                  <div className="compare-col-head">OnlyFans</div>
-                  <div className="compare-col-head compare-col-head--spot">Spotlightly</div>
-                  <div className="compare-col-head compare-col-head--save">You save</div>
-                </div>
-                {([
-                  { subs:"500 fans",    gross:"$5,000/mo",   of:"$1,000",  sl:"$99/mo",    save:"$901" },
-                  { subs:"1,000 fans",  gross:"$10,000/mo",  of:"$2,000",  sl:"$249/mo",   save:"$1,751" },
-                  { subs:"5,000 fans",  gross:"$50,000/mo",  of:"$10,000", sl:"$999/mo",   save:"$9,001" },
-                  { subs:"10,000 fans", gross:"$100,000/mo", of:"$20,000", sl:"$1,999/mo", save:"$18,001" },
-                ] as const).map(row => (
-                  <div className="compare-row" key={row.subs}>
-                    <div className="compare-label">
-                      <span className="compare-subs">{row.subs}</span>
-                      <span className="compare-gross">{row.gross}</span>
-                    </div>
-                    <div className="compare-cell compare-cell--bad">{row.of}</div>
-                    <div className="compare-cell compare-cell--good">{row.sl}</div>
-                    <div className="compare-cell compare-cell--save">{row.save}</div>
-                  </div>
-                ))}
-              </div>
-              <p className="compare-note">Based on $9.99/mo subscriptions. OnlyFans takes 20% of all earnings.</p>
+            <div className="control-card">
+              <div className="control-icon">🚫</div>
+              <h3 className="control-title">Block anyone, instantly</h3>
+              <p className="control-body">
+                Block a specific fan and they&apos;re gone — from your page, your messages,
+                your subscriber list. No appeal process. Your space, your rules.
+              </p>
+            </div>
+            <div className="control-card">
+              <div className="control-icon">🌍</div>
+              <h3 className="control-title">Block entire regions</h3>
+              <p className="control-body">
+                Block subscribers from specific countries or regions entirely.
+                Whether it&apos;s for legal reasons, personal reasons, or no reason —
+                you control who can access your content geographically.
+              </p>
+            </div>
+            <div className="control-card">
+              <div className="control-icon">🔒</div>
+              <h3 className="control-title">Real contact on file</h3>
+              <p className="control-body">
+                Verified email and phone number for every subscriber.
+                If something goes wrong, you have real contact information —
+                not a throwaway account with no way to reach them.
+              </p>
             </div>
           </div>
 
-          {/* Fan extras */}
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderLeft:"3px solid var(--accent)", borderRadius:"var(--r-3)", padding:"var(--s-6) var(--s-8)", marginTop:"var(--s-4)" }}>
+            <p style={{ fontSize:15, color:"var(--text-soft)", lineHeight:1.8, margin:0 }}>
+              On TikTok or Instagram, you have no idea who&apos;s watching. You can&apos;t block someone from your content,
+              you can&apos;t verify who they are, and you have no contact information for anyone in your audience.
+              On Spotlightly, <strong style={{ color:"var(--text)" }}>your subscriber list is a real, verified,
+              accountable audience that you control completely.</strong>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── THE MONEY TRUTH ── */}}
+      <section className="money-section">
+        <div className="money-inner">
+          <p className="kicker">The honest numbers</p>
+          <h2 className="section-h">You have a following. <em>Keep what it earns.</em></h2>
+
+          <p style={{ fontSize: 17, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 640, marginBottom: "var(--s-10)" }}>
+            Every platform you&apos;re on right now is built to take a cut of your earnings. Spotlightly charges a flat monthly fee and takes nothing else. Here&apos;s how that actually plays out.
+          </p>
+
+          {/* Platform comparison grid */}
+          <div className="platform-grid">
+            {([
+              { name: "OnlyFans",    cut: "20%", note: "Of all earnings, forever",          bad: true },
+              { name: "Fansly",      cut: "20%", note: "Of all earnings",                   bad: true },
+              { name: "Patreon",     cut: "5–12%", note: "Depends on plan",                 bad: true },
+              { name: "Substack",    cut: "10%", note: "Of all paid subscriptions",         bad: true },
+              { name: "Fanvue",      cut: "15%", note: "Of all earnings",                   bad: true },
+              { name: "ManyVids",    cut: "20–40%", note: "Varies by category",             bad: true },
+              { name: "Spotlightly", cut: "0%",  note: "Flat monthly fee only. Keep everything.", bad: false },
+            ] as const).map(p => (
+              <div key={p.name} className={`platform-card${p.bad ? "" : " platform-card--us"}`}>
+                <div className="platform-name">{p.name}</div>
+                <div className={`platform-cut${p.bad ? " platform-cut--bad" : " platform-cut--good"}`}>{p.cut}</div>
+                <div className="platform-note">{p.note}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Dollar comparison at scale */}
+          <div className="scale-table">
+            <p className="kicker" style={{ marginBottom: 14 }}>What 1,000 subscribers at $9.99/mo actually means</p>
+            <div className="compare-table">
+              <div className="compare-header" style={{ gridTemplateColumns: "1fr 120px 120px 120px 140px" }}>
+                <div />
+                <div className="compare-col-head">OnlyFans</div>
+                <div className="compare-col-head">Fansly</div>
+                <div className="compare-col-head">Patreon</div>
+                <div className="compare-col-head compare-col-head--spot">Spotlightly</div>
+              </div>
+              <div className="compare-row" style={{ gridTemplateColumns: "1fr 120px 120px 120px 140px" }}>
+                <div className="compare-label">
+                  <span className="compare-subs">Gross revenue</span>
+                  <span className="compare-gross">$9,990/mo from fans</span>
+                </div>
+                <div className="compare-cell compare-cell--bad">$1,998 taken</div>
+                <div className="compare-cell compare-cell--bad">$1,998 taken</div>
+                <div className="compare-cell compare-cell--bad">~$1,199 taken</div>
+                <div className="compare-cell compare-cell--good">$249/mo flat</div>
+              </div>
+              <div className="compare-row" style={{ gridTemplateColumns: "1fr 120px 120px 120px 140px", background: "rgba(52,211,153,0.03)", borderTop: "1px solid var(--border)" }}>
+                <div className="compare-label">
+                  <span className="compare-subs" style={{ color: "var(--accent-open)" }}>You keep</span>
+                </div>
+                <div className="compare-cell compare-cell--bad">$7,992</div>
+                <div className="compare-cell compare-cell--bad">$7,992</div>
+                <div className="compare-cell compare-cell--bad">$8,791</div>
+                <div className="compare-cell compare-cell--save">$9,741</div>
+              </div>
+            </div>
+            <p className="compare-note">Patreon Pro plan (12% cut). Spotlightly Pro tier ($249/mo). All figures approximate before Stripe processing fees (2.9% + 30¢/transaction — disclosed because most platforms don&apos;t).</p>
+          </div>
+
           <div className="extras-note">
             <p className="kicker" style={{ marginBottom: 12 }}>How Spotlightly earns alongside you</p>
             <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 680 }}>
-              Platform revenue comes from optional fan purchases — Front Row Messages (50/50 split with you),
-              Super Tips (85% to you), Comment Boosts, and Early Access Passes.
+              Our revenue comes from optional fan purchases — Front Row Messages (50/50 split with you), Super Tips (85% to you), Comment Boosts, and Early Access Passes.
               <strong style={{ color: "var(--text)" }}> We make money when your fans want to do more, not by taxing what you already earn.</strong>
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── CLOSING ── */}
+      {/* ── LINK IN BIO — Linktree replacement ── */}
+      <section className="linktree-section">
+        <div className="linktree-inner">
+          <p className="kicker">Replace Linktree</p>
+          <h2 className="section-h">Your handle. <em>All your links.</em></h2>
+          <p style={{ fontSize: 17, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 580, marginBottom: "var(--s-10)" }}>
+            Your Spotlightly page is your link in bio. Connect your TikTok, Instagram,
+            YouTube, X, Twitch, and anywhere else you post. One URL. Every platform. No middleman.
+          </p>
+          <div className="social-grid">
+            {([
+              { name: "TikTok", icon: "📱" },
+              { name: "Instagram", icon: "📸" },
+              { name: "YouTube", icon: "▶" },
+              { name: "X / Twitter", icon: "✕" },
+              { name: "Twitch", icon: "🎮" },
+              { name: "Discord", icon: "💬" },
+              { name: "Substack", icon: "✉" },
+              { name: "Your website", icon: "🌐" },
+            ] as const).map(s => (
+              <div key={s.name} className="social-pill">
+                <span className="social-icon">{s.icon}</span>
+                <span className="social-name">{s.name}</span>
+              </div>
+            ))}
+          </div>
+          <div className="linktree-callout">
+            <div className="linktree-vs">
+              <div className="linktree-them">
+                <div className="linktree-them-name">Linktree</div>
+                <div className="linktree-them-note">A separate app, separate URL, separate brand. Your audience goes to Linktree, not to you.</div>
+              </div>
+              <div className="linktree-divider">vs</div>
+              <div className="linktree-ours">
+                <div className="linktree-ours-name">Spotlightly</div>
+                <div className="linktree-ours-note">Your page, your brand, your handle. Every link. And fans can subscribe while they're there.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── USE CASES — Who this is for ── */}
+      <section className="uses-section">
+        <div className="uses-inner">
+          <p className="kicker">Built for every kind of creator</p>
+          <h2 className="section-h">If you have an audience, <em>this is for you.</em></h2>
+
+          <div className="uses-grid">
+            <div className="uses-card">
+              <div className="uses-emoji">✈️</div>
+              <h3 className="uses-title">The trip you need funding for</h3>
+              <p className="uses-body">
+                Launch a campaign. Set a goal. Supporters donate and get exclusive access —
+                behind-the-scenes posts, live streams, private content from the road
+                that your regular followers won&apos;t see.
+                Not GoFundMe. Not charity. An experience they&apos;re part of.
+              </p>
+              <div className="uses-example">"Fund my training trip to Spain — donors get daily content from camp"</div>
+            </div>
+
+            <div className="uses-card">
+              <div className="uses-emoji">💬</div>
+              <h3 className="uses-title">The help you give every day for free</h3>
+              <p className="uses-body">
+                You answer questions on TikTok and Instagram all day long.
+                People DM you on Instagram asking for advice, send you Venmo requests for help.
+                Spotlightly puts that on a proper footing — paid DMs, subscriptions,
+                locked guides, accountability check-ins. Your knowledge has value.
+              </p>
+              <div className="uses-example">"Subscribe for weekly check-ins and my full training programme"</div>
+            </div>
+
+            <div className="uses-card">
+              <div className="uses-emoji">🎓</div>
+              <h3 className="uses-title">The course you&apos;ve been meaning to build</h3>
+              <p className="uses-body">
+                Your locked posts are your curriculum. Upload the guide, the video,
+                the template, the walkthrough. Subscribers unlock it all.
+                No course platform, no monthly SaaS fee, no percentage taken.
+                Just your content behind a paywall you control.
+              </p>
+              <div className="uses-example">"Subscribe to get my full 12-week programme and coaching library"</div>
+            </div>
+
+            <div className="uses-card">
+              <div className="uses-emoji">🎁</div>
+              <h3 className="uses-title">Your wish list — with a private address</h3>
+              <p className="uses-body">
+                Add anything from any store. Fans buy it through Spotlightly — we purchase it
+                and ship it to you. Your address never leaves the platform. You see who sent
+                each gift. They never know where you live. Better than any wish list that exists.
+              </p>
+              <div className="uses-example">"Sony camera · Nike Airs · anything you actually want — your fans can send it"</div>
+            </div>
+
+            <div className="uses-card">
+              <div className="uses-emoji">🔒</div>
+              <h3 className="uses-title">The content you can&apos;t post everywhere</h3>
+              <p className="uses-body">
+                Backstage is a completely separate identity. Linked to your main page
+                or completely invisible — your call. Your employer, your family,
+                your mainstream followers never see the connection.
+                One login. One wallet. One payout. Two lives.
+              </p>
+              <div className="uses-example">"My Spotlight is my fitness page. My Backstage is mine alone."</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CLOSING ── */}}}
       <section className="closing">
         <div className="closing-inner">
           <h2 className="closing-h">Your stage is <em>waiting.</em></h2>
@@ -345,12 +621,7 @@ export default function LandingPage() {
         .money-sub {
           font-size: 14px; line-height: 1.75; color: var(--text-faint); margin-bottom: var(--s-6);
         }
-        .breakeven-pill {
-          background: var(--accent-soft); border: 1px solid var(--accent-border);
-          border-radius: var(--r-3); padding: var(--s-4) var(--s-5);
-          font-size: 13px; color: var(--text-soft); line-height: 1.7;
-        }
-        .breakeven-pill strong { color: var(--accent-bright); font-weight: 700; }
+
         .extras-note {
           margin-top: var(--s-10); padding-top: var(--s-10);
           border-top: 1px solid var(--border);
@@ -364,6 +635,286 @@ export default function LandingPage() {
           .hero-stage { max-width: 100%; width: 100%; }
           .hero-stage-plus { transform: rotate(90deg); }
         }
+
+        /* PLATFORM COMPARISON */
+        .platform-grid {
+          display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+          margin-bottom: var(--s-10);
+        }
+        .platform-card {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--r-2); padding: var(--s-5) var(--s-4); text-align: center;
+        }
+        .platform-card--us {
+          border-color: var(--accent-border); background: rgba(240,180,41,0.05);
+          position: relative;
+        }
+        .platform-card--us::before {
+          content: "You"; position: absolute; top: -10px; left: 50%;
+          transform: translateX(-50%); font-family: var(--font-mono);
+          font-size: 9px; letter-spacing: .15em; text-transform: uppercase;
+          color: var(--accent); background: var(--bg); padding: 0 8px;
+        }
+        .platform-name {
+          font-family: var(--font-display); font-size: 11px; font-weight: 700;
+          color: var(--muted); margin-bottom: var(--s-3);
+        }
+        .platform-card--us .platform-name { color: var(--accent); }
+        .platform-cut {
+          font-family: var(--font-display); font-size: 22px; font-weight: 800;
+          letter-spacing: -0.03em; line-height: 1; margin-bottom: var(--s-2);
+        }
+        .platform-cut--bad { color: var(--red); }
+        .platform-cut--good { color: var(--accent-open); }
+        .platform-note { font-size: 10px; color: var(--muted); line-height: 1.5; }
+        .platform-card--us .platform-note { color: var(--text-soft); }
+        .scale-table { margin-bottom: var(--s-8); }
+
+        /* LINKTREE SECTION */
+        .linktree-section { padding: var(--s-24) var(--s-6); border-top: 1px solid var(--border); }
+        .linktree-inner { max-width: var(--container-wide); margin: 0 auto; }
+        .social-grid {
+          display: flex; flex-wrap: wrap; gap: var(--s-2);
+          margin-bottom: var(--s-10);
+        }
+        .social-pill {
+          display: flex; align-items: center; gap: var(--s-2);
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--r-pill); padding: 10px 18px;
+          font-family: var(--font-display); font-size: 13px; font-weight: 600;
+          color: var(--text-soft);
+          transition: all var(--t-fast);
+        }
+        .social-pill:hover { border-color: var(--border-strong); color: var(--text); }
+        .social-icon { font-size: 16px; }
+        .social-name { font-size: 13px; }
+        .linktree-callout {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--r-3); padding: var(--s-8);
+        }
+        .linktree-vs {
+          display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--s-8);
+          align-items: center;
+        }
+        .linktree-them, .linktree-ours {
+          padding: var(--s-5);
+        }
+        .linktree-them { opacity: 0.5; }
+        .linktree-them-name, .linktree-ours-name {
+          font-family: var(--font-display); font-size: 20px; font-weight: 800;
+          letter-spacing: -0.02em; margin-bottom: var(--s-2);
+        }
+        .linktree-them-name { color: var(--muted); }
+        .linktree-ours-name { color: var(--accent); }
+        .linktree-them-note, .linktree-ours-note {
+          font-size: 13px; color: var(--text-soft); line-height: 1.7;
+        }
+        .linktree-divider {
+          font-family: var(--font-display); font-size: 13px; font-weight: 700;
+          color: var(--muted); letter-spacing: .1em; text-transform: uppercase;
+          padding: var(--s-3) var(--s-4); border: 1px solid var(--border);
+          border-radius: var(--r-pill); background: var(--surface-2);
+          text-align: center;
+        }
+
+        @media (max-width: 860px) {
+          .platform-grid { grid-template-columns: repeat(3, 1fr); }
+          .linktree-vs { grid-template-columns: 1fr; }
+          .linktree-divider { text-align: center; }
+          .compare-header, .compare-row { grid-template-columns: 1fr 90px 90px 90px 110px !important; font-size: 11px; }
+        }
+        @media (max-width: 600px) {
+          .platform-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+
+        /* PLATFORM REALITY SECTION */
+        .reality-section {
+          padding: var(--s-24) var(--s-6);
+          border-top: 1px solid var(--border);
+          background: var(--bg-elevated);
+        }
+        .reality-inner { max-width: var(--container-wide); margin: 0 auto; }
+
+        .reality-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 2px;
+          margin-bottom: var(--s-10);
+        }
+        .reality-card {
+          border-radius: var(--r-3);
+          padding: var(--s-6) var(--s-5);
+          position: relative;
+        }
+        .reality-card--bad {
+          background: var(--surface);
+          border: 1px solid var(--border);
+        }
+        .reality-card--good {
+          background: rgba(240,180,41,0.05);
+          border: 1px solid var(--accent-border);
+        }
+        .reality-platform {
+          font-family: var(--font-display);
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          color: var(--muted);
+          margin-bottom: var(--s-4);
+          text-transform: uppercase;
+        }
+        .reality-card--good .reality-platform { color: var(--accent); }
+        .reality-pay {
+          font-family: var(--font-display);
+          font-size: 40px;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          line-height: 1;
+          color: var(--red);
+          margin-bottom: 4px;
+        }
+        .reality-card--good .reality-pay { color: var(--accent-bright); }
+        .reality-unit {
+          font-family: var(--font-mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--muted-faint);
+          margin-bottom: var(--s-4);
+          line-height: 1.5;
+        }
+        .reality-note {
+          font-size: 12px;
+          color: var(--text-faint);
+          line-height: 1.65;
+          border-top: 1px solid var(--border);
+          padding-top: var(--s-4);
+          margin-top: var(--s-2);
+        }
+        .reality-card--good .reality-note { color: var(--text-soft); }
+
+        .reality-strategy {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-left: 3px solid var(--accent);
+          border-radius: var(--r-3);
+          padding: var(--s-8) var(--s-6);
+        }
+        .reality-strategy-head {
+          font-family: var(--font-display);
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--accent);
+          margin-bottom: var(--s-6);
+        }
+        .reality-strategy-steps {
+          display: flex;
+          align-items: flex-start;
+          gap: var(--s-4);
+          flex-wrap: wrap;
+        }
+        .reality-step {
+          display: flex;
+          gap: var(--s-4);
+          align-items: flex-start;
+          flex: 1;
+          min-width: 200px;
+          font-size: 14px;
+          color: var(--text-soft);
+          line-height: 1.65;
+        }
+        .reality-step strong { color: var(--text); font-weight: 600; display: block; margin-bottom: 4px; }
+        .reality-step-num {
+          font-family: var(--font-display);
+          font-size: 28px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: var(--accent);
+          line-height: 1;
+          flex-shrink: 0;
+        }
+        .reality-step-arrow {
+          font-size: 20px;
+          color: var(--muted-faint);
+          padding-top: 4px;
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 860px) {
+          .reality-grid { grid-template-columns: 1fr 1fr; }
+          .reality-strategy-steps { flex-direction: column; }
+          .reality-step-arrow { transform: rotate(90deg); align-self: center; }
+        }
+        @media (max-width: 500px) {
+          .reality-grid { grid-template-columns: 1fr; }
+        }
+
+
+        /* CREATOR CONTROL SECTION */
+        .control-section {
+          padding: var(--s-24) var(--s-6);
+          border-top: 1px solid var(--border);
+        }
+        .control-inner { max-width: var(--container-wide); margin: 0 auto; }
+        .control-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 2px;
+          margin-bottom: var(--s-6);
+        }
+        .control-card {
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--r-3);
+          padding: var(--s-7) var(--s-6);
+          transition: border-color var(--t-fast), transform var(--t-base);
+        }
+        .control-card:hover {
+          border-color: var(--accent-border);
+          transform: translateY(-2px);
+        }
+        .control-icon { font-size: 28px; margin-bottom: var(--s-4); }
+        .control-title {
+          font-family: var(--font-display);
+          font-size: 15px;
+          font-weight: 700;
+          color: #fff;
+          margin-bottom: var(--s-3);
+          line-height: 1.2;
+        }
+        .control-body {
+          font-size: 13px;
+          color: var(--text-soft);
+          line-height: 1.75;
+          margin: 0;
+        }
+        @media (max-width: 860px) {
+          .control-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 500px) {
+          .control-grid { grid-template-columns: 1fr; }
+        }
+
+
+        /* USE CASES */
+        .uses-section { padding: var(--s-24) var(--s-6); border-top: 1px solid var(--border); background: var(--bg-elevated); }
+        .uses-inner { max-width: var(--container-wide); margin: 0 auto; }
+        .uses-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; margin-top: var(--s-10); }
+        .uses-card {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: var(--r-3); padding: var(--s-8) var(--s-7);
+          transition: border-color var(--t-base), transform var(--t-base);
+        }
+        .uses-card:hover { border-color: var(--accent-border); transform: translateY(-2px); }
+        .uses-emoji { font-size: 32px; margin-bottom: var(--s-4); }
+        .uses-title { font-family: var(--font-display); font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #fff; margin-bottom: var(--s-3); line-height: 1.2; }
+        .uses-body { font-size: 14px; color: var(--text-soft); line-height: 1.8; margin-bottom: var(--s-4); }
+        .uses-example { font-family: var(--font-serif); font-size: 14px; font-style: italic; color: var(--accent); line-height: 1.5; padding-left: var(--s-4); border-left: 2px solid var(--accent-border); }
+        @media (max-width: 700px) { .uses-grid { grid-template-columns: 1fr; } }
+
       `}</style>
     </main>
   );

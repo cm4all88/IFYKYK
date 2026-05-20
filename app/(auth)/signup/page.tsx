@@ -238,6 +238,9 @@ export default function SignupPage() {
         .insert(rows);
       if (insertErr) throw insertErr;
 
+      // Welcome email (fire and forget)
+      fetch("/api/email/welcome", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email}) }).catch(()=>{});
+
       router.push("/dashboard");
     } catch (e: any) {
       setFormErr(e?.message ?? "Something went wrong creating your account.");

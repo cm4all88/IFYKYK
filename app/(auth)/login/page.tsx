@@ -80,9 +80,9 @@ export default function LoginPage() {
 
           <p className="lg-footer">
             New here?{" "}
-            <Link href="/signup" className="lg-link">
-              Create an account
-            </Link>
+            <Link href="/forgot-password" className="lg-link">Forgot password?</Link>
+            {" · "}
+            <Link href="/signup" className="lg-link">Create an account</Link>
           </p>
         </div>
       </div>

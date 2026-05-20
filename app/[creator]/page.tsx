@@ -3,6 +3,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import Footer from "@/components/Footer";
+import SuccessBanner from "./SuccessBanner";
+import CampaignDonateButton from "./CampaignDonateButton";
+import WishlistItemCard from "./WishlistItemCard";
+import MessageButton from "./MessageButton";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -47,6 +51,28 @@ async function fetchEverything(handle: string) {
       .limit(50),
   ]);
 
+  // Fetch wishlist items (unpurchased)
+  const { data: wishlistItems } = await (supabase as any)
+    .from("wishlist_items")
+    .select("*")
+    .eq("creator_profile_id", spotlight.id)
+    .eq("is_purchased", false)
+    .order("priority", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  // Fetch active campaigns
+  const { data: campaigns } = await (supabase as any)
+    .from("campaigns")
+    .select("*, donations:campaign_donations(amount)")
+    .eq("creator_profile_id", spotlight.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+
+  const campaignsWithProgress = (campaigns ?? []).map((c: any) => ({
+    ...c,
+    raised: (c.donations ?? []).reduce((sum: number, d: any) => sum + Number(d.amount), 0),
+  }));
+
   // Check if current viewer is subscribed
   const { data: { user } } = await supabase.auth.getUser();
   let isSubscribed = false;
@@ -68,6 +94,8 @@ async function fetchEverything(handle: string) {
     posts: (posts ?? []) as AnyPost[],
     isSubscribed,
     viewerUserId: user?.id ?? null,
+    campaigns: campaignsWithProgress,
+    wishlistItems: wishlistItems ?? [],
   };
 }
 
@@ -96,12 +124,13 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed } = data;
+  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   return (
     <>
       <SiteHeader />
+      <SuccessBanner />
       <main className="cp">
         <section className="cp-cover">
           {spotlight.cover_url ? (
@@ -130,6 +159,24 @@ export default async function CreatorPage(props: {
               </div>
               <p className="cp-handle">@{spotlight.handle}</p>
               {spotlight.bio && <p className="cp-bio">{spotlight.bio}</p>}
+
+              {/* Social links */}
+              {(() => {
+                const links = (spotlight as any).social_links as Record<string,string> | null;
+                if (!links) return null;
+                const labels: Record<string,string> = { social_tiktok:"TikTok", social_instagram:"Instagram", social_youtube:"YouTube", social_twitter:"X", social_twitch:"Twitch", social_discord:"Discord", social_substack:"Substack", social_website:"Website" };
+                const active = Object.entries(links).filter(([,v]) => v && (v as string).length > 0);
+                if (!active.length) return null;
+                return (
+                  <div className="cp-social-links">
+                    {active.map(([key, url]) => (
+                      <a key={key} href={url as string} target="_blank" rel="noopener noreferrer" className="cp-social-link">
+                        {labels[key] ?? key.replace("social_","")}
+                      </a>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {backstageHandle && (
                 <Link href={`/${backstageHandle}`} className="cp-backstage">
@@ -427,6 +474,23 @@ export default async function CreatorPage(props: {
             color: var(--muted);
           }
           .cp-post-lock { color: var(--accent); }
+          .cp-social-links { display:flex; flex-wrap:wrap; gap:var(--s-2); margin-top:var(--s-4); }
+          .cp-social-link { font-family:var(--font-display); font-size:11px; font-weight:600; letter-spacing:.04em; color:var(--muted); padding:6px 14px; border:1px solid var(--border); border-radius:var(--r-pill); background:var(--surface); transition:all var(--t-fast); text-decoration:none; }
+          .cp-social-link:hover { color:var(--text); border-color:var(--border-strong); }
+          .cp-social-links {
+            display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-4);
+          }
+          .cp-social-link {
+            font-family: var(--font-display); font-size: 11px; font-weight: 600;
+            letter-spacing: 0.04em; color: var(--muted);
+            padding: 6px 14px; border: 1px solid var(--border);
+            border-radius: var(--r-pill); background: var(--surface);
+            transition: all var(--t-fast); text-decoration: none;
+          }
+          .cp-social-link:hover {
+            color: var(--text); border-color: var(--border-strong);
+            background: var(--surface-2);
+          }
 
           .cp-post--locked { border-color: rgba(245,200,66,0.12); }
           .cp-post-gate {

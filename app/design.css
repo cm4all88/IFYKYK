@@ -799,6 +799,8 @@ img { max-width: 100%; display: block; }
   .quick { grid-template-columns:1fr 1fr; }
 }
 @media (max-width:700px) {
+  .hero-spotlight-edge { display: none; }
+  .hero-spotlight { width: 100vw; }
   .fees-grid { grid-template-columns:1fr; }
   .compare-header,.compare-row { grid-template-columns:1fr 80px 100px 80px; font-size:11px; }
   .extras-row { grid-template-columns:1fr; }
