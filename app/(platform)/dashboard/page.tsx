@@ -675,7 +675,8 @@ function FansPane({ profile }: { profile: Profile }) {
 
   async function addRegion() {
     if (!regionInput.trim()) return;
-    const updated = [...new Set([...blockedRegions, regionInput.trim().toUpperCase()])];
+    const next = regionInput.trim().toUpperCase();
+    const updated = blockedRegions.includes(next) ? blockedRegions : [...blockedRegions, next];
     await (supabase as any).from("creator_profiles").update({ blocked_regions: updated }).eq("id", profile.id);
     setBlockedRegions(updated); setRegionInput("");
   }
@@ -1815,7 +1816,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
               <p className="post-body">{p.caption}</p>
               <p className="post-meta">
                 {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
-                {p.status && p.status !== "published" ? ` � ${p.status}` : ""}
+                {p.status && p.status !== "published" ? `   ${p.status}` : ""}
               </p>
             </li>
           ))}
