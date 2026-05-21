@@ -1031,8 +1031,7 @@ function AdvisorPane({ profile }: { profile: Profile }) {
       const { done, value } = await reader.read();
       if (done) break;
       const chunk = decoder.decode(value);
-      const lines = chunk.split("
-");
+      const lines = chunk.split("\n");
       for (const line of lines) {
         if (line.startsWith("data: ")) {
           try {
