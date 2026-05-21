@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
         creator_id: creatorProfileId,
         content_type: "post",
         flag_reason: (mod as any).reason ?? "Content policy violation",
-        severity: mod.severity ?? "medium",
+        severity: (mod as any).severity ?? "medium",
         action_taken: "blocked_at_publish",
       });
       return NextResponse.json({ error: `Post blocked: ${mod.reason}`, blocked: true }, { status: 422 });
