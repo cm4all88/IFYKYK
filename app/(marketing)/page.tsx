@@ -154,7 +154,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── THE VENUE ── What this place is. */}}
+      {/* ── THE VENUE ── What this place is. */}
       <section className="venue-section">
         <div className="venue-inner">
           <p className="kicker">The venue metaphor</p>
