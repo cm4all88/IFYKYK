@@ -239,7 +239,7 @@ export default function SignupPage() {
       if (insertErr) throw insertErr;
 
       // Welcome email (fire and forget)
-      fetch("/api/email/welcome", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email}) }).catch(()=>{});
+      fetch("/api/email/welcome", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email: form.email}) }).catch(()=>{});
 
       router.push("/dashboard");
     } catch (e: any) {
