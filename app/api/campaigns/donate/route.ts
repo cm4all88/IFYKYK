@@ -12,10 +12,10 @@ export async function POST(req: NextRequest) {
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Must be signed in to donate" }, { status: 401 });
 
-  // Get campaign + creator stripe account
+  // Auth optional — guests can support campaigns without an account
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { data: campaign } = await (supabase as any)
     .from("campaigns")
     .select("*, creator:creator_profile_id(handle, stripe_account_id, stripe_onboarded)")
@@ -38,13 +38,17 @@ export async function POST(req: NextRequest) {
     "transfer_data[destination]": campaign.creator.stripe_account_id,
     "success_url": `${origin}/${campaign.creator.handle}?campaign_donated=1`,
     "cancel_url": `${origin}/${campaign.creator.handle}`,
-    "client_reference_id": user.id,
     "metadata[campaign_id]": campaignId,
-    "metadata[donor_user_id]": user.id,
     "metadata[amount_usd]": String(amountUsd),
     "metadata[message]": message ?? "",
     "metadata[type]": "campaign_donation",
   });
+
+  // Attach donor ID if logged in, skip if guest
+  if (user) {
+    params.set("client_reference_id", user.id);
+    params.set("metadata[donor_user_id]", user.id);
+  }
 
   const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

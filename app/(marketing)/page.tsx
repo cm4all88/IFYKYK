@@ -14,8 +14,8 @@ export default function LandingPage() {
 
       {/* ── HERO ── The feeling first. */}
       <section className="hero">
+        <div className="hero-bg-img" aria-hidden />
         <div className="hero-spotlight" aria-hidden />
-        <div className="hero-spotlight-edge" aria-hidden />
         <div className="hero-ambient" aria-hidden />
 
         <div className="hero-inner">
@@ -278,17 +278,18 @@ export default function LandingPage() {
           <div className="control-grid">
             <div className="control-card">
               <div className="control-icon">👤</div>
-              <h3 className="control-title">Know who your fans are</h3>
+              <h3 className="control-title">No anonymous accounts</h3>
               <p className="control-body">
                 Every subscriber verifies their email and phone number at signup.
-                You see your audience as real, accountable people — not anonymous usernames.
+                Your audience is made up of real, accountable people — not throwaway usernames
+                with nothing behind them.
               </p>
             </div>
             <div className="control-card">
               <div className="control-icon">🚫</div>
               <h3 className="control-title">Block anyone, instantly</h3>
               <p className="control-body">
-                Block a specific fan and they&apos;re gone — from your page, your messages,
+                Block a fan and they&apos;re gone — from your page, your messages,
                 your subscriber list. No appeal process. Your space, your rules.
               </p>
             </div>
@@ -297,17 +298,17 @@ export default function LandingPage() {
               <h3 className="control-title">Block entire regions</h3>
               <p className="control-body">
                 Block subscribers from specific countries or regions entirely.
-                Whether it&apos;s for legal reasons, personal reasons, or no reason —
-                you control who can access your content geographically.
+                Legal reasons, personal reasons, or no reason at all —
+                you decide who can access your content geographically.
               </p>
             </div>
             <div className="control-card">
               <div className="control-icon">🔒</div>
-              <h3 className="control-title">Real contact on file</h3>
+              <h3 className="control-title">Pre-emptive blocking</h3>
               <p className="control-body">
-                Verified email and phone number for every subscriber.
-                If something goes wrong, you have real contact information —
-                not a throwaway account with no way to reach them.
+                Know someone you never want as a subscriber? Upload their email or phone
+                number and they&apos;ll never get in — even if they sign up with a new account.
+                They won&apos;t be told why.
               </p>
             </div>
           </div>

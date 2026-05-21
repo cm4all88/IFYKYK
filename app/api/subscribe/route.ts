@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { createHash } from "crypto";
+
+function hashContact(value: string) {
+  return createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
+}
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -25,7 +30,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(new URL(`/login?return=/${p?.handle ?? ""}`, req.url));
   }
 
-  // Get creator profile including stripe_account_id and subscription_price
+  // ── Pre-emptive contact block check ──────────────────────────────
+  // Hash the fan's verified email and check against creator's block list.
+  // Fan is silently redirected — never told they were blocked.
+  const fanEmailHash = hashContact(user.email ?? "");
+  const { data: blocked } = await (supabase as any)
+    .from("creator_contact_blocks")
+    .select("id")
+    .eq("creator_profile_id", creatorProfileId)
+    .eq("contact_hash", fanEmailHash)
+    .maybeSingle();
+
+  if (blocked) {
+    // Silently redirect back to creator page — no error message
+    const { data: p } = await (supabase as any)
+      .from("creator_profiles").select("handle").eq("id", creatorProfileId).maybeSingle();
+    return NextResponse.redirect(new URL(`/${p?.handle ?? ""}`, req.url));
+  }
+  // ─────────────────────────────────────────────────────────────────
+
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
     .select("handle, kind, stripe_account_id, stripe_onboarded, subscription_price")
@@ -40,7 +63,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Creator has not connected Stripe yet." }, { status: 503 });
   }
 
-  // Get channel price if specified
   let priceCents = Math.round((Number(profile.subscription_price) || 9.99) * 100);
   let channelName = "subscription";
   if (typeof channelId === "string" && channelId.length > 0) {
@@ -57,8 +79,6 @@ export async function POST(req: NextRequest) {
 
   const origin = new URL(req.url).origin;
 
-  // Create Stripe Checkout session routed to creator's connected account
-  // Spotlightly charges a flat monthly fee separately — 0% taken from this transaction
   const params = new URLSearchParams({
     mode: "subscription",
     "line_items[0][price_data][currency]": "usd",
@@ -66,7 +86,6 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][unit_amount]": String(priceCents),
     "line_items[0][price_data][recurring][interval]": "month",
     "line_items[0][quantity]": "1",
-    // Route money directly to creator's connected account
     "transfer_data[destination]": profile.stripe_account_id,
     "success_url": `${origin}/${profile.handle}?subscribed=1`,
     "cancel_url": `${origin}/${profile.handle}`,

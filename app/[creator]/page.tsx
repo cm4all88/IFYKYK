@@ -7,6 +7,7 @@ import SuccessBanner from "./SuccessBanner";
 import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import MessageButton from "./MessageButton";
+import TipButton from "./TipButton";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -224,6 +225,74 @@ export default async function CreatorPage(props: {
               </div>
             )}
 
+            {/* ── CAMPAIGNS ── */}
+            {campaigns && campaigns.length > 0 && (
+              <div className="cp-campaigns">
+                <p className="kicker">Campaigns</p>
+                <div className="cp-campaign-list">
+                  {campaigns.map((c: any) => {
+                    const pct = Math.min(100, Math.round((c.raised / c.goal_amount) * 100));
+                    const daysLeft = c.deadline
+                      ? Math.max(0, Math.ceil((new Date(c.deadline).getTime() - Date.now()) / 86400000))
+                      : null;
+                    return (
+                      <div key={c.id} className="cp-campaign">
+                        <div className="cp-campaign-head">
+                          <h3 className="cp-campaign-title">{c.title}</h3>
+                          {daysLeft !== null && (
+                            <span className="cp-campaign-deadline">
+                              {daysLeft > 0 ? `${daysLeft}d left` : "Ended"}
+                            </span>
+                          )}
+                        </div>
+                        {c.description && (
+                          <p className="cp-campaign-desc">{c.description}</p>
+                        )}
+                        <div className="cp-campaign-progress">
+                          <div className="cp-campaign-bar">
+                            <div className="cp-campaign-fill" style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="cp-campaign-stats">
+                            <span className="cp-campaign-raised">
+                              ${Number(c.raised).toFixed(0)} raised
+                            </span>
+                            <span className="cp-campaign-goal">
+                              of ${Number(c.goal_amount).toFixed(0)} goal · {pct}%
+                            </span>
+                          </div>
+                        </div>
+                        {c.reward_description && (
+                          <p className="cp-campaign-reward">
+                            🎟 Supporters get: {c.reward_description}
+                          </p>
+                        )}
+                        {c.status === "active" && (
+                          <div style={{ marginTop: "var(--s-4)" }}>
+                            <CampaignDonateButton campaignId={c.id} campaignTitle={c.title} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── WISHLIST ── */}
+            {wishlistItems && wishlistItems.length > 0 && (
+              <div className="cp-wishlist">
+                <p className="kicker">Wishlist</p>
+                <p className="cp-wishlist-sub">
+                  Send {displayName} something from their wishlist.
+                </p>
+                <div className="cp-wishlist-grid">
+                  {(wishlistItems as any[]).map((item: any) => (
+                    <WishlistItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="cp-posts">
               <p className="kicker">Latest</p>
 
@@ -401,6 +470,28 @@ export default async function CreatorPage(props: {
           }
 
           .cp-channels { margin-bottom: var(--s-12); }
+          .cp-campaigns { margin-bottom: var(--s-12); }
+          .cp-campaign-list { display: flex; flex-direction: column; gap: var(--s-4); }
+          .cp-campaign {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-3);
+            padding: var(--s-6);
+          }
+          .cp-campaign-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-2); }
+          .cp-campaign-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; margin: 0; }
+          .cp-campaign-deadline { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
+          .cp-campaign-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; margin-bottom: var(--s-4); }
+          .cp-campaign-progress { margin-bottom: var(--s-3); }
+          .cp-campaign-bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-bottom: var(--s-2); }
+          .cp-campaign-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
+          .cp-campaign-stats { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; }
+          .cp-campaign-raised { color: var(--accent); font-weight: 500; }
+          .cp-campaign-goal { color: var(--muted); }
+          .cp-campaign-reward { font-size: 12px; color: var(--text-soft); background: rgba(240,180,41,.06); border: 1px solid rgba(240,180,41,.12); border-radius: var(--r-1); padding: var(--s-2) var(--s-3); margin-top: var(--s-3); }
+          .cp-wishlist { margin-bottom: var(--s-12); }
+          .cp-wishlist-sub { font-size: 13px; color: var(--muted); margin-bottom: var(--s-5); }
+          .cp-wishlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--s-4); }
           .cp-channel-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -589,18 +680,6 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
       <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
       <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
         Subscribe
-      </button>
-    </form>
-  );
-}
-
-async function TipButton({ creatorProfileId }: { creatorProfileId: string }) {
-  const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
-  return (
-    <form action="/api/tip" method="post">
-      <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
-      <button type="submit" className="btn btn--secondary" disabled={!stripeReady}>
-        Tip
       </button>
     </form>
   );

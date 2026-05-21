@@ -25,7 +25,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -45,7 +45,7 @@ export default function DashboardPage() {
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "settings"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "settings"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -244,6 +244,9 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="moderation" onClick={setPane}>
               Moderation
             </PaneButton>
+            <PaneButton current={pane} target="blocks" onClick={setPane}>
+              Block List
+            </PaneButton>
 
             <div style={{ margin: "var(--s-4) 0 var(--s-2)", padding: "0 0 var(--s-2)", borderBottom: "1px solid var(--border)" }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)" }}>Pages</span>
@@ -337,6 +340,9 @@ export default function DashboardPage() {
           )}
           {pane === "moderation" && spotlight && (
             <ModerationPane profile={spotlight} />
+          )}
+          {pane === "blocks" && active && (
+            <ContactBlocksPane profile={active} />
           )}
         </section>
       </div>
@@ -2105,6 +2111,145 @@ function CCBillForm({ profileId }: { profileId: string }) {
   );
 }
 
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Contact Blocks — pre-emptive blocking by email or phone
+// ──────────────────────────────────────────────────────────────────
+function ContactBlocksPane({ profile }: { profile: Profile }) {
+  const [blocks, setBlocks] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [contactType, setContactType] = React.useState<"email" | "phone">("email");
+  const [contactValue, setContactValue] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  const supabase = createClient();
+
+  React.useEffect(() => {
+    (supabase as any)
+      .from("creator_contact_blocks")
+      .select("*")
+      .eq("creator_profile_id", profile.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }: any) => { setBlocks(data ?? []); setLoading(false); });
+  }, []);
+
+  async function addBlock() {
+    if (!contactValue.trim()) return;
+    setSaving(true);
+    setErr(null);
+    const res = await fetch("/api/blocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creatorProfileId: profile.id,
+        contactType,
+        contactValue: contactValue.trim(),
+        note: note.trim() || null,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { setErr(data.error); setSaving(false); return; }
+    setBlocks(prev => [data.block, ...prev]);
+    setContactValue(""); setNote("");
+    setSaving(false);
+  }
+
+  async function removeBlock(id: string) {
+    await fetch("/api/blocks", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blockId: id }),
+    });
+    setBlocks(prev => prev.filter(b => b.id !== id));
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Privacy & Safety</p>
+        <h1 className="pane-title">Pre-emptive <em>blocking.</em></h1>
+        <p className="pane-lede">
+          Know someone you never want as a subscriber? Add their email or phone number.
+          They won&apos;t be able to subscribe — and they won&apos;t be told why.
+          This works even if they create a new account.
+        </p>
+      </div>
+
+      <div className="pane" style={{ maxWidth: 560, padding: 0 }}>
+        {/* Add block form */}
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "var(--s-6)", marginBottom: 2 }}>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: "var(--s-4)" }}>
+            Add contact to block list
+          </p>
+          <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-3)" }}>
+            {(["email", "phone"] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setContactType(t)}
+                style={{
+                  fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700,
+                  padding: "7px 16px", border: "1px solid", borderRadius: "var(--r-pill)", cursor: "pointer",
+                  background: contactType === t ? "var(--accent)" : "var(--surface-2)",
+                  color: contactType === t ? "#fff" : "var(--muted)",
+                  borderColor: contactType === t ? "var(--accent)" : "var(--border)",
+                }}
+              >
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+          <input
+            type={contactType === "email" ? "email" : "tel"}
+            placeholder={contactType === "email" ? "their@email.com" : "+1 555 000 0000"}
+            value={contactValue}
+            onChange={e => setContactValue(e.target.value)}
+            style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", color: "var(--text)", fontSize: 14, outline: "none", marginBottom: "var(--s-3)" }}
+          />
+          <input
+            type="text"
+            placeholder="Private note (optional) — only you see this"
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", color: "var(--text)", fontSize: 14, outline: "none", marginBottom: "var(--s-4)" }}
+          />
+          {err && <p style={{ fontSize: 12, color: "var(--red)", marginBottom: "var(--s-3)" }}>{err}</p>}
+          <button onClick={addBlock} disabled={saving || !contactValue.trim()} className="btn btn--primary" style={{ borderRadius: "var(--r-pill)" }}>
+            {saving ? "Adding…" : "Block this contact"}
+          </button>
+        </div>
+
+        {/* Block list */}
+        {!loading && blocks.length > 0 && (
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "var(--s-5)" }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", marginBottom: "var(--s-4)" }}>
+              {blocks.length} blocked contact{blocks.length !== 1 ? "s" : ""}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {blocks.map(b => (
+                <div key={b.id} style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-3) var(--s-4)", background: "var(--surface-2)", borderRadius: "var(--r-2)" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", width: 40, flexShrink: 0 }}>{b.contact_type}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text)", flex: 1 }}>{b.display_hint}</span>
+                  {b.note && <span style={{ fontSize: 11, color: "var(--muted)", fontStyle: "italic", flex: 1 }}>{b.note}</span>}
+                  <button onClick={() => removeBlock(b.id)} style={{ fontFamily: "var(--font-display)", fontSize: 11, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!loading && blocks.length === 0 && (
+          <p style={{ fontSize: 13, color: "var(--muted)", padding: "var(--s-5)" }}>
+            No contacts blocked yet.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function PaneButton({
   current,

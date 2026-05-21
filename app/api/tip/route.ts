@@ -17,8 +17,9 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = await createClient();
+
+  // Auth is optional — guests can tip without an account
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", req.url));
 
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
@@ -34,23 +35,26 @@ export async function POST(req: NextRequest) {
 
   const origin = new URL(req.url).origin;
 
-  // Tips are 0% to Spotlightly — full amount routed to creator
   const params = new URLSearchParams({
     mode: "payment",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": `Tip for @${profile.handle}`,
     "line_items[0][price_data][unit_amount]": String(Math.round(amountUsd * 100)),
     "line_items[0][quantity]": "1",
-    // Route 100% of tip to creator — Spotlightly takes nothing from tips
+    // 100% to creator — Spotlightly takes nothing from tips
     "transfer_data[destination]": profile.stripe_account_id,
     "success_url": `${origin}/${profile.handle}?tipped=1`,
     "cancel_url": `${origin}/${profile.handle}`,
-    "client_reference_id": user.id,
     "metadata[creator_profile_id]": creatorProfileId,
-    "metadata[user_id]": user.id,
     "metadata[type]": "tip",
     "metadata[amount_usd]": String(amountUsd),
   });
+
+  // Attach fan ID if logged in, skip if guest
+  if (user) {
+    params.set("client_reference_id", user.id);
+    params.set("metadata[fan_user_id]", user.id);
+  }
 
   const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
