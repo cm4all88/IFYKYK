@@ -323,7 +323,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── THE MONEY TRUTH ── */}}
+      {/* ── THE MONEY TRUTH ── */}
       <section className="money-section">
         <div className="money-inner">
           <p className="kicker">The honest numbers</p>
@@ -507,7 +507,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CLOSING ── */}}}
+      {/* ── CLOSING ── */}}
       <section className="closing">
         <div className="closing-inner">
           <h2 className="closing-h">Your stage is <em>waiting.</em></h2>
