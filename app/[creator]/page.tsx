@@ -8,6 +8,7 @@ import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
+import UnlockButton from "./UnlockButton";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -74,18 +75,27 @@ async function fetchEverything(handle: string) {
     raised: (c.donations ?? []).reduce((sum: number, d: any) => sum + Number(d.amount), 0),
   }));
 
-  // Check if current viewer is subscribed
+  // Check if current viewer is subscribed and which posts they've unlocked
   const { data: { user } } = await supabase.auth.getUser();
   let isSubscribed = false;
+  let unlockedPostIds: Set<string> = new Set();
+
   if (user) {
-    const { data: sub } = await (supabase as any)
-      .from("subscriptions")
-      .select("id")
-      .eq("fan_user_id", user.id)
-      .eq("creator_profile_id", spotlight.id)
-      .eq("status", "active")
-      .maybeSingle();
+    const [{ data: sub }, { data: unlocks }] = await Promise.all([
+      (supabase as any)
+        .from("subscriptions")
+        .select("id")
+        .eq("fan_user_id", user.id)
+        .eq("creator_profile_id", spotlight.id)
+        .eq("status", "active")
+        .maybeSingle(),
+      (supabase as any)
+        .from("post_unlocks")
+        .select("post_id")
+        .eq("fan_user_id", user.id),
+    ]);
     isSubscribed = !!sub;
+    unlockedPostIds = new Set((unlocks ?? []).map((u: any) => u.post_id));
   }
 
   return {
@@ -94,6 +104,7 @@ async function fetchEverything(handle: string) {
     channels: (channels ?? []) as AnyChannel[],
     posts: (posts ?? []) as AnyPost[],
     isSubscribed,
+    unlockedPostIds: Array.from(unlockedPostIds),
     viewerUserId: user?.id ?? null,
     campaigns: campaignsWithProgress,
     wishlistItems: wishlistItems ?? [],
@@ -309,9 +320,12 @@ export default async function CreatorPage(props: {
               ) : (
                 <ul className="cp-post-list">
                   {posts.map((p) => {
-                    const locked = p.tier === "premium" && !isSubscribed;
+                    const unlockedPostIds = data.unlockedPostIds ?? [];
+                    const subLocked = p.lock_type === "subscription" && !isSubscribed;
+                    const purchaseLocked = p.lock_type === "purchase" && !unlockedPostIds.includes(p.id);
+                    const locked = subLocked || (p.tier === "premium" && p.lock_type !== "purchase" && !isSubscribed);
                     return (
-                      <li key={p.id} className={`cp-post${locked ? " cp-post--locked" : ""}`}>
+                      <li key={p.id} className={`cp-post${locked || purchaseLocked ? " cp-post--locked" : ""}`}>
                         {locked ? (
                           <>
                             <div className="cp-post-gate">
@@ -333,6 +347,28 @@ export default async function CreatorPage(props: {
                               <span className="cp-post-lock">🔒 Subscriber content</span>
                             </div>
                           </>
+                        ) : purchaseLocked ? (
+                          <>
+                            <div className="cp-post-gate">
+                              <div className="cp-gate-blur" aria-hidden />
+                              <div className="cp-gate-overlay">
+                                <span className="cp-gate-icon">🔓</span>
+                                <p className="cp-gate-label">Unlock this post</p>
+                                {p.caption && (
+                                  <p className="cp-gate-desc" style={{ fontStyle: "italic", maxWidth: 280 }}>
+                                    &ldquo;{p.caption.slice(0, 120)}{p.caption.length > 120 ? "…" : ""}&rdquo;
+                                  </p>
+                                )}
+                                <UnlockButton postId={p.id} price={p.unlock_price} viewerUserId={data.viewerUserId} />
+                              </div>
+                            </div>
+                            <div className="cp-post-meta" style={{ padding: "var(--s-4) var(--s-6)" }}>
+                              <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                              <span className="cp-post-lock" style={{ color: "var(--accent-spot)" }}>
+                                🔓 ${Number(p.unlock_price).toFixed(2)} to unlock
+                              </span>
+                            </div>
+                          </>
                         ) : (
                           <>
                             {p.media_url && p.media_type === "image" && (
@@ -341,7 +377,8 @@ export default async function CreatorPage(props: {
                             {p.caption && <p className="cp-post-caption">{p.caption}</p>}
                             <div className="cp-post-meta">
                               <span>{new Date(p.created_at).toLocaleDateString()}</span>
-                              {p.tier === "premium" && <span className="cp-post-lock" style={{ color: "var(--accent-open)" }}>✓ Subscriber content</span>}
+                              {p.lock_type === "subscription" && <span className="cp-post-lock" style={{ color: "var(--accent-open)" }}>✓ Subscriber content</span>}
+                              {p.lock_type === "purchase" && <span className="cp-post-lock" style={{ color: "var(--accent-spot)" }}>✓ Unlocked</span>}
                               {p.likes_count != null && p.likes_count > 0 && (
                                 <span>{p.likes_count} likes</span>
                               )}
