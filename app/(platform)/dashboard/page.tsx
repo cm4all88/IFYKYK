@@ -25,7 +25,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "settings" | "admin";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "settings" | "admin";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -46,7 +46,7 @@ export default function DashboardPage() {
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "settings", "admin"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "settings", "admin"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -237,6 +237,9 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="wishlist" onClick={setPane}>
               Wishlist
             </PaneButton>
+            <PaneButton current={pane} target="billing" onClick={setPane}>
+              Billing
+            </PaneButton>
             <PaneButton current={pane} target="settings" onClick={setPane}>
               Settings
             </PaneButton>
@@ -321,6 +324,9 @@ export default function DashboardPage() {
             <PostsPane profile={active} setErr={setErrMsg} />
           )}
 
+          {pane === "billing" && (
+            <BillingPane />
+          )}
           {pane === "settings" && active && (
             <SettingsPane profile={active} userEmail={userEmail} />
           )}
@@ -350,6 +356,12 @@ export default function DashboardPage() {
           )}
           {pane === "blocks" && active && (
             <ContactBlocksPane profile={active} />
+          )}
+          {pane === "messages" && active && (
+            <MessagesPane profile={active} />
+          )}
+          {pane === "live" && active && (
+            <LivePane profile={active} />
           )}
           {pane === "admin" && isAdmin && (
             <AdminPane />
@@ -1699,6 +1711,10 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
   const [mediaType, setMediaType] = useState("");
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [lockType, setLockType] = useState<"free" | "subscription" | "purchase">("free");
+  const [unlockPrice, setUnlockPrice] = useState("");
+  const [earlyAccess, setEarlyAccess] = useState(false);
+  const [earlyAccessAt, setEarlyAccessAt] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1709,7 +1725,6 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
       .order("created_at", { ascending: false });
 
     if (error) {
-      // Posts table may not have rows yet, or column names may differ — show as empty
       setPosts([]);
     } else {
       setPosts(data ?? []);
@@ -1740,7 +1755,10 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
         caption: body.trim() || null,
         mediaUrl: mediaUrl || null,
         mediaType: mediaType || null,
-        tier: "free",
+        tier: lockType === "subscription" ? "premium" : "free",
+        lockType,
+        unlockPrice: lockType === "purchase" ? parseFloat(unlockPrice) || null : null,
+        earlyAccessAt: earlyAccess && earlyAccessAt ? new Date(earlyAccessAt).toISOString() : null,
         creatorProfileId: profile.id,
       }),
     });
@@ -1751,7 +1769,8 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
       return;
     }
 
-    setBody("");
+    setBody(""); setLockType("free"); setUnlockPrice("");
+    setEarlyAccess(false); setEarlyAccessAt("");
     setComposing(false);
     setPosting(false);
     void load();
@@ -1795,6 +1814,51 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                 style={{ position:"absolute", top:4, right:4, background:"rgba(0,0,0,.7)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</button>
             </div>
           )}
+
+          {/* Access controls */}
+          <div style={{ padding:"var(--s-4) var(--s-4) 0", display:"flex", flexDirection:"column", gap:"var(--s-3)" }}>
+            <div style={{ display:"flex", gap:"var(--s-2)", flexWrap:"wrap" }}>
+              {(["free","subscription","purchase"] as const).map(t => (
+                <button key={t} type="button" onClick={() => setLockType(t)} style={{
+                  fontFamily:"var(--font-display)", fontSize:12, fontWeight:700,
+                  padding:"6px 14px", borderRadius:"var(--r-pill)", border:"1px solid", cursor:"pointer",
+                  background: lockType === t ? "var(--accent)" : "var(--surface-2)",
+                  color: lockType === t ? "#09090C" : "var(--muted)",
+                  borderColor: lockType === t ? "var(--accent)" : "var(--border)",
+                }}>
+                  {t === "free" ? "Free" : t === "subscription" ? "Subscribers only" : "Unlock to purchase"}
+                </button>
+              ))}
+            </div>
+
+            {lockType === "purchase" && (
+              <div style={{ display:"flex", alignItems:"center", gap:"var(--s-2)" }}>
+                <span style={{ color:"var(--muted)", fontSize:14 }}>$</span>
+                <input type="number" min="1" max="999" step="0.01" placeholder="Price to unlock"
+                  value={unlockPrice} onChange={e => setUnlockPrice(e.target.value)}
+                  className="input" style={{ maxWidth:160 }} />
+              </div>
+            )}
+
+            {lockType === "subscription" && (
+              <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
+                <label style={{ display:"flex", alignItems:"center", gap:"var(--s-2)", cursor:"pointer" }}>
+                  <input type="checkbox" checked={earlyAccess} onChange={e => setEarlyAccess(e.target.checked)} />
+                  <span style={{ fontSize:13, color:"var(--text-soft)" }}>Early Access — fans with a pass see this 30 min before others</span>
+                </label>
+              </div>
+            )}
+
+            {lockType === "subscription" && earlyAccess && (
+              <div>
+                <p className="label" style={{ marginBottom:"var(--s-2)" }}>Available to Early Access fans at</p>
+                <input type="datetime-local" value={earlyAccessAt} onChange={e => setEarlyAccessAt(e.target.value)}
+                  className="input" style={{ maxWidth:260 }} />
+                <p style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>All subscribers see it 30 minutes later.</p>
+              </div>
+            )}
+          </div>
+
           <div className="composer-actions">
             <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:11, fontWeight:600, color:"var(--muted)", padding:"7px 12px", border:"1px solid var(--border)", borderRadius:"var(--r-1)" }}>
               {uploading ? "Uploading…" : "📎 Media"}
@@ -2257,6 +2321,406 @@ function ContactBlocksPane({ profile }: { profile: Profile }) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Billing — creator's platform subscription
+// ──────────────────────────────────────────────────────────────────
+function BillingPane() {
+  const [data, setData] = React.useState<any | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [openingPortal, setOpeningPortal] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch("/api/billing")
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); });
+  }, []);
+
+  async function openPortal() {
+    setOpeningPortal(true);
+    const res = await fetch("/api/billing/portal", { method: "POST" });
+    const d = await res.json();
+    if (d.url) window.location.href = d.url;
+    else { alert(d.error ?? "Could not open billing portal"); setOpeningPortal(false); }
+  }
+
+  const TIER_ORDER = ["starter", "growth", "pro", "scale", "legend"];
+  const TIER_INFO: Record<string, { name: string; maxSubs: number; priceUsd: number; label: string }> = {
+    starter: { name: "Starter",  maxSubs: 100,      priceUsd: 29,    label: "Up to 100 subscribers" },
+    growth:  { name: "Growth",   maxSubs: 500,      priceUsd: 79,    label: "Up to 500 subscribers" },
+    pro:     { name: "Pro",      maxSubs: 2500,     priceUsd: 249,   label: "Up to 2,500 subscribers" },
+    scale:   { name: "Scale",    maxSubs: 10000,    priceUsd: 749,   label: "Up to 10,000 subscribers" },
+    legend:  { name: "Legend",   maxSubs: Infinity, priceUsd: 3499,  label: "Unlimited subscribers" },
+  };
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Platform subscription</p>
+        <h1 className="pane-title">Your <em>plan.</em></h1>
+      </div>
+
+      {loading ? (
+        <p style={{ fontSize: 13, color: "var(--muted)" }}>Loading…</p>
+      ) : !data?.billing ? (
+        <p style={{ fontSize: 13, color: "var(--muted)" }}>No billing account found. Try refreshing.</p>
+      ) : (
+        <div style={{ maxWidth: 560 }}>
+
+          {/* Status card */}
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6) var(--s-7)", marginBottom: 2 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "var(--s-5)" }}>
+              <div>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Current plan</p>
+                <p style={{ fontFamily: "var(--font-serif)", fontSize: 28, fontWeight: 400, color: "#fff", lineHeight: 1 }}>
+                  {TIER_INFO[data.billing.tier]?.name}
+                </p>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{TIER_INFO[data.billing.tier]?.label}</p>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <p style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "-.03em" }}>
+                  ${TIER_INFO[data.billing.tier]?.priceUsd}<span style={{ fontSize: 13, fontWeight: 400, color: "var(--muted)" }}>/mo</span>
+                </p>
+                <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: "var(--r-pill)", fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: ".1em", textTransform: "uppercase",
+                  background: data.billing.status === "trial" ? "rgba(240,180,41,0.1)" : data.billing.status === "active" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+                  color: data.billing.status === "trial" ? "var(--accent-spot)" : data.billing.status === "active" ? "var(--accent-open)" : "var(--red)",
+                  border: `1px solid ${data.billing.status === "trial" ? "rgba(240,180,41,0.2)" : data.billing.status === "active" ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,
+                }}>
+                  {data.billing.status === "trial" ? `Trial · ${data.trialDaysLeft}d left` : data.billing.status}
+                </div>
+              </div>
+            </div>
+
+            {/* Trial warning */}
+            {data.billing.status === "trial" && data.trialDaysLeft <= 7 && (
+              <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", marginBottom: "var(--s-5)", fontSize: 13, color: "rgba(248,113,113,0.9)", lineHeight: 1.6 }}>
+                Your trial ends in <strong>{data.trialDaysLeft} days</strong>. Add a payment method now to keep your account active.
+              </div>
+            )}
+
+            {/* Subscriber count + tier progress */}
+            <div style={{ marginBottom: "var(--s-5)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: "var(--text-soft)" }}>
+                  <strong style={{ color: "#fff" }}>{data.subscriberCount}</strong> active subscribers
+                </span>
+                {data.needsUpgrade && (
+                  <span style={{ fontSize: 11, color: "var(--accent-spot)", fontFamily: "var(--font-mono)", letterSpacing: ".1em", textTransform: "uppercase" }}>
+                    → {TIER_INFO[data.correctTier]?.name} on next cycle
+                  </span>
+                )}
+              </div>
+              {/* Tier progress bar */}
+              {data.billing.tier !== "legend" && (() => {
+                const tier = TIER_INFO[data.billing.tier];
+                const prevMax = TIER_ORDER.indexOf(data.billing.tier) > 0
+                  ? TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) - 1]].maxSubs
+                  : 0;
+                const pct = Math.min(100, ((data.subscriberCount - prevMax) / (tier.maxSubs - prevMax)) * 100);
+                return (
+                  <div>
+                    <div style={{ height: 4, background: "var(--border)", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", borderRadius: 99, transition: "width 0.3s" }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                      {data.subscriberCount} of {tier.maxSubs} subscribers — next tier: {TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) + 1]]?.name} at ${TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) + 1]]?.priceUsd}/mo
+                    </p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <button onClick={openPortal} disabled={openingPortal} className="btn btn--secondary" style={{ borderRadius: "var(--r-pill)" }}>
+              {openingPortal ? "Opening…" : data.billing.status === "trial" ? "Add payment method" : "Manage billing"}
+            </button>
+          </div>
+
+          {/* All tiers table */}
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", overflow: "hidden" }}>
+            <div style={{ padding: "var(--s-5) var(--s-6)", borderBottom: "1px solid var(--border)" }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)" }}>All tiers</p>
+            </div>
+            {TIER_ORDER.map(key => {
+              const tier = TIER_INFO[key];
+              const isCurrent = key === data.billing.tier;
+              const isNext = key === data.correctTier && data.needsUpgrade;
+              return (
+                <div key={key} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "var(--s-4) var(--s-6)",
+                  borderBottom: "1px solid rgba(255,255,255,0.03)",
+                  background: isCurrent ? "rgba(240,180,41,0.04)" : "transparent",
+                }}>
+                  <div>
+                    <span style={{ fontSize: 13, fontWeight: isCurrent ? 700 : 400, color: isCurrent ? "var(--accent)" : "var(--text-soft)" }}>
+                      {tier.name}
+                    </span>
+                    <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: 8 }}>{tier.label}</span>
+                    {isNext && <span style={{ marginLeft: 8, fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent-spot)", letterSpacing: ".1em", textTransform: "uppercase" }}>next cycle</span>}
+                  </div>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: isCurrent ? "var(--accent)" : "var(--muted)" }}>
+                    ${tier.priceUsd}/mo
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: "var(--s-4)", lineHeight: 1.7 }}>
+            Your tier auto-adjusts at each billing cycle based on your subscriber count. You&apos;re never charged more than your current tier rate until the next renewal.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Messages — creator reads and replies to fan messages
+// ──────────────────────────────────────────────────────────────────
+function MessagesPane({ profile }: { profile: Profile }) {
+  const [threads, setThreads] = React.useState<any[]>([]);
+  const [active, setActive] = React.useState<any | null>(null);
+  const [messages, setMessages] = React.useState<any[]>([]);
+  const [reply, setReply] = React.useState("");
+  const [sending, setSending] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const supabase = createClient();
+
+  React.useEffect(() => {
+    (supabase as any)
+      .from("message_threads")
+      .select("*, fan:fan_user_id(email)")
+      .eq("creator_profile_id", profile.id)
+      .order("last_message_at", { ascending: false })
+      .then(({ data }: any) => { setThreads(data ?? []); setLoading(false); });
+  }, []);
+
+  async function openThread(thread: any) {
+    setActive(thread);
+    const { data } = await (supabase as any)
+      .from("messages")
+      .select("*")
+      .eq("thread_id", thread.id)
+      .order("created_at", { ascending: true });
+    setMessages(data ?? []);
+    // Mark read
+    await (supabase as any).from("message_threads").update({ creator_unread: 0 }).eq("id", thread.id);
+    setThreads(prev => prev.map(t => t.id === thread.id ? { ...t, creator_unread: 0 } : t));
+  }
+
+  async function sendReply() {
+    if (!reply.trim() || !active) return;
+    setSending(true);
+    await (supabase as any).from("messages").insert({
+      thread_id: active.id,
+      sender_user_id: (await supabase.auth.getUser()).data.user?.id,
+      creator_profile_id: profile.id,
+      content: reply.trim(),
+      is_front_row: false,
+    });
+    await (supabase as any).from("message_threads").update({ last_message_at: new Date().toISOString(), fan_unread: (active.fan_unread ?? 0) + 1 }).eq("id", active.id);
+    setMessages(prev => [...prev, { content: reply.trim(), created_at: new Date().toISOString(), sender_user_id: "me" }]);
+    setReply("");
+    setSending(false);
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Inbox</p>
+        <h1 className="pane-title">Your <em>messages.</em></h1>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 2, minHeight: 400 }}>
+        {/* Thread list */}
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          {loading && <p style={{ padding: "var(--s-5)", fontSize: 13, color: "var(--muted)" }}>Loading…</p>}
+          {!loading && threads.length === 0 && <p style={{ padding: "var(--s-5)", fontSize: 13, color: "var(--muted)" }}>No messages yet.</p>}
+          {threads.map(t => (
+            <div key={t.id} onClick={() => openThread(t)} style={{
+              padding: "var(--s-4) var(--s-5)", cursor: "pointer",
+              background: active?.id === t.id ? "rgba(255,255,255,0.04)" : "transparent",
+              borderBottom: "1px solid var(--border)",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{t.fan?.email?.split("@")[0] ?? "Fan"}</span>
+                {t.creator_unread > 0 && (
+                  <span style={{ background: "var(--accent)", color: "#09090C", fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "1px 6px" }}>{t.creator_unread}</span>
+                )}
+              </div>
+              {t.is_front_row && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".1em", color: "var(--accent-spot)", textTransform: "uppercase" }}>Front Row</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* Message thread */}
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column" }}>
+          {!active ? (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <p style={{ fontSize: 13, color: "var(--muted)" }}>Select a conversation</p>
+            </div>
+          ) : (
+            <>
+              <div style={{ flex: 1, padding: "var(--s-5)", overflowY: "auto", display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+                {messages.map((m, i) => {
+                  const isMe = m.sender_user_id !== active.fan_user_id;
+                  return (
+                    <div key={i} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "75%" }}>
+                      {m.is_front_row && (
+                        <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent-spot)", letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 4 }}>
+                          ⭐ Front Row · ${Number(m.front_row_amount).toFixed(2)}
+                        </p>
+                      )}
+                      <div style={{
+                        background: isMe ? "var(--accent)" : "var(--surface-2)",
+                        color: isMe ? "#09090C" : "var(--text)",
+                        padding: "10px 14px", borderRadius: "var(--r-3)",
+                        fontSize: 14, lineHeight: 1.6,
+                        border: m.is_front_row ? "1px solid rgba(240,180,41,0.3)" : "1px solid var(--border)",
+                      }}>
+                        {m.content}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ padding: "var(--s-4) var(--s-5)", borderTop: "1px solid var(--border)", display: "flex", gap: "var(--s-3)" }}>
+                <input
+                  type="text" placeholder="Reply…" value={reply}
+                  onChange={e => setReply(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") sendReply(); }}
+                  style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "9px 14px", color: "var(--text)", fontSize: 13, outline: "none" }}
+                />
+                <button onClick={sendReply} disabled={sending || !reply.trim()} className="btn btn--primary btn--small" style={{ borderRadius: "var(--r-pill)" }}>
+                  {sending ? "…" : "Send"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Live — go live with BunnyCDN
+// ──────────────────────────────────────────────────────────────────
+function LivePane({ profile }: { profile: Profile }) {
+  const [title, setTitle] = React.useState("");
+  const [stream, setStream] = React.useState<any | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [ending, setEnding] = React.useState(false);
+  const [currentLive, setCurrentLive] = React.useState<any | null>(null);
+  const supabase = createClient();
+
+  React.useEffect(() => {
+    (supabase as any)
+      .from("live_streams")
+      .select("*")
+      .eq("creator_profile_id", profile.id)
+      .eq("status", "live")
+      .maybeSingle()
+      .then(({ data }: any) => setCurrentLive(data ?? null));
+  }, []);
+
+  async function goLive() {
+    if (!title.trim()) return;
+    setLoading(true);
+    const res = await fetch("/api/live/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title.trim(), creatorProfileId: profile.id }),
+    });
+    const data = await res.json();
+    if (data.streamId) setStream(data);
+    else alert(data.error ?? "Could not start stream");
+    setLoading(false);
+  }
+
+  async function endStream() {
+    const s = stream ?? currentLive;
+    if (!s) return;
+    setEnding(true);
+    await fetch("/api/live/end", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ streamId: s.streamId ?? s.bunny_stream_id }),
+    });
+    setStream(null);
+    setCurrentLive(null);
+    setTitle("");
+    setEnding(false);
+  }
+
+  const activeStream = stream ?? currentLive;
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Live Streaming</p>
+        <h1 className="pane-title">Go <em>live.</em></h1>
+        <p className="pane-lede">Stream to your fans in real time. Copy the RTMP URL and stream key into OBS, Streamlabs, or any streaming app.</p>
+      </div>
+
+      {activeStream ? (
+        <div style={{ maxWidth: 560 }}>
+          <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "var(--r-3)", padding: "var(--s-6) var(--s-7)", marginBottom: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "var(--s-5)" }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#EF4444", boxShadow: "0 0 6px #EF4444", display: "inline-block" }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "#EF4444" }}>Live now</span>
+            </div>
+
+            <div style={{ marginBottom: "var(--s-4)" }}>
+              <p className="label">RTMP URL</p>
+              <div style={{ display: "flex", gap: "var(--s-2)", alignItems: "center" }}>
+                <code style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "8px 12px", fontSize: 12, color: "var(--accent-open)", overflowX: "auto" }}>
+                  {activeStream.rtmpUrl ?? activeStream.rtmp_url}
+                </code>
+                <button onClick={() => navigator.clipboard.writeText(activeStream.rtmpUrl ?? activeStream.rtmp_url)} className="btn btn--secondary btn--small" style={{ borderRadius: "var(--r-pill)", flexShrink: 0 }}>Copy</button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "var(--s-6)" }}>
+              <p className="label">Stream Key</p>
+              <div style={{ display: "flex", gap: "var(--s-2)", alignItems: "center" }}>
+                <code style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "8px 12px", fontSize: 12, color: "var(--accent-open)", overflowX: "auto" }}>
+                  {activeStream.streamKey ?? activeStream.stream_key}
+                </code>
+                <button onClick={() => navigator.clipboard.writeText(activeStream.streamKey ?? activeStream.stream_key)} className="btn btn--secondary btn--small" style={{ borderRadius: "var(--r-pill)", flexShrink: 0 }}>Copy</button>
+              </div>
+            </div>
+
+            <button onClick={endStream} disabled={ending} className="btn" style={{ background: "#EF4444", color: "#fff", borderRadius: "var(--r-pill)", border: "none" }}>
+              {ending ? "Ending…" : "End Stream"}
+            </button>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: "var(--s-3)" }}>
+            Your fans can see the live stream on your public page right now.
+          </p>
+        </div>
+      ) : (
+        <div style={{ maxWidth: 480 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6) var(--s-7)" }}>
+            <p className="label" style={{ marginBottom: "var(--s-2)" }}>Stream title</p>
+            <input
+              type="text" placeholder="e.g. Q&A session, Behind the scenes…"
+              value={title} onChange={e => setTitle(e.target.value)}
+              className="input" style={{ marginBottom: "var(--s-5)" }}
+            />
+            <button onClick={goLive} disabled={loading || !title.trim()} className="btn btn--primary" style={{ borderRadius: "var(--r-pill)" }}>
+              {loading ? "Starting…" : "🔴 Go Live"}
+            </button>
+          </div>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: "var(--s-3)", lineHeight: 1.6 }}>
+            Once you start, you&apos;ll get an RTMP URL and stream key to paste into OBS or any streaming app. Your fans will see the live stream appear on your page automatically.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

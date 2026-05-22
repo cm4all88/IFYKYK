@@ -241,6 +241,9 @@ export default function SignupPage() {
       // Welcome email (fire and forget)
       fetch("/api/email/welcome", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email: form.email}) }).catch(()=>{});
 
+      // Start 30-day free trial (fire and forget — creates Stripe customer + trial subscription)
+      fetch("/api/billing", { method:"POST" }).catch(()=>{});
+
       router.push("/dashboard");
     } catch (e: any) {
       setFormErr(e?.message ?? "Something went wrong creating your account.");

@@ -9,6 +9,9 @@ import WishlistItemCard from "./WishlistItemCard";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
 import UnlockButton from "./UnlockButton";
+import SuperTipButton from "./SuperTipButton";
+import CommentSection from "./CommentSection";
+import LivePlayer from "./LivePlayer";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -79,9 +82,10 @@ async function fetchEverything(handle: string) {
   const { data: { user } } = await supabase.auth.getUser();
   let isSubscribed = false;
   let unlockedPostIds: Set<string> = new Set();
+  let hasEarlyAccess = false;
 
   if (user) {
-    const [{ data: sub }, { data: unlocks }] = await Promise.all([
+    const [{ data: sub }, { data: unlocks }, { data: earlyPass }] = await Promise.all([
       (supabase as any)
         .from("subscriptions")
         .select("id")
@@ -93,10 +97,35 @@ async function fetchEverything(handle: string) {
         .from("post_unlocks")
         .select("post_id")
         .eq("fan_user_id", user.id),
+      (supabase as any)
+        .from("early_access_passes")
+        .select("id")
+        .eq("fan_user_id", user.id)
+        .eq("creator_profile_id", spotlight.id)
+        .eq("status", "active")
+        .maybeSingle(),
     ]);
     isSubscribed = !!sub;
     unlockedPostIds = new Set((unlocks ?? []).map((u: any) => u.post_id));
+    hasEarlyAccess = !!earlyPass;
   }
+
+  // Check if creator is currently live
+  const { data: liveStream } = await (supabase as any)
+    .from("live_streams")
+    .select("*")
+    .eq("creator_profile_id", spotlight.id)
+    .eq("status", "live")
+    .maybeSingle();
+
+  // Recent super tips (last 5, for Top Supporter display)
+  const { data: superTips } = await (supabase as any)
+    .from("super_tips")
+    .select("fan_display_name, message, amount_usd, badge_expires_at")
+    .eq("creator_profile_id", spotlight.id)
+    .gt("badge_expires_at", new Date().toISOString())
+    .order("amount_usd", { ascending: false })
+    .limit(5);
 
   return {
     spotlight: spotlight as AnyProfile,
@@ -104,10 +133,13 @@ async function fetchEverything(handle: string) {
     channels: (channels ?? []) as AnyChannel[],
     posts: (posts ?? []) as AnyPost[],
     isSubscribed,
+    hasEarlyAccess,
     unlockedPostIds: Array.from(unlockedPostIds),
     viewerUserId: user?.id ?? null,
     campaigns: campaignsWithProgress,
     wishlistItems: wishlistItems ?? [],
+    liveStream: liveStream ?? null,
+    superTips: superTips ?? [],
   };
 }
 
@@ -204,9 +236,34 @@ export default async function CreatorPage(props: {
             <div className="cp-actions">
               <SubscribeButton creatorProfileId={spotlight.id} />
               <TipButton creatorProfileId={spotlight.id} />
+              <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
             </div>
           </div>
         </header>
+
+        {/* Live stream banner — shows when creator is live */}
+        {data.liveStream && (
+          <div style={{ maxWidth: "var(--container)", margin: "0 auto var(--s-4)", padding: "0 var(--s-6)" }}>
+            <LivePlayer playbackUrl={data.liveStream.playback_url} title={data.liveStream.title} />
+          </div>
+        )}
+
+        {/* Top Supporters */}
+        {data.superTips.length > 0 && (
+          <div style={{ maxWidth: "var(--container)", margin: "0 auto var(--s-4)", padding: "0 var(--s-6)" }}>
+            <div style={{ background: "rgba(240,180,41,0.04)", border: "1px solid rgba(240,180,41,0.15)", borderRadius: "var(--r-3)", padding: "var(--s-4) var(--s-5)" }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent-spot)", marginBottom: "var(--s-3)" }}>⭐ Top Supporters</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {data.superTips.map((t: any, i: number) => (
+                  <div key={i} style={{ background: "rgba(240,180,41,0.08)", border: "1px solid rgba(240,180,41,0.2)", borderRadius: "var(--r-pill)", padding: "4px 12px", fontSize: 12, color: "var(--text-soft)" }}>
+                    <span style={{ color: "var(--accent-spot)", fontWeight: 700 }}>{t.fan_display_name}</span>
+                    {t.message && <span style={{ marginLeft: 6, fontStyle: "italic" }}>"{t.message.slice(0, 40)}"</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <section className="cp-content">
           <div className="cp-content-inner">
@@ -321,11 +378,20 @@ export default async function CreatorPage(props: {
                 <ul className="cp-post-list">
                   {posts.map((p) => {
                     const unlockedPostIds = data.unlockedPostIds ?? [];
+                    const now = new Date();
+                    const earlyAccessAt = p.early_access_at ? new Date(p.early_access_at) : null;
+                    const regularAccessAt = earlyAccessAt ? new Date(earlyAccessAt.getTime() + 30 * 60 * 1000) : null;
+
+                    // Early access timing: hide from everyone until earlyAccessAt
+                    const visibleToEarlyAccess = !earlyAccessAt || earlyAccessAt <= now;
+                    const visibleToRegular = !regularAccessAt || regularAccessAt <= now;
+
                     const subLocked = p.lock_type === "subscription" && !isSubscribed;
+                    const earlyAccessLocked = p.lock_type === "subscription" && isSubscribed && !data.hasEarlyAccess && !!earlyAccessAt && !visibleToRegular;
                     const purchaseLocked = p.lock_type === "purchase" && !unlockedPostIds.includes(p.id);
                     const locked = subLocked || (p.tier === "premium" && p.lock_type !== "purchase" && !isSubscribed);
                     return (
-                      <li key={p.id} className={`cp-post${locked || purchaseLocked ? " cp-post--locked" : ""}`}>
+                      <li key={p.id} className={`cp-post${locked || purchaseLocked || earlyAccessLocked ? " cp-post--locked" : ""}`}>
                         {locked ? (
                           <>
                             <div className="cp-post-gate">
@@ -345,6 +411,27 @@ export default async function CreatorPage(props: {
                             <div className="cp-post-meta" style={{ padding: "var(--s-4) var(--s-6)" }}>
                               <span>{new Date(p.created_at).toLocaleDateString()}</span>
                               <span className="cp-post-lock">🔒 Subscriber content</span>
+                            </div>
+                          </>
+                        ) : earlyAccessLocked ? (
+                          <>
+                            <div className="cp-post-gate">
+                              <div className="cp-gate-blur" aria-hidden />
+                              <div className="cp-gate-overlay">
+                                <span className="cp-gate-icon">⏱</span>
+                                <p className="cp-gate-label" style={{ color: "var(--accent-spot)" }}>Early Access only</p>
+                                <p className="cp-gate-desc">
+                                  This post drops for all subscribers in {Math.ceil((regularAccessAt!.getTime() - now.getTime()) / 60000)} min.
+                                  Early Access fans can read it now.
+                                </p>
+                                <a href="/dashboard?pane=settings" className="btn btn--secondary cp-gate-btn" style={{ fontSize: 12 }}>
+                                  Get Early Access · $2.99/mo
+                                </a>
+                              </div>
+                            </div>
+                            <div className="cp-post-meta" style={{ padding: "var(--s-4) var(--s-6)" }}>
+                              <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                              <span className="cp-post-lock" style={{ color: "var(--accent-spot)" }}>⏱ Early Access</span>
                             </div>
                           </>
                         ) : purchaseLocked ? (
@@ -383,6 +470,7 @@ export default async function CreatorPage(props: {
                                 <span>{p.likes_count} likes</span>
                               )}
                             </div>
+                            <CommentSection postId={p.id} viewerUserId={data.viewerUserId} />
                           </>
                         )}
                       </li>

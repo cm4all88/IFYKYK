@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice } = await req.json();
+  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt } = await req.json();
 
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
       tier: resolvedTier,
       lock_type: resolvedLockType,
       unlock_price: lockType === "purchase" ? (unlockPrice ?? null) : null,
+      early_access_at: earlyAccessAt ?? null,
       status: "live",
       moderation_status: "approved",
     })

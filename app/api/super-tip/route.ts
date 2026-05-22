@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
+import { getSecrets } from "@/lib/settings";
+
+const PLATFORM_CUT = 0.15;
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { creatorProfileId, amountUsd, message, fanDisplayName } = await req.json();
+  if (!creatorProfileId || !amountUsd || amountUsd < 1) {
+    return NextResponse.json({ error: "Minimum super tip is $1" }, { status: 400 });
+  }
+
+  const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
+  if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
+
+  const { data: profile } = await (supabase as any)
+    .from("creator_profiles")
+    .select("handle, stripe_account_id, stripe_onboarded")
+    .eq("id", creatorProfileId)
+    .maybeSingle();
+
+  if (!profile?.stripe_account_id || !profile.stripe_onboarded) {
+    return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });
+  }
+
+  const totalCents = Math.round(amountUsd * 100);
+  const feeCents = Math.round(totalCents * PLATFORM_CUT);
+  const origin = new URL(req.url).origin;
+
+  const displayName = fanDisplayName?.trim() || (user ? "A fan" : "Anonymous");
+
+  const params = new URLSearchParams({
+    mode: "payment",
+    "line_items[0][price_data][currency]": "usd",
+    "line_items[0][price_data][product_data][name]": `⭐ Super Tip for @${profile.handle}`,
+    "line_items[0][price_data][product_data][description]": `From ${displayName}${message ? `: ${message.slice(0, 80)}` : ""}`,
+    "line_items[0][price_data][unit_amount]": String(totalCents),
+    "line_items[0][quantity]": "1",
+    "payment_intent_data[application_fee_amount]": String(feeCents),
+    "payment_intent_data[transfer_data][destination]": profile.stripe_account_id,
+    "success_url": `${origin}/${profile.handle}?super_tipped=1`,
+    "cancel_url": `${origin}/${profile.handle}`,
+    "metadata[type]": "super_tip",
+    "metadata[creator_profile_id]": creatorProfileId,
+    "metadata[fan_user_id]": user?.id ?? "",
+    "metadata[fan_display_name]": displayName,
+    "metadata[message]": message?.trim()?.slice(0, 500) ?? "",
+    "metadata[amount_usd]": String(amountUsd),
+  });
+
+  if (user) params.set("client_reference_id", user.id);
+
+  const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("Super tip Stripe error:", err);
+    return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
+  }
+
+  const session = await res.json();
+  return NextResponse.json({ url: session.url });
+}

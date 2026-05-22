@@ -85,23 +85,24 @@ export default function LandingPage() {
 
             <div className="reality-card reality-card--bad">
               <div className="reality-platform">Instagram</div>
-              <div className="reality-pay">Today.</div>
-              <div className="reality-unit">subscriptions can be cancelled tomorrow</div>
+              <div className="reality-pay">$0</div>
+              <div className="reality-unit">guaranteed — Meta can end it overnight</div>
               <div className="reality-note">
-                Meta can cancel Instagram subscriptions the same way
-                they cancelled the Reels Play Bonus — overnight, no warning,
-                your income gone. If your livelihood depends on a feature
-                a platform controls, it was never really yours.
+                Meta killed the Reels Play Bonus overnight with no warning.
+                Instagram subscriptions could go the same way.
+                Any income tied to a feature a platform controls
+                was never really yours to keep.
               </div>
             </div>
 
             <div className="reality-card reality-card--bad">
               <div className="reality-platform">X / Twitter</div>
-              <div className="reality-pay">Minimal</div>
-              <div className="reality-unit">requires X Premium + massive reach</div>
+              <div className="reality-pay">~$0.50</div>
+              <div className="reality-unit">per 1,000 impressions — requires X Premium</div>
               <div className="reality-note">
-                Ad revenue share requires a paid subscription and
-                millions of impressions. Most creators see almost nothing.
+                Ad revenue share requires a paid X subscription and
+                millions of impressions to see meaningful income.
+                Most creators earn a few dollars a month at best.
               </div>
             </div>
 
@@ -123,7 +124,7 @@ export default function LandingPage() {
             Twitter changed its monetization rules multiple times in a year.
             When your income depends on a feature a platform controls,
             they can take it away without warning.{" "}
-            <strong style={{ color:"var(--text)" }}>Your Spotlightly page is yours. Nobody can cancel it.</strong>
+            <strong style={{ color:"var(--text)" }}>Your Spotlightly page isn't subject to algorithm changes or platform policy whims. No one can shut down your income overnight.</strong>
           </div>
 
           <div className="reality-strategy">
@@ -172,16 +173,16 @@ export default function LandingPage() {
               <h3 className="venue-card-title">Center stage.</h3>
               <p className="venue-card-body">
                 Your public page. Your custom handle. Your audience.
-                Subscriptions, tips, locked posts, live streams, merchandise —
-                the full stack for building a career. This is where most
+                Subscriptions, tips, locked posts, campaigns, live streams,
+                and merch — the full stack for building a career. This is where most
                 creators spend every day of their professional life.
               </p>
               <ul className="venue-card-feats">
                 <li>Custom handle + public page</li>
                 <li>Subscriptions and locked content</li>
                 <li>Tips — you keep every dollar</li>
-                <li>Live streaming</li>
-                <li>Merch store via Spotlightly</li>
+                <li>Live streaming <span className="feat-soon">coming soon</span></li>
+                <li>Merch store via Spotlightly <span className="feat-soon">coming soon</span></li>
                 <li>AI monetization advisor</li>
               </ul>
             </div>
@@ -390,7 +391,7 @@ export default function LandingPage() {
           <div className="extras-note">
             <p className="kicker" style={{ marginBottom: 12 }}>How Spotlightly earns alongside you</p>
             <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 680 }}>
-              Our revenue comes from optional fan purchases — Front Row Messages (50/50 split with you), Super Tips (85% to you), Comment Boosts, and Early Access Passes.
+              Our revenue comes from optional fan features — Front Row Messages (50/50 split with you), Super Tips (85% to you), Comment Boosts, and Early Access Passes — rolling out through 2025.
               <strong style={{ color: "var(--text)" }}> We make money when your fans want to do more, not by taxing what you already earn.</strong>
             </p>
           </div>
@@ -566,6 +567,19 @@ export default function LandingPage() {
         }
         .venue-card-feats li:last-child { border-bottom: none; }
         .venue-card-feats li::before { content: "—"; position: absolute; left: 0; color: var(--muted-faint); }
+        .feat-soon {
+          font-family: var(--font-mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--muted);
+          background: rgba(255,255,255,0.05);
+          border: 1px solid var(--border);
+          border-radius: 3px;
+          padding: 1px 6px;
+          margin-left: 8px;
+          vertical-align: middle;
+        }
 
         /* HERO VENUE STRIP */
         .hero-venue {
@@ -781,19 +795,19 @@ export default function LandingPage() {
           font-size: 9px;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: var(--muted-faint);
+          color: rgba(242,242,240,0.45);
           margin-bottom: var(--s-4);
           line-height: 1.5;
         }
         .reality-note {
           font-size: 12px;
-          color: var(--text-faint);
+          color: rgba(242,242,240,0.55);
           line-height: 1.65;
           border-top: 1px solid var(--border);
           padding-top: var(--s-4);
           margin-top: var(--s-2);
         }
-        .reality-card--good .reality-note { color: var(--text-soft); }
+        .reality-card--good .reality-note { color: rgba(242,242,240,0.72); }
 
         .reality-strategy {
           background: var(--surface);
