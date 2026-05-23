@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
-import { isAdmin, ADMIN_USER_ID } from "@/lib/admin";
+import { isAdmin } from "@/lib/admin";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -34,7 +34,7 @@ async function createMessage(formData: FormData) {
     body,
     status: sendNow ? "sent" : "draft",
     sent_at: sendNow ? new Date().toISOString() : null,
-    created_by: ADMIN_USER_ID,
+    created_by: (await (await createClient()).auth.getUser()).data.user?.id ?? "",
   });
 
   revalidatePath("/admin/comms");

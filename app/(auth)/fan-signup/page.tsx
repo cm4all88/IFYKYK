@@ -8,10 +8,10 @@ export default function FanSignupPage() {
   const router = useRouter();
   const supabase = createClient();
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
   const [returnUrl, setReturnUrl] = useState("/");
 
   useEffect(() => {
@@ -21,86 +21,85 @@ export default function FanSignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!phone.trim()) { setErr("Phone number is required."); return; }
+    if (password.length < 8) { setErr("Password must be at least 8 characters."); return; }
     setLoading(true);
     setErr(null);
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: { role: "fan", phone: phone.trim() },
-      },
+      options: { emailRedirectTo: `${window.location.origin}${returnUrl}` },
     });
 
     if (error) { setErr(error.message); setLoading(false); return; }
-    router.push(returnUrl);
-    router.refresh();
+    setDone(true);
   }
 
   return (
-    <div className="lg">
-      <div className="lg-shell">
-        <Link href="/" className="lg-brand">Spot<span>light</span>ly</Link>
-        <div className="lg-card">
-          <p className="kicker">Join as a fan</p>
-          <h1 className="lg-title">Get closer to your <em>favourites.</em></h1>
+    <main style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"24px", background:"radial-gradient(ellipse 60% 40% at 50% 30%, rgba(245,200,66,0.05) 0%, transparent 70%), var(--bg)" }}>
+      <div style={{ width:"100%", maxWidth:440, display:"flex", flexDirection:"column", alignItems:"center", gap:"var(--s-8)" }}>
+        <Link href="/" style={{ fontFamily:"var(--font-serif)", fontSize:28, color:"var(--text)", textDecoration:"none" }}>
+          Spot<span style={{ color:"var(--accent)" }}>light</span>ly
+        </Link>
 
-          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.65, marginBottom:"var(--s-6)" }}>
-            Creators on Spotlightly verify who their fans are. Your email and phone number
-            confirm your identity and let creators maintain a safe, accountable community.
-          </p>
-
-          <form className="lg-form" onSubmit={handleSubmit}>
-            {err && <div className="lg-err">{err}</div>}
-
-            <div className="lg-field">
-              <label className="label">Email</label>
-              <input className="input" type="email" required autoComplete="email"
-                value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com" />
-            </div>
-
-            <div className="lg-field">
-              <label className="label">Phone number</label>
-              <input className="input" type="tel" required autoComplete="tel"
-                value={phone} onChange={e => setPhone(e.target.value)}
-                placeholder="+1 (555) 000-0000" />
-              <p style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>
-                Required. Creators can see verified fan contact information.
+        <div style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-10)" }}>
+          {done ? (
+            <div style={{ textAlign:"center" }}>
+              <div style={{ fontSize:40, marginBottom:16 }}>📬</div>
+              <h1 style={{ fontFamily:"var(--font-serif)", fontSize:28, fontWeight:300, color:"#fff", marginBottom:12, lineHeight:1.1 }}>Check your email.</h1>
+              <p style={{ fontSize:14, color:"rgba(242,242,240,0.55)", lineHeight:1.75 }}>
+                We sent a confirmation link to <strong style={{ color:"#fff" }}>{email}</strong>. Click it to activate your account and you&apos;re in.
               </p>
             </div>
+          ) : (
+            <>
+              <p className="kicker">Fan account</p>
+              <h1 style={{ fontFamily:"var(--font-serif)", fontSize:32, fontWeight:300, lineHeight:1.1, color:"#fff", margin:"var(--s-3) 0 var(--s-8)" }}>
+                Join <em style={{ fontStyle:"italic", color:"var(--accent)" }}>Spotlightly.</em>
+              </h1>
 
-            <div className="lg-field">
-              <label className="label">Password</label>
-              <input className="input" type="password" required autoComplete="new-password"
-                value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="At least 8 characters" minLength={8} />
-            </div>
+              <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
+                <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-2)" }}>
+                  <label className="label">Email</label>
+                  <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required autoFocus />
+                </div>
+                <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-2)" }}>
+                  <label className="label">Password</label>
+                  <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" required minLength={8} />
+                  <p style={{ fontSize:11, color:"var(--muted)" }}>At least 8 characters</p>
+                </div>
 
-            <button type="submit" className="btn btn--primary lg-submit" disabled={loading}>
-              {loading ? "Creating account…" : "Create account →"}
-            </button>
-          </form>
+                {err && <div style={{ background:"var(--red-soft)", border:"1px solid var(--red-border)", color:"var(--red)", padding:"var(--s-3) var(--s-4)", borderRadius:"var(--r-2)", fontSize:13 }}>⚠ {err}</div>}
 
-          <div className="lg-footer">
-            Already have an account?{" "}
-            <Link href={`/login?return=${encodeURIComponent(returnUrl)}`} className="lg-link">Sign in</Link>
-            <br />
-            <span style={{ marginTop:8, display:"block", fontSize:12, color:"var(--muted-faint)" }}>
-              Want to create content?{" "}
-              <Link href="/signup" className="lg-link">Become a creator</Link>
-            </span>
-          </div>
+                <label style={{ display:"flex", alignItems:"flex-start", gap:10, cursor:"pointer" }}>
+                  <input type="checkbox" required style={{ marginTop:3, flexShrink:0, accentColor:"var(--accent)", width:16, height:16 }} />
+                  <span style={{ fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>
+                    I am 18 or older and agree to the{" "}
+                    <Link href="/terms" target="_blank" style={{ color:"var(--accent)" }}>Terms of Service</Link>
+                    {" "}and{" "}
+                    <Link href="/privacy" target="_blank" style={{ color:"var(--accent)" }}>Privacy Policy</Link>.
+                  </span>
+                </label>
+
+                <button type="submit" className="btn btn--primary" disabled={loading} style={{ marginTop:"var(--s-3)", padding:"16px 24px" }}>
+                  {loading ? "Creating account…" : "Create account →"}
+                </button>
+              </form>
+
+              <p style={{ marginTop:"var(--s-6)", fontSize:13, color:"var(--muted)", textAlign:"center" }}>
+                Already have an account?{" "}
+                <Link href={`/login${returnUrl !== "/" ? `?return=${encodeURIComponent(returnUrl)}` : ""}`} style={{ color:"var(--accent)", fontFamily:"var(--font-mono)", fontSize:12, letterSpacing:".1em", textTransform:"uppercase" }}>
+                  Sign in
+                </Link>
+              </p>
+              <p style={{ marginTop:"var(--s-3)", fontSize:12, color:"rgba(255,255,255,0.2)", textAlign:"center" }}>
+                Want to be a creator?{" "}
+                <Link href="/signup" style={{ color:"rgba(240,180,41,0.5)" }}>Sign up as a creator →</Link>
+              </p>
+            </>
+          )}
         </div>
-
-        <p style={{ fontSize:12, color:"var(--muted-faint)", textAlign:"center", maxWidth:340 }}>
-          By joining, you agree to our{" "}
-          <Link href="/terms" style={{ color:"var(--accent)" }}>Terms of Service</Link> and{" "}
-          <Link href="/privacy" style={{ color:"var(--accent)" }}>Privacy Policy</Link>.
-          Your contact information is shared with creators whose content you access.
-        </p>
       </div>
-    </div>
+    </main>
   );
 }

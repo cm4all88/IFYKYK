@@ -244,7 +244,7 @@ export default function SignupPage() {
       // Start 30-day free trial (fire and forget — creates Stripe customer + trial subscription)
       fetch("/api/billing", { method:"POST" }).catch(()=>{});
 
-      router.push("/dashboard");
+      router.push("/onboarding");
     } catch (e: any) {
       setFormErr(e?.message ?? "Something went wrong creating your account.");
       setSubmitting(false);
@@ -584,6 +584,20 @@ function AccountForm({
         )}
 
         {formErr && <div className="form-err">⚠ {formErr}</div>}
+
+        <label style={{ display:"flex", alignItems:"flex-start", gap:10, cursor:"pointer", marginTop:4 }}>
+          <input
+            type="checkbox"
+            required
+            style={{ marginTop:3, flexShrink:0, accentColor:"var(--accent)", width:16, height:16 }}
+          />
+          <span style={{ fontSize:12, color:"rgba(232,232,240,0.55)", lineHeight:1.6, fontFamily:"var(--font-body)" }}>
+            I am 18 or older and I agree to the{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color:"var(--accent)" }}>Terms of Service</a>
+            {" "}and{" "}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color:"var(--accent)" }}>Privacy Policy</a>.
+          </span>
+        </label>
 
         <button type="submit" className="submit" disabled={submitting}>
           {submitting ? "Setting up your stage…" : "Open the curtain →"}

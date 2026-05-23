@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import { isAdmin } from "@/lib/admin";
-import { ADMIN_USER_ID } from "@/lib/admin";
+
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -30,7 +30,7 @@ async function createCoupon(formData: FormData) {
     expires_at: expiresAt,
     applies_to: appliesTo || "all",
     is_active: true,
-    created_by: ADMIN_USER_ID,
+    created_by: "admin",
   });
 
   revalidatePath("/admin/coupons");

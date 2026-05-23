@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase-client";
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
-  const returnUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("return") || "/dashboard" : "/dashboard";
+  const returnUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("return") || "/" : "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,11 +79,16 @@ export default function LoginPage() {
           </form>
 
           <p className="lg-footer">
-            New here?{" "}
             <Link href="/forgot-password" className="lg-link">Forgot password?</Link>
-            {" · "}
-            <Link href="/signup" className="lg-link">Create an account</Link>
           </p>
+          <div style={{ marginTop: "var(--s-6)", display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+            <Link href={`/fan-signup${typeof window !== "undefined" && window.location.search ? window.location.search : ""}`} className="btn btn--secondary" style={{ textAlign: "center", borderRadius: "var(--r-pill)", fontSize: 13 }}>
+              New fan? Create a free account
+            </Link>
+            <Link href="/signup" style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", textDecoration: "none", padding: "8px 0" }}>
+              Want to be a creator? Sign up here →
+            </Link>
+          </div>
         </div>
       </div>
 

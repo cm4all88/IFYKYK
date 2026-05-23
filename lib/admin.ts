@@ -1,23 +1,15 @@
 import { createClient } from "@/lib/supabase-server";
 
 /**
- * The single designated admin user_id. Hardcoded by design — there is one admin.
- * Changing this requires a code deploy, which is the right amount of friction
- * for "who can edit platform credentials."
- */
-export const ADMIN_USER_ID = "9b5ac2dc-ea4f-4bac-b2ef-70608562568a";
-
-/**
- * Server-side check: is the current request from the admin user?
- * Returns true/false. Use in server components and route handlers.
- *
- * USAGE:
- *   if (!(await isAdmin())) notFound();
+ * Admin access is controlled by NEXT_PUBLIC_ADMIN_EMAIL env var.
+ * Set this in Vercel to your email address.
+ * No code deploy required to change admin — just update the env var.
  */
 export async function isAdmin(): Promise<boolean> {
+  const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+  if (!adminEmail) return false;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user?.id === ADMIN_USER_ID;
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.email?.toLowerCase() === adminEmail.toLowerCase();
 }

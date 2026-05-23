@@ -799,7 +799,23 @@ export default async function CreatorPage(props: {
 import { hasSecret } from "@/lib/settings";
 
 async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
+
+  if (!user) {
+    return (
+      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+        <a href={`/fan-signup?return=${encodeURIComponent(`/?subscribe=${creatorProfileId}`)}`} className="btn btn--primary">
+          Sign up to subscribe
+        </a>
+        <a href="/login" style={{ textAlign:"center", fontSize:12, color:"rgba(255,255,255,0.4)", textDecoration:"none" }}>
+          Already have an account? Sign in
+        </a>
+      </div>
+    );
+  }
+
   return (
     <form action="/api/subscribe" method="post">
       <input type="hidden" name="creator_profile_id" value={creatorProfileId} />

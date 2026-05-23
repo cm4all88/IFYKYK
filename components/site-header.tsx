@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import ThemeToggle from "@/components/ThemeToggle";
 
+const ADMIN_ID = "9b5ac2dc-ea4f-4bac-b2ef-70608562568a";
+
 export default async function SiteHeader({
   variant = "default",
 }: {
@@ -11,6 +13,8 @@ export default async function SiteHeader({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const isAdmin = user?.id === ADMIN_ID;
 
   return (
     <header className={`sh sh--${variant}`}>
@@ -23,9 +27,20 @@ export default async function SiteHeader({
           <ThemeToggle />
           {user ? (
             <>
+              <Link href="/explore" className="sh-link">
+                Explore
+              </Link>
+              <Link href="/account" className="sh-link">
+                Account
+              </Link>
               <Link href="/dashboard" className="sh-link">
                 Dashboard
               </Link>
+              {isAdmin && (
+                <Link href="/admin" className="sh-link" style={{ color: "var(--accent)" }}>
+                  Admin
+                </Link>
+              )}
               <form action="/api/auth/signout" method="post">
                 <button type="submit" className="sh-link sh-link-btn">
                   Sign out
@@ -34,6 +49,9 @@ export default async function SiteHeader({
             </>
           ) : (
             <>
+              <Link href="/explore" className="sh-link">
+                Explore
+              </Link>
               <Link href="/login" className="sh-link">
                 Sign in
               </Link>

@@ -69,6 +69,7 @@ export default function LandingPage() {
           <p style={{ fontSize:17, color:"var(--text-soft)", lineHeight:1.75, maxWidth:620, marginBottom:"var(--s-12)" }}>
             TikTok, Instagram, and Twitter need your content to survive.
             You post every day. They sell ads against it.
+            Instagram won&apos;t even let you charge subscriptions until you have 10,000 followers.
             The math on what they pay back is almost insulting.
           </p>
 
@@ -85,13 +86,13 @@ export default function LandingPage() {
 
             <div className="reality-card reality-card--bad">
               <div className="reality-platform">Instagram</div>
-              <div className="reality-pay">$0</div>
-              <div className="reality-unit">guaranteed — Meta can end it overnight</div>
+              <div className="reality-pay">10,000</div>
+              <div className="reality-unit">followers required just to qualify for subscriptions</div>
               <div className="reality-note">
-                Meta killed the Reels Play Bonus overnight with no warning.
-                Instagram subscriptions could go the same way.
-                Any income tied to a feature a platform controls
-                was never really yours to keep.
+                Instagram requires a minimum of 10,000 followers before they&apos;ll even let you charge for subscriptions.
+                Most creators never reach that threshold — and those who do are still at Meta&apos;s mercy.
+                They killed the Reels Play Bonus overnight with no warning. Subscriptions could go the same way.
+                Spotlightly has no follower minimum. Post your first piece of content and start earning the same day.
               </div>
             </div>
 
@@ -510,6 +511,52 @@ export default function LandingPage() {
       </section>
 
       {/* ── CLOSING ── */}
+      {/* FAN INVITE SECTION */}
+      <section style={{ padding:"var(--s-24) var(--s-6)", borderTop:"1px solid var(--border)", background:"rgba(255,255,255,0.01)" }}>
+        <div style={{ maxWidth:"var(--container)", margin:"0 auto", textAlign:"center" }}>
+          <p style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".2em", textTransform:"uppercase", color:"var(--muted)", marginBottom:"var(--s-4)" }}>For fans</p>
+          <h2 style={{ fontFamily:"var(--font-serif)", fontSize:"clamp(28px, 4vw, 42px)", fontWeight:300, color:"#fff", lineHeight:1.1, marginBottom:"var(--s-5)" }}>
+            Is your favorite creator<br /><em style={{ color:"var(--accent)" }}>not here yet?</em>
+          </h2>
+          <p style={{ fontSize:16, color:"var(--text-soft)", lineHeight:1.75, maxWidth:520, margin:"0 auto var(--s-8)" }}>
+            Tell them about Spotlightly. No platform takes a cut of what they earn.
+            They keep everything — subscriptions, tips, all of it. Just a flat monthly fee
+            and their work is actually worth their time.
+          </p>
+          <div style={{ display:"flex", gap:"var(--s-3)", justifyContent:"center", flexWrap:"wrap" }}>
+            <a
+              href="https://twitter.com/intent/tweet?text=Hey%2C%20you%20should%20join%20Spotlightly%20%E2%80%94%20a%20creator%20platform%20where%20you%20actually%20keep%20everything%20you%20earn.%20No%20percentage%20cuts%2C%20just%20a%20flat%20monthly%20fee.%20spotlightly.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn--secondary"
+              style={{ borderRadius:"var(--r-pill)", fontSize:13 }}
+            >
+              Share on X / Twitter
+            </a>
+            <button
+              onClick={undefined}
+              className="btn btn--secondary"
+              style={{ borderRadius:"var(--r-pill)", fontSize:13 }}
+              id="copy-invite-btn"
+            >
+              Copy message to send
+            </button>
+          </div>
+          <p style={{ fontSize:12, color:"var(--muted)", marginTop:"var(--s-6)" }}>
+            Or just send them to <strong style={{ color:"var(--text)" }}>spotlightly.app</strong>
+          </p>
+        </div>
+      </section>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+        document.getElementById('copy-invite-btn')?.addEventListener('click', function() {
+          navigator.clipboard.writeText("Hey! You should check out Spotlightly for monetizing your content. They take 0% of what you earn — just a flat monthly fee. No 20% cut like OnlyFans, no follower minimums like Instagram. You could start earning from day one. spotlightly.app").then(() => {
+            this.textContent = 'Copied!';
+            setTimeout(() => { this.textContent = 'Copy message to send'; }, 2000);
+          });
+        });
+      `}} />
+
       <section className="closing">
         <div className="closing-inner">
           <h2 className="closing-h">Your stage is <em>waiting.</em></h2>

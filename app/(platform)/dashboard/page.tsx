@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import ThemeToggle from "@/components/ThemeToggle";
+import { CREATOR_CATEGORIES } from "@/lib/categories";
 
 // ──────────────────────────────────────────────────────────────────
 // Types — defensive, mirror what's actually in the DB
@@ -25,7 +26,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "settings" | "admin";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -38,6 +39,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const ADMIN_ID = "9b5ac2dc-ea4f-4bac-b2ef-70608562568a";
   const [spotlight, setSpotlight] = useState<Profile | null>(null);
   const [backstage, setBackstage] = useState<Profile | null>(null);
   const [tab, setTab] = useState<Tab>("spotlight");
@@ -46,7 +48,7 @@ export default function DashboardPage() {
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "settings", "admin"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "settings"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -74,7 +76,7 @@ export default function DashboardPage() {
     }
 
     setUserEmail(user.email ?? null);
-    setIsAdmin(user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL);
+    setIsAdmin(user.id === ADMIN_ID);
 
     const { data: rows, error } = await supabase
       .from("creator_profiles")
@@ -240,6 +242,9 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="billing" onClick={setPane}>
               Billing
             </PaneButton>
+            {!backstage && (
+              <a href="/backstage-setup" style={{ display:"block", padding:"10px var(--s-4)", fontSize:13, color:"var(--accent-back)", borderRadius:"var(--r-2)", textDecoration:"none" }}>+ Add Backstage</a>
+            )}
             <PaneButton current={pane} target="settings" onClick={setPane}>
               Settings
             </PaneButton>
@@ -253,9 +258,7 @@ export default function DashboardPage() {
               Block List
             </PaneButton>
             {isAdmin && (
-              <PaneButton current={pane} target="admin" onClick={setPane}>
-                ⚙ Admin
-              </PaneButton>
+              <a href="/admin" style={{ display:"block", padding:"10px var(--s-4)", fontSize:13, color:"var(--muted)", borderRadius:"var(--r-2)", textDecoration:"none" }}>⚙ Admin →</a>
             )}
 
             <div style={{ margin: "var(--s-4) 0 var(--s-2)", padding: "0 0 var(--s-2)", borderBottom: "1px solid var(--border)" }}>
@@ -363,9 +366,7 @@ export default function DashboardPage() {
           {pane === "live" && active && (
             <LivePane profile={active} />
           )}
-          {pane === "admin" && isAdmin && (
-            <AdminPane />
-          )}
+
         </section>
       </div>
 
@@ -484,6 +485,10 @@ function OverviewPane({
           <h4>Help</h4>
           <p>Setup guide and support.</p>
         </Link>
+        <Link href="/gear" className="quick-card">
+          <h4>📦 Creator Gear</h4>
+          <p>Equipment guide for every budget.</p>
+        </Link>
         <Link href="/dashboard?pane=analytics" className="quick-card">
           <h4>Analytics</h4>
           <p>Subscribers, earnings, growth.</p>
@@ -512,6 +517,9 @@ function ProfilePane({
   const [socialLinks, setSocialLinks] = useState<Record<string,string>>((profile as any).social_links ?? {});
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
   const [coverUrl, setCoverUrl] = useState(profile.cover_url ?? "");
+  const [tags, setTags] = useState<string[]>((profile as any).tags ?? []);
+  const [locationCity, setLocationCity] = useState((profile as any).location_city ?? "");
+  const [locationCountry, setLocationCountry] = useState((profile as any).location_country ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -527,9 +535,16 @@ function ProfilePane({
         bio: bio.trim() || undefined,
         avatar_url: avatarUrl.trim() || undefined,
         cover_url: coverUrl.trim() || undefined,
-      })
+      } as any)
       .eq("user_id", profile.user_id)
       .eq("kind", profile.kind);
+
+    // Save tags and location separately (new columns may not be in generated types)
+    await (supabase as any).from("creator_profiles").update({
+      tags,
+      location_city: locationCity.trim() || null,
+      location_country: locationCountry.trim() || null,
+    }).eq("user_id", profile.user_id).eq("kind", profile.kind);
 
     if (error) setErr(error.message);
     else {
@@ -582,6 +597,44 @@ function ProfilePane({
             rows={4}
           />
           <p className="hint">{bio.length}/500</p>
+        </div>
+
+        {/* Tags */}
+        <div className="form-field">
+          <label className="label">Categories <span style={{ color:"var(--muted)", fontWeight:300 }}>(pick up to 5 — helps fans find you)</span></label>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:"var(--s-2)" }}>
+            {(CREATOR_CATEGORIES as readonly { id: string; label: string; emoji: string }[])
+              .filter(c => profile.kind === "backstage" || c.id !== "adult")
+              .map(cat => {
+              const active = tags.includes(cat.id);
+              return (
+                <button key={cat.id} type="button" onClick={() => {
+                  if (active) setTags(prev => prev.filter((t: string) => t !== cat.id));
+                  else if (tags.length < 5) setTags(prev => [...prev, cat.id]);
+                }} style={{
+                  display:"flex", alignItems:"center", gap:6,
+                  padding:"6px 12px", borderRadius:"var(--r-pill)", border:"1px solid", cursor:"pointer", fontSize:12,
+                  background: active ? "rgba(240,180,41,0.1)" : "var(--surface-2)",
+                  color: active ? "var(--accent)" : "var(--muted)",
+                  borderColor: active ? "rgba(240,180,41,0.25)" : "var(--border)",
+                }}>
+                  {cat.emoji} {cat.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="form-row">
+          <div className="form-field">
+            <label className="label">City <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+            <input className="input" type="text" placeholder="Seattle" value={locationCity} onChange={e => setLocationCity(e.target.value)} />
+          </div>
+          <div className="form-field">
+            <label className="label">Country <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+            <input className="input" type="text" placeholder="USA" value={locationCountry} onChange={e => setLocationCountry(e.target.value)} />
+          </div>
         </div>
 
         <div style={{ borderTop:"1px solid var(--border)", paddingTop:"var(--s-6)" }}>
@@ -2725,113 +2778,6 @@ function LivePane({ profile }: { profile: Profile }) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────────
-// PANE: Admin — all posts across all creators, full content visible
-// Only shown to users whose email matches NEXT_PUBLIC_ADMIN_EMAIL
-// ──────────────────────────────────────────────────────────────────
-function AdminPane() {
-  const [posts, setPosts] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [filter, setFilter] = React.useState<"all" | "flagged" | "purchase">("all");
-  const [search, setSearch] = React.useState("");
-  const supabase = createClient();
-
-  React.useEffect(() => {
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("posts")
-        .select("*, creator:creator_profile_id(handle, display_name, kind)")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      setPosts(data ?? []);
-      setLoading(false);
-    })();
-  }, []);
-
-  const filtered = posts.filter(p => {
-    if (filter === "flagged" && p.moderation_status !== "flagged") return false;
-    if (filter === "purchase" && p.lock_type !== "purchase") return false;
-    if (search && !p.creator?.handle?.includes(search) && !p.caption?.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
-
-  async function removePost(id: string) {
-    if (!confirm("Remove this post? This cannot be undone.")) return;
-    await (supabase as any).from("posts").update({ status: "removed" }).eq("id", id);
-    setPosts(prev => prev.filter(p => p.id !== id));
-  }
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Platform Admin</p>
-        <h1 className="pane-title">All <em>content.</em></h1>
-        <p className="pane-lede">Every post across every creator. Locked or not — you see everything.</p>
-      </div>
-
-      <div style={{ display: "flex", gap: "var(--s-3)", marginBottom: "var(--s-6)", flexWrap: "wrap" }}>
-        {(["all", "flagged", "purchase"] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
-            fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700,
-            padding: "7px 16px", border: "1px solid", borderRadius: "var(--r-pill)", cursor: "pointer",
-            background: filter === f ? "var(--accent)" : "var(--surface-2)",
-            color: filter === f ? "#fff" : "var(--muted)",
-            borderColor: filter === f ? "var(--accent)" : "var(--border)",
-          }}>
-            {f === "all" ? "All posts" : f === "flagged" ? "Flagged" : "For purchase"}
-          </button>
-        ))}
-        <input
-          type="text" placeholder="Search handle or caption…"
-          value={search} onChange={e => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 180, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "8px 14px", color: "var(--text)", fontSize: 13, outline: "none" }}
-        />
-      </div>
-
-      {loading ? (
-        <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>
-      ) : filtered.length === 0 ? (
-        <p style={{ color: "var(--muted)", fontSize: 13 }}>No posts match.</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {filtered.map(p => (
-            <div key={p.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "var(--s-5) var(--s-6)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", marginBottom: "var(--s-3)", flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)" }}>@{p.creator?.handle}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".1em" }}>{p.creator?.kind}</span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)" }}>{new Date(p.created_at).toLocaleDateString()}</span>
-                {p.lock_type === "purchase" && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--accent-spot)", background: "rgba(240,180,41,0.08)", border: "1px solid rgba(240,180,41,0.2)", padding: "2px 8px", borderRadius: "var(--r-2)" }}>
-                    ${Number(p.unlock_price).toFixed(2)} unlock
-                  </span>
-                )}
-                {p.lock_type === "subscription" && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--accent-open)", background: "rgba(110,231,183,0.08)", border: "1px solid rgba(110,231,183,0.2)", padding: "2px 8px", borderRadius: "var(--r-2)" }}>
-                    sub only
-                  </span>
-                )}
-                {p.moderation_status === "flagged" && (
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--red)", background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", padding: "2px 8px", borderRadius: "var(--r-2)" }}>
-                    flagged
-                  </span>
-                )}
-                <button onClick={() => removePost(p.id)} style={{ marginLeft: "auto", fontFamily: "var(--font-display)", fontSize: 11, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
-                  Remove
-                </button>
-              </div>
-              {p.media_url && p.media_type === "image" && (
-                <img src={p.media_url} alt="" style={{ maxWidth: "100%", maxHeight: 300, objectFit: "cover", borderRadius: "var(--r-2)", marginBottom: "var(--s-3)" }} />
-              )}
-              {p.caption && (
-                <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.7, margin: 0 }}>{p.caption}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function PaneButton({
   current,
