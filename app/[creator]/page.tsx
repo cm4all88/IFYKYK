@@ -7,6 +7,7 @@ import SuccessBanner from "./SuccessBanner";
 import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
+import TiersSection from "./TiersSection";
 import TierPicker from "./TierPicker";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
@@ -66,6 +67,13 @@ async function fetchEverything(handle: string) {
     .eq("is_purchased", false)
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false });
+
+  const { data: subscriptionTiers } = await (supabase as any)
+    .from("subscription_tiers")
+    .select("id, name, description, price_monthly, price_yearly, perks, color, sort_order")
+    .eq("creator_profile_id", spotlight.id)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
 
   const { data: digitalProducts } = await (supabase as any)
     .from("digital_products")
@@ -149,6 +157,7 @@ async function fetchEverything(handle: string) {
     campaigns: campaignsWithProgress,
     wishlistItems: wishlistItems ?? [],
     digitalProducts: digitalProducts ?? [],
+    subscriptionTiers: subscriptionTiers ?? [],
     liveStream: liveStream ?? null,
     superTips: superTips ?? [],
   };
@@ -179,7 +188,7 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts } = data;
+  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   return (
@@ -391,6 +400,15 @@ export default async function CreatorPage(props: {
             )}
 
             {/* ── WISHLIST ── */}
+            {/* Subscription Tiers */}
+            {subscriptionTiers && subscriptionTiers.length > 0 && (
+              <TiersSection
+                tiers={subscriptionTiers as any}
+                creatorHandle={spotlight.handle}
+                creatorName={spotlight.display_name ?? spotlight.handle}
+              />
+            )}
+
             {/* Digital Store */}
             {digitalProducts && digitalProducts.length > 0 && (
               <div style={{ marginBottom:"var(--s-12)" }}>

@@ -1260,6 +1260,225 @@ function AdvisorPane({ profile }: { profile: Profile }) {
 
 
 // ──────────────────────────────────────────────────────────────────
+// PANE: Pricing — Creator subscription tiers
+// ──────────────────────────────────────────────────────────────────
+function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
+  const supabase = createClient();
+  const [tiers, setTiers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: "", description: "", price_monthly: "", price_yearly: "", perks: "", color: "#F0B429",
+  });
+  const [offerYearly, setOfferYearly] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data } = await (supabase as any)
+      .from("subscription_tiers").select("*")
+      .eq("creator_profile_id", profile.id)
+      .order("sort_order", { ascending: true });
+    setTiers(data ?? []);
+    setLoading(false);
+  }, [profile.id, supabase]);
+
+  useEffect(() => { if (profile.id) void load(); else setLoading(false); }, [load, profile.id]);
+
+  function calcYearly(monthly: string) {
+    const m = parseFloat(monthly);
+    if (!m) return "";
+    return (m * 10).toFixed(2); // 2 months free
+  }
+
+  async function saveTier(e: FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.price_monthly) return;
+    setSaving(true);
+    setErr(null);
+    const perks = form.perks.split("\n").map(p => p.trim()).filter(Boolean);
+    const yearly = offerYearly
+      ? (form.price_yearly ? parseFloat(form.price_yearly) : parseFloat(calcYearly(form.price_monthly)))
+      : null;
+    await (supabase as any).from("subscription_tiers").insert({
+      creator_profile_id: profile.id,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      price_monthly: parseFloat(form.price_monthly),
+      price_yearly: yearly,
+      perks,
+      color: form.color || null,
+      sort_order: tiers.length,
+    });
+    setForm({ name:"", description:"", price_monthly:"", price_yearly:"", perks:"", color:"#F0B429" });
+    setOfferYearly(false); setCreating(false); setSaving(false);
+    void load();
+  }
+
+  async function deleteTier(id: string) {
+    if (!confirm("Delete this tier? Existing subscribers will keep access until their billing cycle ends.")) return;
+    await (supabase as any).from("subscription_tiers").update({ is_active: false }).eq("id", id);
+    void load();
+  }
+
+  async function moveTier(id: string, dir: "up" | "down") {
+    const idx = tiers.findIndex(t => t.id === id);
+    if (dir === "up" && idx === 0) return;
+    if (dir === "down" && idx === tiers.length - 1) return;
+    const other = tiers[dir === "up" ? idx - 1 : idx + 1];
+    await Promise.all([
+      (supabase as any).from("subscription_tiers").update({ sort_order: other.sort_order }).eq("id", id),
+      (supabase as any).from("subscription_tiers").update({ sort_order: tiers[idx].sort_order }).eq("id", other.id),
+    ]);
+    void load();
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head pane-head--row">
+        <div>
+          <p className="kicker">Subscription Tiers</p>
+          <h1 className="pane-title">Your <em>pricing.</em></h1>
+        </div>
+        <button className="btn btn--primary" type="button" onClick={() => setCreating(c => !c)}>
+          {creating ? "Cancel" : "+ Add tier"}
+        </button>
+      </div>
+
+      <div style={{ background:"rgba(240,180,41,0.05)", border:"1px solid rgba(240,180,41,0.15)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-6)", fontSize:13, color:"var(--text-soft)", lineHeight:1.7 }}>
+        Create as many tiers as you want. Fans see them all on your page and pick what fits. Yearly pricing gives fans a discount (typically 2 months free) and locks in longer-term subscribers.
+      </div>
+
+      {creating && (
+        <form onSubmit={saveTier} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)", marginBottom:"var(--s-6)", display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="label">Tier name</label>
+              <input className="input" type="text" placeholder='e.g. "Fan" · "Superfan" · "VIP"' value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} required />
+            </div>
+            <div className="form-field">
+              <label className="label">Accent color</label>
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <input type="color" value={form.color} onChange={e => setForm(f => ({...f, color:e.target.value}))} style={{ width:40, height:40, border:"1px solid var(--border)", borderRadius:"var(--r-1)", background:"none", cursor:"pointer" }} />
+                <input className="input" type="text" value={form.color} onChange={e => setForm(f => ({...f, color:e.target.value}))} style={{ flex:1 }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-field">
+            <label className="label">Description <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+            <input className="input" type="text" placeholder='"For fans who want exclusive access"' value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} />
+          </div>
+
+          <div className="form-row">
+            <div className="form-field">
+              <label className="label">Monthly price</label>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ color:"var(--muted)" }}>$</span>
+                <input className="input" type="number" min="0.99" step="0.01" placeholder="9.99" value={form.price_monthly}
+                  onChange={e => { setForm(f => ({...f, price_monthly:e.target.value, price_yearly: offerYearly ? calcYearly(e.target.value) : f.price_yearly})); }} required />
+                <span style={{ color:"var(--muted)", fontSize:13 }}>/mo</span>
+              </div>
+            </div>
+            <div className="form-field">
+              <label className="label" style={{ display:"flex", alignItems:"center", gap:10 }}>
+                Yearly price
+                <label style={{ display:"flex", alignItems:"center", gap:6, fontWeight:400, cursor:"pointer" }}>
+                  <input type="checkbox" checked={offerYearly} onChange={e => {
+                    setOfferYearly(e.target.checked);
+                    if (e.target.checked) setForm(f => ({...f, price_yearly: calcYearly(f.price_monthly)}));
+                  }} />
+                  <span style={{ fontSize:11, color:"var(--muted)" }}>Offer yearly</span>
+                </label>
+              </label>
+              {offerYearly && (
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <span style={{ color:"var(--muted)" }}>$</span>
+                  <input className="input" type="number" min="0.99" step="0.01" value={form.price_yearly}
+                    onChange={e => setForm(f => ({...f, price_yearly:e.target.value}))} />
+                  <span style={{ color:"var(--muted)", fontSize:13 }}>/yr</span>
+                </div>
+              )}
+              {offerYearly && form.price_monthly && (
+                <p className="hint" style={{ color:"var(--accent-open)" }}>
+                  = {Math.round((1 - parseFloat(form.price_yearly || "0") / (parseFloat(form.price_monthly) * 12)) * 100)}% off vs monthly
+                </p>
+              )}
+              {!offerYearly && <p className="hint">Toggle to offer a yearly discount.</p>}
+            </div>
+          </div>
+
+          <div className="form-field">
+            <label className="label">Perks <span style={{ color:"var(--muted)", fontWeight:300 }}>(one per line)</span></label>
+            <textarea className="textarea" rows={4}
+              placeholder={"All posts and videos\nExclusive Discord channel\nMonthly live Q&A\nBehind-the-scenes content"}
+              value={form.perks} onChange={e => setForm(f => ({...f, perks:e.target.value}))} />
+          </div>
+
+          <button type="submit" className="btn btn--primary" disabled={saving}>
+            {saving ? "Saving…" : "Add tier"}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <p style={{ fontSize:13, color:"var(--muted)" }}>Loading…</p>
+      ) : tiers.length === 0 ? (
+        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-12)", textAlign:"center" }}>
+          <p style={{ fontSize:32, marginBottom:"var(--s-4)" }}>💰</p>
+          <p style={{ fontFamily:"var(--font-serif)", fontSize:22, fontWeight:300, color:"#fff", marginBottom:"var(--s-3)" }}>No tiers yet.</p>
+          <p style={{ fontSize:14, color:"var(--muted)", maxWidth:420, margin:"0 auto var(--s-5)" }}>
+            Create subscription tiers so fans can choose how to support you. Start with one tier and add more as you grow.
+          </p>
+          <button className="btn btn--primary" onClick={() => setCreating(true)}>Create your first tier →</button>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-2)" }}>
+          {tiers.map((tier, idx) => (
+            <div key={tier.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-5) var(--s-6)", display:"flex", gap:"var(--s-5)", alignItems:"flex-start" }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:tier.color ?? "var(--accent)", flexShrink:0, marginTop:6 }} />
+              <div style={{ flex:1 }}>
+                <div style={{ display:"flex", alignItems:"baseline", gap:"var(--s-3)", flexWrap:"wrap", marginBottom:4 }}>
+                  <p style={{ fontSize:16, fontWeight:700, color:"var(--text)" }}>{tier.name}</p>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:14, color:tier.color ?? "var(--accent)", fontWeight:700 }}>
+                    ${Number(tier.price_monthly).toFixed(2)}/mo
+                    {tier.price_yearly && (
+                      <span style={{ color:"var(--muted)", fontWeight:400, fontSize:12, marginLeft:8 }}>
+                        or ${Number(tier.price_yearly).toFixed(2)}/yr
+                        {" "}({Math.round((1 - tier.price_yearly / (tier.price_monthly * 12)) * 100)}% off)
+                      </span>
+                    )}
+                  </p>
+                </div>
+                {tier.description && <p style={{ fontSize:13, color:"var(--muted)", marginBottom:"var(--s-3)" }}>{tier.description}</p>}
+                {tier.perks?.length > 0 && (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {tier.perks.map((perk: string, i: number) => (
+                      <span key={i} style={{ fontSize:11, color:"var(--text-soft)", background:"var(--surface-2)", border:"1px solid var(--border)", padding:"2px 10px", borderRadius:"var(--r-pill)" }}>
+                        ✓ {perk}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p style={{ fontSize:11, color:"var(--muted)", marginTop:"var(--s-3)", fontFamily:"var(--font-mono)" }}>
+                  {tier.subscriber_count} subscriber{tier.subscriber_count !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
+                <button onClick={() => moveTier(tier.id, "up")} className="btn btn--secondary" style={{ fontSize:12 }} disabled={idx === 0}>↑</button>
+                <button onClick={() => moveTier(tier.id, "down")} className="btn btn--secondary" style={{ fontSize:12 }} disabled={idx === tiers.length - 1}>↓</button>
+                <button onClick={() => deleteTier(tier.id)} className="btn btn--secondary" style={{ fontSize:12, color:"var(--red)" }}>Remove</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
 // PANE: Digital Store
 // ──────────────────────────────────────────────────────────────────
 const DIGITAL_CATEGORIES = [

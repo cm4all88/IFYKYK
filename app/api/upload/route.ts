@@ -20,13 +20,13 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-  const { BUNNY_STORAGE_ZONE, BUNNY_STORAGE_KEY, BUNNY_CDN_HOST } = await getSecrets([
+  const { BUNNY_STORAGE_ZONE, BUNNY_API_KEY, BUNNY_CDN_URL } = await getSecrets([
     "BUNNY_STORAGE_ZONE",
-    "BUNNY_STORAGE_KEY",
-    "BUNNY_CDN_HOST",
+    "BUNNY_API_KEY",
+    "BUNNY_CDN_URL",
   ]);
 
-  if (!BUNNY_STORAGE_ZONE || !BUNNY_STORAGE_KEY || !BUNNY_CDN_HOST) {
+  if (!BUNNY_STORAGE_ZONE || !BUNNY_API_KEY || !BUNNY_CDN_URL) {
     return NextResponse.json(
       { error: "File upload not configured. Set BunnyCDN keys in /admin." },
       { status: 503 }
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: {
-      "AccessKey": BUNNY_STORAGE_KEY,
+      "AccessKey": BUNNY_API_KEY,
       "Content-Type": file.type,
     },
     body: buffer,
@@ -78,6 +78,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 
-  const publicUrl = `https://${BUNNY_CDN_HOST}/${path}`;
+  const publicUrl = `https://${BUNNY_CDN_URL}/${path}`;
   return NextResponse.json({ url: publicUrl });
 }
