@@ -101,13 +101,22 @@ export async function POST(req: NextRequest) {
         stripe_subscription_id: s.subscription,
         status: "active",
         tier: "premium",
+        tier_id: meta.tier_id || null,
+        billing_period: meta.billing_period || "monthly",
         updated_at: new Date().toISOString(),
       }, { onConflict: "fan_user_id,creator_profile_id" });
 
+      // Get tier name for notification
+      let tierDisplay = "";
+      if (meta.tier_id) {
+        const { data: tier } = await (supabase as any).from("subscription_tiers").select("name").eq("id", meta.tier_id).maybeSingle();
+        if (tier) tierDisplay = ` · ${tier.name}`;
+      }
+
       await notifyCreator(supabase, meta.creator_profile_id,
-        "✦ New subscriber",
+        `✦ New subscriber${tierDisplay}`,
         "Someone just subscribed to your channel.",
-        `A new fan just subscribed to your channel. They'll stay subscribed as long as you keep creating.`
+        `A new fan just subscribed${tierDisplay ? ` to your <strong>${tierDisplay.slice(3)}</strong> tier` : ""}. They'll stay subscribed as long as you keep creating.`
       );
     }
 
@@ -268,7 +277,6 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (gift) {
-        // Email the recipient
         const { data: profile } = await (supabase as any)
           .from("creator_profiles").select("handle").eq("id", meta.creator_profile_id).maybeSingle();
         fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
@@ -283,6 +291,75 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
 <a href="https://spotlightly.app/redeem?code=${gift.redemption_code}" style="display:inline-block;background:#F0B429;color:#09090C;padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:700;">Redeem your gift →</a>`,
           }),
         }).catch(() => {});
+      }
+    }
+
+    // ── Digital product purchase ──────────────────────────────────────
+    else if ((type === "digital_product" || type === "digital_purchase") && meta.product_id) {
+      const priceTotal = (s.amount_total ?? 0) / 100;
+      const platformFee = Math.round(priceTotal * 0.10 * 100) / 100;
+      const creatorEarns = Math.round((priceTotal - platformFee) * 100) / 100;
+
+      const { data: purchase } = await (supabase as any)
+        .from("digital_purchases")
+        .insert({
+          digital_product_id: meta.product_id,
+          creator_profile_id: meta.creator_profile_id,
+          fan_user_id: meta.fan_user_id || null,
+          fan_email: meta.fan_email || s.customer_details?.email || "",
+          amount_paid: priceTotal,
+          platform_fee: platformFee,
+          creator_earns: creatorEarns,
+          stripe_session_id: s.id,
+        })
+        .select()
+        .single();
+
+      // Update product sales count
+      if (purchase) {
+        await (supabase as any)
+          .from("digital_products")
+          .update({ sales_count: (supabase as any).rpc("increment", { x: 1 }) })
+          .eq("id", meta.product_id);
+        // Simpler approach — just increment directly
+        const { data: prod } = await (supabase as any).from("digital_products").select("sales_count").eq("id", meta.product_id).maybeSingle();
+        await (supabase as any).from("digital_products").update({ sales_count: (prod?.sales_count ?? 0) + 1 }).eq("id", meta.product_id);
+      }
+
+      // Email fan with download link
+      if (purchase && s.customer_details?.email) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
+        const { data: product } = await (supabase as any)
+          .from("digital_products")
+          .select("title, creator:creator_profile_id(display_name, handle)")
+          .eq("id", meta.product_id)
+          .maybeSingle();
+
+        fetch(`${appUrl}/api/email/notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: s.customer_details.email,
+            subject: `Your download is ready — ${product?.title}`,
+            preview: "Your purchase is ready to download.",
+            body: `Thanks for your purchase!<br><br>
+<strong style="color:#fff;font-size:18px;">${product?.title}</strong><br>
+from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
+<a href="${appUrl}/api/digital/download?token=${purchase.download_token}" style="display:inline-block;background:#F0B429;color:#09090C;font-weight:700;padding:14px 28px;border-radius:999px;text-decoration:none;font-size:14px;">
+  Download now →
+</a><br><br>
+<span style="font-size:12px;color:rgba(242,242,240,0.3);">This link is unique to your purchase. Keep it safe — bookmark it for future downloads.</span>`,
+          }),
+        }).catch(() => {});
+
+        // Notify creator of sale
+        await notifyCreator(
+          supabase,
+          meta.creator_profile_id,
+          `💾 New sale — ${product?.title}`,
+          `Someone bought your digital product for $${priceTotal.toFixed(2)}.`,
+          `Someone just bought <strong>${product?.title}</strong> for <strong>$${priceTotal.toFixed(2)}</strong>. You receive <strong style="color:#F0B429;">$${creatorEarns.toFixed(2)}</strong>.`
+        );
       }
     }
   }

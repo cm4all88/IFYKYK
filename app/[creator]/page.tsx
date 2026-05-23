@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import SuccessBanner from "./SuccessBanner";
 import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
+import DigitalProductCard from "./DigitalProductCard";
+import TierPicker from "./TierPicker";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
 import UnlockButton from "./UnlockButton";
@@ -64,6 +66,14 @@ async function fetchEverything(handle: string) {
     .eq("is_purchased", false)
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false });
+
+  const { data: digitalProducts } = await (supabase as any)
+    .from("digital_products")
+    .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales")
+    .eq("creator_profile_id", spotlight.id)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(12);
 
   // Fetch active campaigns
   const { data: campaigns } = await (supabase as any)
@@ -138,6 +148,7 @@ async function fetchEverything(handle: string) {
     viewerUserId: user?.id ?? null,
     campaigns: campaignsWithProgress,
     wishlistItems: wishlistItems ?? [],
+    digitalProducts: digitalProducts ?? [],
     liveStream: liveStream ?? null,
     superTips: superTips ?? [],
   };
@@ -168,7 +179,7 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems } = data;
+  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   return (
@@ -237,9 +248,42 @@ export default async function CreatorPage(props: {
               <SubscribeButton creatorProfileId={spotlight.id} />
               <TipButton creatorProfileId={spotlight.id} />
               <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
+              {(spotlight as any).booking_url && (
+                <a
+                  href={(spotlight as any).booking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn--secondary cp-book-btn"
+                  style={{ display:"inline-flex", alignItems:"center", gap:8 }}
+                >
+                  📅 {(spotlight as any).booking_label || "Book an appointment"}
+                </a>
+              )}
             </div>
           </div>
         </header>
+
+        {/* Calendly embed — shows when booking URL is a Calendly link */}
+        {(spotlight as any).booking_url?.includes("calendly.com") && (
+          <div style={{ maxWidth:"var(--container)", margin:"0 auto var(--s-6)", padding:"0 var(--s-6)" }}>
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden" }}>
+              <div style={{ padding:"var(--s-4) var(--s-6)", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
+                <span style={{ fontSize:18 }}>📅</span>
+                <div>
+                  <p style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>{(spotlight as any).booking_label || "Book an appointment"}</p>
+                  <p style={{ fontSize:12, color:"var(--muted)" }}>Powered by Calendly</p>
+                </div>
+              </div>
+              <iframe
+                src={`${(spotlight as any).booking_url}?embed_domain=${typeof window !== "undefined" ? window.location.hostname : "spotlightly.app"}&embed_type=Inline`}
+                width="100%"
+                height="700"
+                style={{ border:"none", display:"block" }}
+                title="Book an appointment"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Live stream banner — shows when creator is live */}
         {data.liveStream && (
@@ -347,7 +391,22 @@ export default async function CreatorPage(props: {
             )}
 
             {/* ── WISHLIST ── */}
-            {wishlistItems && wishlistItems.length > 0 && (
+            {/* Digital Store */}
+            {digitalProducts && digitalProducts.length > 0 && (
+              <div style={{ marginBottom:"var(--s-12)" }}>
+                <p className="kicker">Digital Store</p>
+                <p style={{ fontSize:13, color:"var(--muted)", marginBottom:"var(--s-5)" }}>
+                  Download instantly after purchase.
+                </p>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:"var(--s-4)" }}>
+                  {(digitalProducts as any[]).map((product: any) => (
+                    <DigitalProductCard key={product.id} product={product} creatorProfileId={spotlight.id} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+                        {wishlistItems && wishlistItems.length > 0 && (
               <div className="cp-wishlist">
                 <p className="kicker">Wishlist</p>
                 <p className="cp-wishlist-sub">
@@ -803,6 +862,16 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
   const { data: { user } } = await supabase.auth.getUser();
   const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
 
+  // Load tiers
+  const { data: tiers } = await (supabase as any)
+    .from("subscription_tiers")
+    .select("*")
+    .eq("creator_profile_id", creatorProfileId)
+    .eq("is_active", true)
+    .order("monthly_price", { ascending: true });
+
+  const activeTiers = tiers ?? [];
+
   if (!user) {
     return (
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -816,12 +885,18 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
     );
   }
 
-  return (
-    <form action="/api/subscribe" method="post">
-      <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
-      <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
-        Subscribe
-      </button>
-    </form>
-  );
+  // No tiers — simple subscribe button
+  if (activeTiers.length === 0) {
+    return (
+      <form action="/api/subscribe" method="post">
+        <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
+        <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
+          Subscribe
+        </button>
+      </form>
+    );
+  }
+
+  // Has tiers — show tier cards with monthly/yearly toggle (client component)
+  return <TierPicker tiers={activeTiers} creatorProfileId={creatorProfileId} stripeReady={stripeReady} />;
 }

@@ -1,180 +1,75 @@
-import { NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase-server";
+import { getSecrets } from "@/lib/settings";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const SYSTEM = `You are the Spotlightly creator advisor — warm, direct, specific. You help new creators understand exactly how Spotlightly works for their situation.
 
-type BackstageChoice = "just_spotlight" | "with_backstage" | null;
+When a creator first signs up, you:
+1. Acknowledge what they do in one specific sentence
+2. Pick the 3–5 most relevant Spotlightly features for their niche, with realistic dollar amounts
+3. End with: "Is there anything else I can help you with?"
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+For follow-up questions, answer directly and concisely.
 
-// ──────────────────────────────────────────────────────────────────
-// System prompt — built per backstageChoice. Path is always spotlight.
-// ──────────────────────────────────────────────────────────────────
+SPOTLIGHTLY FEATURES (use these facts exactly):
+- Subscriptions: Fans pay creators directly via Stripe Connect. Platform takes 0% of subscription revenue — only charges creator a flat monthly fee ($29–$3,499/mo based on subscriber count). 30-day free trial.
+- Super Tips: Highlighted fan tips, any amount. Platform keeps 15%. Fan gets gold badge and Top Supporter status for 30 days.
+- Locked Posts: One-time price to unlock a specific post. Great for tutorials, templates, exclusive content.
+- Early Access Passes: $2.99/mo — fan sees posts 30 minutes before everyone else. 100% to platform. Drives fan engagement.
+- Comment Boosts: Fan pays $1.99–$9.99 to pin their comment 24h. 100% to platform.
+- Campaigns: Creator fundraising with a goal. Great for equipment, projects, albums.
+- Live Streaming: Built-in. Fans with subscriptions watch live. Super tips display in real-time.
+- Merch: Upload a design. Loudcap handles printing and worldwide shipping. Creator keeps retail price minus fulfillment cost minus 10% platform cut.
+- Backstage: Optional adult content profile. Completely separate from main profile unless creator chooses to link them.
 
-function buildSystem(backstageChoice: BackstageChoice): string {
-  const tierLine =
-    backstageChoice === "with_backstage"
-      ? "Spotlight + Backstage (Spotlight is the public SFW presence, Backstage is a separate adult-content profile that can be linked or unlinked from Spotlight - they have chosen to set up both)"
-      : "Spotlight (ages 18+, SFW main platform - G, PG, or M)";
+BILLING (creator pays to Spotlightly — not taken from fan payments):
+Starter $29/mo (0-100 subs) · Growth $79/mo (101-500) · Pro $249/mo (501-2500) · Scale $749/mo (2501-10k) · Legend $3499/mo (10k+)
 
-  const backstageLine =
-    backstageChoice === "with_backstage"
-      ? `They have chosen to also set up a Backstage profile. After you understand their main work, ask one focused question about what they want to put on Backstage - what is the premium or exclusive layer of their content. Do not relitigate the decision. They have already made it.\n`
-      : "";
-
-  const channelRule =
-    backstageChoice === "with_backstage"
-      ? "Spotlight channels can be G, PG, or M. Backstage is for R or X content - mention it once when describing the plan but do not design Backstage channels in detail (that happens after signup)."
-      : "Channels can be G, PG, or M for Spotlight. If they describe content that is clearly adult, gently note that Backstage is the right home for it and they can add Backstage from their dashboard later.";
-
-  return `You are Spotlightly's onboarding strategist. Spotlightly is a creator platform with two tiers:
-- Spotlight: ages 18+, SFW main platform (G/PG/M)
-- Backstage: ages 18+ verified, adult content (R/X), a separate public identity that can be linked or hidden from Spotlight
-
-Spotlightly charges creators a flat monthly fee based on their subscriber count — Starter $29/mo (up to 100 subscribers) through Legend $3,499/mo (unlimited). Spotlightly takes 0% of what creators earn. Creators keep 100% of their fan subscription revenue and 100% of tips. The only processing fee is Stripe's: 2.9% + 30¢ per transaction — that's Stripe's cut, not Spotlightly's. This is the core pitch against OnlyFans (which takes 20% of everything forever).
-
-[CONTEXT]
-The creator has already chosen their path: ${tierLine}.
-${backstageLine}You do NOT need to ask about their age. You do NOT need to ask whether they want adult content. Those are settled. Your job is to understand what they make and help them turn it into a real plan.
-
-[VOICE]
-You sound like a smart friend who knows creator monetization. Warm, direct, specific. Never corporate. Never use em-dashes - use periods or hyphens. Keep messages short. One question at a time, two max.
-
-[FLOW]
-You have already greeted them. Now run discovery:
-
-1. Niche. Ask what kind of content they make. When they answer, confirm in one warm sentence and move on.
-
-2. Audience. Ask where they currently post (TikTok, Instagram, YouTube, etc) or who their existing audience is.
-
-3. ${
-    backstageChoice === "with_backstage"
-      ? "Backstage layer. Ask one question about what they want their Backstage to be - what is the more exclusive or adult side of their work."
-      : "Other angles. Ask if there is anything else they do - side hustles, hobbies, behind-the-scenes content. Listen for distinct SFW work that could be its own channel."
-  }
-
-4. Permission. When you have enough, ask: "Want me to draw up your monetization plan?" Wait for yes.
-
-5. The plan. Deliver as readable prose with short bullets - no JSON, no code blocks. Cover:
-- Recommended channels (one per distinct niche they described)${
-    backstageChoice === "with_backstage"
-      ? "\n- A one-line note on the Backstage strategy that fits their work"
-      : ""
-  }
-- Suggested monthly subscription price per channel ($9.99-$29.99 typical)
-- Realistic revenue range (1-3% of audience converts at the price you set)
-- Their warm moment - the specific time their fans are most likely to subscribe
-- Recommended Spotlightly tier: starter ($29/mo), pro ($99/mo), established ($499/mo), legend ($3,499/mo)
-
-End the plan with one line: "Hit Continue when you are ready to claim your handle."
-
-[CONSTRAINTS]
-${channelRule}
-If they describe something illegal or that requires verification we cannot provide, gently say Spotlightly may not be the right fit.`;
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Hardcoded welcome turns — instant first impression, no API call.
-// ──────────────────────────────────────────────────────────────────
-
-function buildWelcome(backstageChoice: BackstageChoice): string {
-  if (backstageChoice === "with_backstage") {
-    return "Welcome. We will build your Spotlight presence first, then figure out where Backstage fits. To start: what is your main work - what kind of content do you make?";
-  }
-  return "Welcome. Let's get your Spotlight set up properly. First question: what kind of content do you make?";
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Stream a static string as a text response (used for the welcome).
-// ──────────────────────────────────────────────────────────────────
-
-function staticTextStream(text: string): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(text));
-      controller.close();
-    },
-  });
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Route — POST /api/advisor
-// Body: { messages, backstageChoice, opening }
-// Streams: raw text (no SSE framing)
-// ──────────────────────────────────────────────────────────────────
+TONE: Warm, smart friend — not a FAQ page. Use their name. Give real numbers. Never say "our platform" or "we offer." Say "Spotlightly" or just talk about the features directly.`;
 
 export async function POST(req: NextRequest) {
-  let body: {
-    messages?: ChatMessage[];
-    backstageChoice?: BackstageChoice;
-    opening?: boolean;
-  };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  try {
-    body = await req.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const { messages, profile } = await req.json();
 
-  const backstageChoice = body.backstageChoice ?? null;
-  const opening = !!body.opening;
-  const messages = Array.isArray(body.messages) ? body.messages : [];
-
-  // Welcome turn — no API call, instant response.
-  if (opening) {
-    return new Response(staticTextStream(buildWelcome(backstageChoice)), {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-      },
+  const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);
+  if (!ANTHROPIC_API_KEY) {
+    return NextResponse.json({
+      response: "The AI advisor isn't configured yet — add your Anthropic API key in Admin → Credentials. In the meantime, explore your dashboard to see everything Spotlightly offers.",
     });
   }
 
-  if (messages.length === 0) {
-    return Response.json(
-      { error: "messages must be a non-empty array when opening is false" },
-      { status: 400 }
-    );
-  }
+  const profileContext = profile ? [
+    `Creator: ${profile.display_name ?? "New creator"} (@${profile.handle})`,
+    profile.bio ? `Bio: ${profile.bio}` : null,
+    profile.tags?.length ? `Categories: ${profile.tags.join(", ")}` : null,
+    profile.location_city ? `Location: ${profile.location_city}${profile.location_country ? `, ${profile.location_country}` : ""}` : null,
+  ].filter(Boolean).join("\n") : "";
 
-  // Normal turn — stream raw text from Claude.
-  const system = buildSystem(backstageChoice);
-  const encoder = new TextEncoder();
+  const isFirst = messages.length === 0;
 
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        const anthropicStream = client.messages.stream({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1500,
-          system,
-          messages,
-        });
+  const anthropicMessages = isFirst
+    ? [{ role: "user" as const, content: `${profileContext}\n\nThis creator just finished their profile setup. Give them their personalized Spotlightly breakdown.` }]
+    : messages as { role: "user" | "assistant"; content: string }[];
 
-        for await (const chunk of anthropicStream) {
-          if (
-            chunk.type === "content_block_delta" &&
-            chunk.delta.type === "text_delta"
-          ) {
-            controller.enqueue(encoder.encode(chunk.delta.text));
-          }
-        }
-      } catch (err) {
-        console.error("Advisor stream error:", err);
-        controller.enqueue(
-          encoder.encode("\n\n[connection interrupted - try sending again]")
-        );
-      } finally {
-        controller.close();
-      }
-    },
-  });
-
-  return new Response(stream, {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 600,
+      system: SYSTEM,
+      messages: anthropicMessages,
+    }),
   });
+
+  if (!res.ok) return NextResponse.json({ error: "Advisor unavailable" }, { status: 500 });
+  const data = await res.json();
+  return NextResponse.json({ response: data.content?.[0]?.text ?? "Try again." });
 }

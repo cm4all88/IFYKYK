@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const creatorProfileId = formData.get("creator_profile_id");
   const channelId = formData.get("channel_id");
+  const tierId = formData.get("tier_id") as string | null;
+  const billingPeriod = (formData.get("billing_period") as string) || "monthly";
 
   if (typeof creatorProfileId !== "string") {
     return NextResponse.json({ error: "Missing creator_profile_id" }, { status: 400 });
@@ -65,7 +67,36 @@ export async function POST(req: NextRequest) {
 
   let priceCents = Math.round((Number(profile.subscription_price) || 9.99) * 100);
   let channelName = "subscription";
-  if (typeof channelId === "string" && channelId.length > 0) {
+  let stripePriceId: string | null = null;
+  let tierName = "";
+
+  // ── Check for tier-based pricing ─────────────────────────────────
+  if (tierId) {
+    const { data: tier } = await (supabase as any)
+      .from("subscription_tiers")
+      .select("*")
+      .eq("id", tierId)
+      .eq("creator_profile_id", creatorProfileId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (tier) {
+      tierName = tier.name;
+      if (billingPeriod === "yearly" && tier.stripe_yearly_price_id) {
+        stripePriceId = tier.stripe_yearly_price_id;
+        priceCents = Math.round(Number(tier.yearly_price) * 100);
+      } else if (tier.stripe_monthly_price_id) {
+        stripePriceId = tier.stripe_monthly_price_id;
+        priceCents = Math.round(Number(tier.monthly_price) * 100);
+      } else {
+        // Tier exists but no Stripe price yet — use dynamic price
+        priceCents = billingPeriod === "yearly"
+          ? Math.round(Number(tier.yearly_price ?? tier.monthly_price * 10) * 100)
+          : Math.round(Number(tier.monthly_price) * 100);
+      }
+      channelName = tier.name;
+    }
+  } else if (typeof channelId === "string" && channelId.length > 0) {
     const { data: ch } = await supabase
       .from("channels")
       .select("name, subscription_price")
@@ -78,23 +109,32 @@ export async function POST(req: NextRequest) {
   }
 
   const origin = new URL(req.url).origin;
+  const interval = billingPeriod === "yearly" ? "year" : "month";
 
   const params = new URLSearchParams({
     mode: "subscription",
-    "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][product_data][name]": `${profile.handle} · ${channelName}`,
-    "line_items[0][price_data][unit_amount]": String(priceCents),
-    "line_items[0][price_data][recurring][interval]": "month",
-    "line_items[0][quantity]": "1",
     "transfer_data[destination]": profile.stripe_account_id,
     "success_url": `${origin}/${profile.handle}?subscribed=1`,
     "cancel_url": `${origin}/${profile.handle}`,
     "client_reference_id": user.id,
-    "metadata[creator_profile_id]": creatorProfileId,
+    "metadata[creator_profile_id]": creatorProfileId as string,
     "metadata[channel_id]": typeof channelId === "string" ? channelId : "",
     "metadata[user_id]": user.id,
+    "metadata[tier_id]": tierId ?? "",
+    "metadata[billing_period]": billingPeriod,
     "metadata[type]": "subscription",
   });
+
+  if (stripePriceId) {
+    params.set("line_items[0][price]", stripePriceId);
+    params.set("line_items[0][quantity]", "1");
+  } else {
+    params.set("line_items[0][price_data][currency]", "usd");
+    params.set("line_items[0][price_data][product_data][name]", `${profile.handle} · ${channelName || "subscription"}`);
+    params.set("line_items[0][price_data][unit_amount]", String(priceCents));
+    params.set("line_items[0][price_data][recurring][interval]", interval);
+    params.set("line_items[0][quantity]", "1");
+  }
 
   const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

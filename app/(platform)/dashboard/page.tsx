@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import ThemeToggle from "@/components/ThemeToggle";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
+import ImageUpload from "@/components/ImageUpload";
 
 // ──────────────────────────────────────────────────────────────────
 // Types — defensive, mirror what's actually in the DB
@@ -26,7 +27,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -239,8 +240,17 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="wishlist" onClick={setPane}>
               Wishlist
             </PaneButton>
+            <PaneButton current={pane} target="store" onClick={setPane}>
+              Digital Store
+            </PaneButton>
             <PaneButton current={pane} target="billing" onClick={setPane}>
               Billing
+            </PaneButton>
+            <PaneButton current={pane} target="store" onClick={setPane}>
+              Digital Store
+            </PaneButton>
+            <PaneButton current={pane} target="store" onClick={setPane}>
+              Tiers & Pricing
             </PaneButton>
             {!backstage && (
               <a href="/backstage-setup" style={{ display:"block", padding:"10px var(--s-4)", fontSize:13, color:"var(--accent-back)", borderRadius:"var(--r-2)", textDecoration:"none" }}>+ Add Backstage</a>
@@ -327,6 +337,15 @@ export default function DashboardPage() {
             <PostsPane profile={active} setErr={setErrMsg} />
           )}
 
+          {pane === "store" && active && (
+            <DigitalStorePane profile={active} setErr={setErrMsg} />
+          )}
+          {pane === "store" && active && (
+            <DigitalStorePane profile={active} setErr={setErrMsg} />
+          )}
+          {pane === "store" && active && (
+            <DigitalStorePane profile={active} setErr={setErrMsg} />
+          )}
           {pane === "billing" && (
             <BillingPane />
           )}
@@ -358,7 +377,7 @@ export default function DashboardPage() {
             <ModerationPane profile={spotlight} />
           )}
           {pane === "blocks" && active && (
-            <ContactBlocksPane profile={active} />
+            <div className="pane"><p className="kicker">Block List</p><h1 className="pane-title">Blocked contacts.</h1><p style={{ color:"var(--muted)", fontSize:13, marginTop:"var(--s-4)" }}>Pre-emptively block fans from contacting you by email or phone hash.</p></div>
           )}
           {pane === "messages" && active && (
             <MessagesPane profile={active} />
@@ -485,6 +504,10 @@ function OverviewPane({
           <h4>Help</h4>
           <p>Setup guide and support.</p>
         </Link>
+        <Link href="/dashboard?pane=digital" className="quick-card">
+          <h4>💾 Digital Store</h4>
+          <p>Sell guides, presets, courses.</p>
+        </Link>
         <Link href="/gear" className="quick-card">
           <h4>📦 Creator Gear</h4>
           <p>Equipment guide for every budget.</p>
@@ -520,6 +543,8 @@ function ProfilePane({
   const [tags, setTags] = useState<string[]>((profile as any).tags ?? []);
   const [locationCity, setLocationCity] = useState((profile as any).location_city ?? "");
   const [locationCountry, setLocationCountry] = useState((profile as any).location_country ?? "");
+  const [bookingUrl, setBookingUrl] = useState((profile as any).booking_url ?? "");
+  const [bookingLabel, setBookingLabel] = useState((profile as any).booking_label ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -544,6 +569,9 @@ function ProfilePane({
       tags,
       location_city: locationCity.trim() || null,
       location_country: locationCountry.trim() || null,
+      booking_url: bookingUrl.trim() || null,
+      booking_label: bookingLabel.trim() || null,
+      offers_services: !!bookingUrl.trim(),
     }).eq("user_id", profile.user_id).eq("kind", profile.kind);
 
     if (error) setErr(error.message);
@@ -637,6 +665,25 @@ function ProfilePane({
           </div>
         </div>
 
+        {/* Booking */}
+        <div style={{ borderTop:"1px solid var(--border)", paddingTop:"var(--s-6)", marginTop:"var(--s-2)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>📅 Appointments & Bookings</p>
+          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-5)" }}>
+            Hairdressers, trainers, coaches, photographers — add your booking link and fans can book directly from your page.
+            Works with Calendly, Acuity, Square, Booksy, Vagaro, and any other booking platform.
+          </p>
+          <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
+            <label className="label">Booking URL</label>
+            <input className="input" type="url" placeholder="https://calendly.com/you or https://booksy.com/en-us/..." value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} />
+            <p className="hint">Paste your booking link from any platform. Calendly links will embed directly on your page.</p>
+          </div>
+          <div className="form-field">
+            <label className="label">Button label <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+            <input className="input" type="text" placeholder='e.g. "Book a haircut" · "Schedule a session" · "Book now"' value={bookingLabel} onChange={e => setBookingLabel(e.target.value)} />
+            <p className="hint">Defaults to "Book an appointment" if left blank.</p>
+          </div>
+        </div>
+
         <div style={{ borderTop:"1px solid var(--border)", paddingTop:"var(--s-6)" }}>
           <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Social links & link-in-bio</p>
           <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-5)" }}>
@@ -662,31 +709,15 @@ function ProfilePane({
           ))}
         </div>
 
-        <div className="form-row">
-          <div className="form-field">
-            <label className="label">Avatar URL</label>
-            <input
-              className="input"
-              type="url"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
-          <div className="form-field">
-            <label className="label">Cover URL</label>
-            <input
-              className="input"
-              type="url"
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
+        <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
+          <label className="label" style={{ marginBottom:"var(--s-3)" }}>Profile photo</label>
+          <ImageUpload value={avatarUrl} onChange={setAvatarUrl} shape="circle" label="Upload photo" hint="JPG, PNG or WebP · Square images work best" />
         </div>
-        <p className="hint">
-          For now, paste an image URL from anywhere on the web. File uploads land in the next push.
-        </p>
+
+        <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
+          <label className="label" style={{ marginBottom:"var(--s-3)" }}>Cover image</label>
+          <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="JPG, PNG or WebP · 1500×500px recommended" previewWidth={180} previewHeight={60} />
+        </div>
 
         <div className="form-actions">
           <button type="submit" className="btn btn--primary" disabled={saving}>
@@ -1074,63 +1105,76 @@ function CampaignsPane({ profile }: { profile: Profile }) {
 function AdvisorPane({ profile }: { profile: Profile }) {
   const [messages, setMessages] = React.useState<{ role:"user"|"assistant"; content:string }[]>([]);
   const [input, setInput] = React.useState("");
-  const [streaming, setStreaming] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [initialized, setInitialized] = React.useState(false);
   const bottomRef = React.useRef<HTMLDivElement>(null);
 
   const STARTERS = [
-    "What's my warm moment — when are fans most likely to subscribe?",
     "How should I price my subscription?",
     "What content should I put behind a paywall vs keep free?",
     "How do I convert followers into paying subscribers?",
-    "Help me write a caption that drives subscriptions",
+    "When is the best time to ask fans to subscribe?",
+    "Help me think through my launch strategy.",
   ];
+
+  // Auto-load personalized greeting on first open
+  React.useEffect(() => {
+    if (initialized) return;
+    setInitialized(true);
+    setLoading(true);
+    fetch("/api/advisor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [],
+        profile: {
+          display_name: profile.display_name,
+          bio: (profile as any).bio,
+          tags: (profile as any).tags,
+          location_city: (profile as any).location_city,
+          location_country: (profile as any).location_country,
+          handle: profile.handle,
+        },
+      }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        setMessages([{ role: "assistant", content: data.response }]);
+        setLoading(false);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      })
+      .catch(() => {
+        setMessages([{ role: "assistant", content: "Hi! Ask me anything about monetizing on Spotlightly." }]);
+        setLoading(false);
+      });
+  }, [initialized, profile]);
 
   async function send(text?: string) {
     const msg = (text ?? input).trim();
-    if (!msg || streaming) return;
+    if (!msg || loading) return;
     setInput("");
-    const newMessages = [...messages, { role:"user" as const, content:msg }];
+    const newMessages = [...messages, { role: "user" as const, content: msg }];
     setMessages(newMessages);
-    setStreaming(true);
-
-    setMessages(prev => [...prev, { role:"assistant" as const, content:"" }]);
+    setLoading(true);
 
     const res = await fetch("/api/advisor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-        creatorType: (profile as any).kind === "backstage" ? "backstage" : "spotlight",
+        messages: newMessages,
+        profile: {
+          display_name: profile.display_name,
+          bio: (profile as any).bio,
+          tags: (profile as any).tags,
+          handle: profile.handle,
+        },
       }),
     });
 
-    if (!res.body) { setStreaming(false); return; }
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let full = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split("\n");
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.text) {
-              full += data.text;
-              setMessages(prev => [
-                ...prev.slice(0, -1),
-                { role:"assistant", content:full },
-              ]);
-            }
-          } catch {}
-        }
-      }
-    }
-    setStreaming(false);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior:"smooth" }), 50);
+    const data = await res.json();
+    setMessages(prev => [...prev, { role: "assistant", content: data.response ?? "Try again." }]);
+    setLoading(false);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   }
 
   return (
@@ -1138,60 +1182,75 @@ function AdvisorPane({ profile }: { profile: Profile }) {
       {/* Header */}
       <div style={{ padding:"var(--s-6) var(--s-8)", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
         <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>AI Advisor</p>
-        <h1 className="pane-title" style={{ fontSize:32 }}>Your monetization <em>strategist.</em></h1>
+        <h1 className="pane-title" style={{ fontSize:32 }}>Your Spotlightly <em>strategist.</em></h1>
         <p className="pane-lede" style={{ marginTop:"var(--s-3)" }}>
-          Trained on Spotlightly's flat-fee model, warm moments, and creator monetization. Specific advice for your situation — not generic tips.
+          Personalized to your profile. Specific advice for your situation — not generic tips.
         </p>
       </div>
 
       {/* Messages */}
-      <div style={{ flex:1, overflowY:"auto", padding:"var(--s-6) var(--s-8)" }}>
-        {messages.length === 0 && (
-          <div>
-            <p style={{ fontSize:13, color:"var(--muted)", marginBottom:"var(--s-5)" }}>Start with one of these or ask anything:</p>
-            <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-2)" }}>
-              {STARTERS.map((s, i) => (
-                <button key={i} onClick={() => send(s)}
-                  style={{ textAlign:"left", fontFamily:"var(--font-sans)", fontSize:13, color:"var(--text-soft)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-4)", cursor:"pointer", lineHeight:1.5, transition:"all var(--t-fast)" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent-border)"; (e.currentTarget as HTMLElement).style.color = "var(--text)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--text-soft)"; }}>
-                  {s}
-                </button>
-              ))}
-            </div>
+      <div style={{ flex:1, overflowY:"auto", padding:"var(--s-6) var(--s-8)", display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
+        {loading && messages.length === 0 ? (
+          <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+            <div style={{ width:28, height:28, borderRadius:"50%", background:"rgba(240,180,41,0.15)", border:"1px solid rgba(240,180,41,0.3)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14 }}>✦</div>
+            <div style={{ fontSize:13, color:"var(--muted)", paddingTop:4 }}>Reading your profile…</div>
           </div>
+        ) : (
+          <>
+            {messages.map((m, i) => (
+              <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start", flexDirection: m.role === "user" ? "row-reverse" : "row" }}>
+                {m.role === "assistant" && (
+                  <div style={{ width:28, height:28, borderRadius:"50%", background:"rgba(240,180,41,0.15)", border:"1px solid rgba(240,180,41,0.3)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14 }}>✦</div>
+                )}
+                <div style={{
+                  fontSize:14, lineHeight:1.75,
+                  color: m.role === "user" ? "rgba(255,255,255,0.85)" : "var(--text)",
+                  background: m.role === "user" ? "rgba(255,255,255,0.05)" : "rgba(240,180,41,0.05)",
+                  border: `1px solid ${m.role === "user" ? "rgba(255,255,255,0.08)" : "rgba(240,180,41,0.12)"}`,
+                  borderRadius: m.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
+                  padding:"12px 16px", maxWidth:"85%", whiteSpace:"pre-line",
+                }}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {loading && messages.length > 0 && (
+              <div style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                <div style={{ width:28, height:28, borderRadius:"50%", background:"rgba(240,180,41,0.15)", border:"1px solid rgba(240,180,41,0.3)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:14 }}>✦</div>
+                <div style={{ fontSize:13, color:"var(--muted)", paddingTop:4 }}>…</div>
+              </div>
+            )}
+            {messages.length === 1 && !loading && (
+              <div>
+                <p style={{ fontSize:12, color:"var(--muted)", marginBottom:"var(--s-3)" }}>Or try one of these:</p>
+                <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-2)" }}>
+                  {STARTERS.map((s, i) => (
+                    <button key={i} onClick={() => send(s)}
+                      style={{ textAlign:"left", background:"rgba(255,255,255,0.03)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"10px 14px", fontSize:13, color:"var(--text-soft)", cursor:"pointer", fontFamily:"inherit" }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
-
-        {messages.map((m, i) => (
-          <div key={i} style={{ marginBottom:"var(--s-5)", display:"flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              maxWidth:"80%",
-              padding:"var(--s-4) var(--s-5)",
-              borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-              background: m.role === "user" ? "rgba(240,180,41,.12)" : "var(--surface)",
-              border: `1px solid ${m.role === "user" ? "rgba(240,180,41,.2)" : "var(--border)"}`,
-              fontSize:14, lineHeight:1.75, color:"var(--text)",
-              whiteSpace:"pre-wrap",
-            }}>
-              {m.content || (streaming && i === messages.length - 1 ? <span style={{ opacity:.5 }}>●●●</span> : "")}
-            </div>
-          </div>
-        ))}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
-      <div style={{ padding:"var(--s-4) var(--s-8)", borderTop:"1px solid var(--border)", display:"flex", gap:"var(--s-3)", flexShrink:0 }}>
+      <div style={{ padding:"var(--s-4) var(--s-8)", borderTop:"1px solid var(--border)", flexShrink:0, display:"flex", gap:"var(--s-3)" }}>
         <input
           className="input"
-          placeholder="Ask anything about your monetization strategy…"
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
-          disabled={streaming}
+          onKeyDown={e => { if (e.key === "Enter") send(); }}
+          placeholder="Ask anything about monetizing on Spotlightly…"
+          disabled={loading}
+          style={{ flex:1, borderRadius:"var(--r-pill)" }}
         />
-        <button onClick={() => send()} disabled={streaming || !input.trim()} className="btn btn--primary" style={{ flexShrink:0 }}>
-          {streaming ? "…" : "Ask"}
+        <button onClick={() => send()} disabled={loading || !input.trim()} className="btn btn--primary" style={{ borderRadius:"var(--r-pill)", padding:"0 var(--s-5)" }}>
+          {loading ? "…" : "→"}
         </button>
       </div>
     </div>
@@ -1199,1188 +1258,229 @@ function AdvisorPane({ profile }: { profile: Profile }) {
 }
 
 
+
 // ──────────────────────────────────────────────────────────────────
-// PANE: Analytics — subscribers, earnings, posts
+// PANE: Digital Store
 // ──────────────────────────────────────────────────────────────────
-function AnalyticsPane({ profile }: { profile: Profile }) {
+const DIGITAL_CATEGORIES = [
+  { id: "ebook",    label: "eBook / Guide",   emoji: "📚" },
+  { id: "preset",   label: "Preset / Filter", emoji: "🎨" },
+  { id: "template", label: "Template",         emoji: "📊" },
+  { id: "audio",    label: "Audio / Music",    emoji: "🎵" },
+  { id: "course",   label: "Course / Program", emoji: "🎓" },
+  { id: "video",    label: "Video",            emoji: "🎬" },
+  { id: "other",    label: "Other",            emoji: "📦" },
+];
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Tiers & Pricing
+
+
+
+
+function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
   const supabase = createClient();
-  const [stats, setStats] = React.useState({
-    totalSubs: 0, activeSubs: 0, totalTips: 0, totalPosts: 0,
-    recentTips: [] as any[], subsByMonth: [] as any[], newSubsThisMonth: 0,
-  });
+  const [products, setProducts] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    async function load() {
-      const [
-        { count: activeSubs },
-        { data: tips },
-        { count: totalPosts },
-        { data: allSubs },
-      ] = await Promise.all([
-        (supabase as any).from("subscriptions").select("id", { count:"exact", head:true })
-          .eq("creator_profile_id", profile.id).eq("status", "active"),
-        (supabase as any).from("tips").select("amount, created_at")
-          .eq("creator_profile_id", profile.id).order("created_at", { ascending:false }).limit(50),
-        (supabase as any).from("posts").select("id", { count:"exact", head:true })
-          .eq("creator_profile_id", profile.id).eq("status", "live"),
-        (supabase as any).from("subscriptions").select("created_at")
-          .eq("creator_profile_id", profile.id),
-      ]);
-
-      const totalTips = (tips ?? []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-      const now = new Date();
-      const thisMonth = allSubs?.filter((s: any) => new Date(s.created_at).getMonth() === now.getMonth() && new Date(s.created_at).getFullYear() === now.getFullYear()) ?? [];
-
-      // Subs by month (last 6)
-      const monthMap: Record<string, number> = {};
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = d.toLocaleString("default", { month:"short", year:"numeric" });
-        monthMap[key] = 0;
-      }
-      (allSubs ?? []).forEach((s: any) => {
-        const d = new Date(s.created_at);
-        const key = d.toLocaleString("default", { month:"short", year:"numeric" });
-        if (key in monthMap) monthMap[key]++;
-      });
-
-      setStats({
-        activeSubs: activeSubs ?? 0,
-        totalSubs: allSubs?.length ?? 0,
-        totalTips,
-        totalPosts: totalPosts ?? 0,
-        recentTips: (tips ?? []).slice(0, 10),
-        subsByMonth: Object.entries(monthMap).map(([month, count]) => ({ month, count })),
-        newSubsThisMonth: thisMonth.length,
-      });
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  const maxCount = Math.max(...stats.subsByMonth.map(m => m.count), 1);
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Analytics</p>
-        <h1 className="pane-title">Your <em>numbers.</em></h1>
-      </div>
-
-      {loading ? <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p> : (
-        <>
-          {/* Top stats */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:2, marginBottom:"var(--s-6)" }}>
-            {[
-              { label:"Active subscribers", val: stats.activeSubs.toLocaleString(), accent:true },
-              { label:"New this month", val: stats.newSubsThisMonth.toLocaleString() },
-              { label:"Total tips earned", val: `$${stats.totalTips.toFixed(2)}` },
-              { label:"Posts live", val: stats.totalPosts.toLocaleString() },
-            ].map(s => (
-              <div key={s.label} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-4)" }}>
-                <div style={{ fontFamily:"var(--font-display)", fontSize:28, fontWeight:800, letterSpacing:"-0.03em", color: s.accent ? "var(--accent-bright)" : "#fff", lineHeight:1, marginBottom:"var(--s-2)" }}>
-                  {s.val}
-                </div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)" }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Subscriber growth chart */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)", marginBottom:"var(--s-4)" }}>
-            <p className="kicker" style={{ marginBottom:"var(--s-5)" }}>New subscribers — last 6 months</p>
-            <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:120 }}>
-              {stats.subsByMonth.map(m => (
-                <div key={m.month} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"var(--s-2)" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--accent-bright)", fontWeight:600 }}>
-                    {m.count > 0 ? m.count : ""}
-                  </div>
-                  <div style={{
-                    width:"100%", borderRadius:"var(--r-1) var(--r-1) 0 0",
-                    background: m.count > 0 ? "linear-gradient(to top, var(--accent), var(--accent-bright))" : "var(--surface-3)",
-                    height: `${Math.max(4, Math.round((m.count / maxCount) * 80))}px`,
-                    transition:"height 0.8s var(--ease)",
-                  }} />
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:".06em", color:"var(--muted)", textAlign:"center", lineHeight:1.3 }}>
-                    {m.month.split(" ").map((w: string, i: number) => <div key={i}>{w}</div>)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent tips */}
-          {stats.recentTips.length > 0 && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
-              <p className="kicker" style={{ marginBottom:"var(--s-4)" }}>Recent tips</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                {stats.recentTips.map((t: any, i: number) => (
-                  <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"var(--s-3) var(--s-4)", background:"var(--surface-2)", borderRadius:"var(--r-1)" }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
-                      {new Date(t.created_at).toLocaleDateString()}
-                    </span>
-                    <span style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--accent-bright)" }}>
-                      ${Number(t.amount).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {stats.activeSubs === 0 && stats.totalTips === 0 && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-10)", textAlign:"center" }}>
-              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-3)" }}>Your stage is set.</p>
-              <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.7 }}>Connect Stripe, create a channel, and share your Spotlightly link in your bios.<br />Your first subscriber changes everything.</p>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Wishlist — fund-my-purchase model
-// ──────────────────────────────────────────────────────────────────
-function WishlistPane({ profile }: { profile: Profile }) {
-  const supabase = createClient();
-  const [items, setItems] = React.useState<any[]>([]);
-  const [purchases, setPurchases] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [adding, setAdding] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
-  const [savingAddr, setSavingAddr] = React.useState(false);
-  const [addrSaved, setAddrSaved] = React.useState(false);
-  const [tab, setTab] = React.useState<"items"|"gifted"|"address">("items");
-  const [addr, setAddr] = React.useState({
-    shipping_name: (profile as any).shipping_name ?? "",
-    shipping_address: (profile as any).shipping_address ?? "",
-    shipping_city: (profile as any).shipping_city ?? "",
-    shipping_state: (profile as any).shipping_state ?? "",
-    shipping_zip: (profile as any).shipping_zip ?? "",
-    shipping_country: (profile as any).shipping_country ?? "US",
-  });
-  const [form, setForm] = React.useState({ name:"", description:"", price:"", store_url:"", store_name:"", image_url:"" });
-  const [confirming, setConfirming] = React.useState<string|null>(null);
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [price, setPrice] = React.useState("");
+  const [category, setCategory] = React.useState("other");
+  const [fileUrl, setFileUrl] = React.useState("");
+  const [fileName, setFileName] = React.useState("");
+  const [fileSizeBytes, setFileSizeBytes] = React.useState(0);
+  const [fileType, setFileType] = React.useState("other");
+  const [previewImageUrl, setPreviewImageUrl] = React.useState("");
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const imageRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    async function load() {
-      const { data: i } = await (supabase as any)
-        .from("wishlist_items").select("*")
-        .eq("creator_profile_id", profile.id)
-        .order("is_purchased").order("created_at", { ascending: false });
-      setItems(i ?? []);
-
-      const { data: p } = await (supabase as any)
-        .from("wishlist_purchases")
-        .select("*, item:wishlist_item_id(name, store_url, store_name, price, image_url), buyer:buyer_user_id(email)")
-        .eq("creator_profile_id", profile.id)
-        .order("created_at", { ascending: false });
-      setPurchases(p ?? []);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  async function saveAddress() {
-    setSavingAddr(true);
-    await (supabase as any).from("creator_profiles").update(addr).eq("id", profile.id);
-    setAddrSaved(true); setSavingAddr(false);
-    setTimeout(() => setAddrSaved(false), 2000);
-  }
-
-  async function addItem() {
-    if (!form.name.trim() || !form.price) return;
-    setSaving(true);
-    const { data, error } = await (supabase as any).from("wishlist_items").insert({
-      creator_profile_id: profile.id,
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      price: parseFloat(form.price),
-      store_url: form.store_url.trim() || null,
-      store_name: form.store_name.trim() || null,
-      image_url: form.image_url.trim() || null,
-    }).select().single();
-    if (!error) {
-      setItems(prev => [data, ...prev]);
-      setForm({ name:"", description:"", price:"", store_url:"", store_name:"", image_url:"" });
-      setAdding(false);
-    }
-    setSaving(false);
-  }
-
-  async function removeItem(id: string) {
-    if (!confirm("Remove this item?")) return;
-    await (supabase as any).from("wishlist_items").delete().eq("id", id);
-    setItems(prev => prev.filter(i => i.id !== id));
-  }
-
-  async function confirmPurchase(purchaseId: string) {
-    setConfirming(purchaseId);
-    const res = await fetch("/api/wishlist/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ purchaseId }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      setPurchases(prev => prev.map(p =>
-        p.id === purchaseId ? { ...p, status:"creator_purchased" } : p
-      ));
-    } else {
-      alert(data.error || "Something went wrong");
-    }
-    setConfirming(null);
-  }
-
-  const pending = purchases.filter((p:any) => p.status === "paid_pending_purchase");
-  const tabStyle = (t: string) => ({
-    fontFamily:"var(--font-display)", fontSize:12, fontWeight:700,
-    padding:"8px 16px", border:"none", cursor:"pointer",
-    borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent",
-    color: tab === t ? "var(--text)" : "var(--muted)", background:"transparent",
-  } as const);
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Wishlist</p>
-        <h1 className="pane-title">Your <em>wish list.</em></h1>
-        <p className="pane-lede">
-          Fans fund items from your list. When they pay, you get notified — then go buy it yourself
-          from any store and we transfer the item cost directly to your Stripe account.
-          Your address stays completely private.
-        </p>
-      </div>
-
-      {pending.length > 0 && (
-        <div style={{ background:"rgba(240,180,41,.07)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-5)", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"var(--s-3)" }}>
-          <div>
-            <span style={{ fontFamily:"var(--font-display)", fontWeight:700, color:"var(--accent)", marginRight:8 }}>🎁 {pending.length} gift{pending.length > 1 ? "s" : ""} waiting</span>
-            <span style={{ fontSize:13, color:"var(--text-soft)" }}>Go buy the items, then mark them done — we'll transfer the cost to you immediately.</span>
-          </div>
-          <button onClick={() => setTab("gifted")} className="btn btn--primary btn--small">View gifts →</button>
-        </div>
-      )}
-
-      <div style={{ display:"flex", gap:0, borderBottom:"1px solid var(--border)", marginBottom:"var(--s-6)" }}>
-        <button style={tabStyle("items")} onClick={() => setTab("items")}>
-          Wish list ({items.filter((i:any) => !i.is_purchased).length})
-        </button>
-        <button style={tabStyle("gifted")} onClick={() => setTab("gifted")}>
-          Gifts {pending.length > 0 && <span style={{ marginLeft:4, background:"var(--accent)", color:"#0a0a0d", borderRadius:99, fontSize:10, padding:"1px 6px", fontWeight:700 }}>{pending.length}</span>}
-        </button>
-        <button style={tabStyle("address")} onClick={() => setTab("address")}>
-          My address
-        </button>
-      </div>
-
-      {/* ITEMS TAB */}
-      {tab === "items" && (
-        <>
-          <div style={{ display:"flex", flexDirection:"column", gap:2, marginBottom:"var(--s-5)" }}>
-            {loading && <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p>}
-            {!loading && items.filter((i:any) => !i.is_purchased).length === 0 && !adding && (
-              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-10)", textAlign:"center" }}>
-                <p style={{ fontFamily:"var(--font-serif)", fontSize:18, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-2)" }}>Nothing on your list yet.</p>
-                <p style={{ fontSize:13, color:"var(--muted)" }}>Add things you want — gear, clothes, books, anything from any store.</p>
-              </div>
-            )}
-            {items.filter((i:any) => !i.is_purchased).map((item: any) => (
-              <div key={item.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", display:"grid", gridTemplateColumns:"auto 1fr auto", gap:"var(--s-4)", alignItems:"center" }}>
-                {item.image_url
-                  ? <img src={item.image_url} alt="" style={{ width:52, height:52, objectFit:"cover", borderRadius:"var(--r-1)" }} />
-                  : <div style={{ width:52, height:52, background:"var(--surface-3)", borderRadius:"var(--r-1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>🎁</div>
-                }
-                <div>
-                  <div style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"#fff", marginBottom:3 }}>{item.name}</div>
-                  <div style={{ display:"flex", gap:"var(--s-3)", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
-                    <span style={{ color:"var(--accent-bright)", fontWeight:600 }}>${Number(item.price).toFixed(2)}</span>
-                    {item.store_name && <span>{item.store_name}</span>}
-                    {item.store_url && <a href={item.store_url} target="_blank" rel="noopener" style={{ color:"var(--accent)" }}>View product →</a>}
-                  </div>
-                  {item.description && <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{item.description}</div>}
-                </div>
-                <button onClick={() => removeItem(item.id)} style={{ background:"none", border:"none", color:"var(--muted-faint)", cursor:"pointer", fontSize:18 }}>×</button>
-              </div>
-            ))}
-            {items.filter((i:any) => i.is_purchased).length > 0 && (
-              <div style={{ marginTop:"var(--s-4)" }}>
-                <p className="kicker" style={{ marginBottom:"var(--s-3)" }}>Already funded</p>
-                {items.filter((i:any) => i.is_purchased).map((item: any) => (
-                  <div key={item.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-5)", opacity:0.5, display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2 }}>
-                    <span style={{ fontSize:13, color:"var(--muted)", textDecoration:"line-through" }}>{item.name}</span>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent-open)" }}>✓ Funded</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {adding ? (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
-              <p style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff", marginBottom:"var(--s-5)" }}>Add item</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-3)" }}>
-                <div><label className="label">Item name</label><input className="input" placeholder="e.g. Sony ZV-E10 Camera, Nike Air Max 270, Standing desk" value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} /></div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-3)" }}>
-                  <div>
-                    <label className="label">Price ($)</label>
-                    <div style={{ display:"flex", gap:4, alignItems:"center" }}>
-                      <span style={{ color:"var(--muted)" }}>$</span>
-                      <input className="input" type="number" min="1" step="0.01" placeholder="249.99" value={form.price} onChange={e => setForm(f => ({...f, price:e.target.value}))} />
-                    </div>
-                  </div>
-                  <div><label className="label">Store name</label><input className="input" placeholder="Amazon, Nike, Best Buy…" value={form.store_name} onChange={e => setForm(f => ({...f, store_name:e.target.value}))} /></div>
-                </div>
-                <div><label className="label">Product URL</label><input className="input" type="url" placeholder="Paste the product link from the store" value={form.store_url} onChange={e => setForm(f => ({...f, store_url:e.target.value}))} /></div>
-                <div><label className="label">Product image URL (optional)</label><input className="input" type="url" placeholder="Right-click the product image → Copy image address" value={form.image_url} onChange={e => setForm(f => ({...f, image_url:e.target.value}))} /></div>
-                <div><label className="label">Note (optional)</label><input className="input" placeholder="Why you want it, what it's for" value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} /></div>
-                <div style={{ display:"flex", gap:"var(--s-3)" }}>
-                  <button className="btn btn--primary btn--small" onClick={addItem} disabled={saving || !form.name.trim() || !form.price}>{saving ? "Adding…" : "Add to list"}</button>
-                  <button className="btn btn--ghost btn--small" onClick={() => setAdding(false)}>Cancel</button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <button className="btn btn--secondary" onClick={() => setAdding(true)}>+ Add item</button>
-          )}
-        </>
-      )}
-
-      {/* GIFTED TAB */}
-      {tab === "gifted" && (
-        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-          {purchases.length === 0 && <p style={{ color:"var(--muted)", fontSize:14 }}>No gifts yet. Share your page and mention your wish list.</p>}
-          {purchases.map((p: any) => (
-            <div key={p.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderLeft:`3px solid ${p.status === "creator_purchased" ? "var(--accent-open)" : "var(--accent)"}`, borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-6)" }}>
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"start", gap:"var(--s-4)", flexWrap:"wrap", marginBottom:"var(--s-4)" }}>
-                <div>
-                  <div style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff", marginBottom:4 }}>{p.item?.name}</div>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
-                    From <span style={{ color:"var(--text-soft)" }}>{p.buyer?.email}</span>
-                    {" · "}${Number(p.item_price).toFixed(2)} funded
-                    {" · "}{new Date(p.created_at).toLocaleDateString()}
-                  </div>
-                  {p.buyer_message && (
-                    <div style={{ fontFamily:"var(--font-serif)", fontSize:13, fontStyle:"italic", color:"var(--text-soft)", marginTop:"var(--s-3)", padding:"var(--s-2) var(--s-3)", background:"var(--surface-2)", borderRadius:"var(--r-1)", borderLeft:"2px solid var(--border-strong)" }}>
-                      "{p.buyer_message}"
-                    </div>
-                  )}
-                </div>
-                <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".14em", textTransform:"uppercase", padding:"3px 8px", border:"1px solid", borderRadius:2, flexShrink:0,
-                  color: p.status === "creator_purchased" ? "var(--accent-open)" : "var(--accent)",
-                  borderColor: p.status === "creator_purchased" ? "rgba(52,211,153,.25)" : "var(--accent-border)",
-                  background: p.status === "creator_purchased" ? "rgba(52,211,153,.08)" : "var(--accent-soft)",
-                }}>
-                  {p.status === "creator_purchased" ? "✓ Done" : "Waiting for you"}
-                </span>
-              </div>
-
-              {p.status === "paid_pending_purchase" && (
-                <div style={{ background:"rgba(240,180,41,.06)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)" }}>
-                  <p style={{ fontSize:13, color:"var(--text-soft)", lineHeight:1.7, marginBottom:"var(--s-4)" }}>
-                    <strong style={{ color:"var(--accent)" }}>Your move:</strong> Go buy this item from any store — doesn&apos;t have to be the exact one linked, any equivalent works.
-                    Once you&apos;ve purchased it, click below and we&apos;ll immediately transfer{" "}
-                    <strong style={{ color:"var(--accent-bright)" }}>${Number(p.item_price).toFixed(2)}</strong> to your Stripe account.
-                  </p>
-                  {p.item?.store_url && (
-                    <a href={p.item.store_url} target="_blank" rel="noopener" className="btn btn--secondary btn--small" style={{ display:"inline-block", marginRight:"var(--s-3)", marginBottom:"var(--s-3)", textDecoration:"none" }}>
-                      View original product →
-                    </a>
-                  )}
-                  <button
-                    onClick={() => confirmPurchase(p.id)}
-                    disabled={confirming === p.id}
-                    className="btn btn--primary btn--small">
-                    {confirming === p.id ? "Transferring…" : `✓ I bought it — transfer me $${Number(p.item_price).toFixed(2)}`}
-                  </button>
-                </div>
-              )}
-
-              {p.status === "creator_purchased" && (
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent-open)", letterSpacing:".1em" }}>
-                  ✓ ${Number(p.item_price).toFixed(2)} transferred to your Stripe account
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ADDRESS TAB */}
-      {tab === "address" && (
-        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
-          <div style={{ background:"rgba(240,180,41,.04)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-5)", fontSize:13, color:"var(--text-soft)", lineHeight:1.7 }}>
-            🔒 <strong style={{ color:"var(--accent)" }}>Completely private.</strong> Never shown to fans, never visible on your profile, never shared with anyone. This is just for your own reference — since you buy the items yourself, you ship to wherever you want.
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
-            <div><label className="label">Your name</label><input className="input" value={addr.shipping_name} onChange={e => setAddr(a => ({...a, shipping_name:e.target.value}))} placeholder="For your own reference" /></div>
-            <div><label className="label">Address</label><input className="input" value={addr.shipping_address} onChange={e => setAddr(a => ({...a, shipping_address:e.target.value}))} placeholder="Your shipping address" /></div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 100px", gap:"var(--s-3)" }}>
-              <div><label className="label">City</label><input className="input" value={addr.shipping_city} onChange={e => setAddr(a => ({...a, shipping_city:e.target.value}))} /></div>
-              <div><label className="label">State</label><input className="input" value={addr.shipping_state} onChange={e => setAddr(a => ({...a, shipping_state:e.target.value}))} maxLength={2} /></div>
-              <div><label className="label">ZIP</label><input className="input" value={addr.shipping_zip} onChange={e => setAddr(a => ({...a, shipping_zip:e.target.value}))} /></div>
-            </div>
-            <button className="btn btn--primary btn--small" onClick={saveAddress} disabled={savingAddr}>
-              {savingAddr ? "Saving…" : addrSaved ? "✓ Saved" : "Save"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Channels — full CRUD
-// ──────────────────────────────────────────────────────────────────
-function ChannelsPane({ profile }: { profile: Profile }) {
-  const supabase = createClient();
-  const [channels, setChannels] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [adding, setAdding] = React.useState(false);
-  const [form, setForm] = React.useState({ name:"", description:"", subscription_price:"9.99", is_free: false });
-  const [saving, setSaving] = React.useState(false);
-  const [err, setErr] = React.useState<string|null>(null);
-
-  React.useEffect(() => {
-    async function load() {
-      const { data } = await (supabase as any).from("channels").select("*").eq("creator_profile_id", profile.id).order("created_at");
-      setChannels(data ?? []);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  async function createChannel() {
-    if (!form.name.trim()) return;
-    setSaving(true);
-    const { data, error } = await (supabase as any).from("channels").insert({
-      creator_profile_id: profile.id,
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      subscription_price: form.is_free ? 0 : parseFloat(form.subscription_price) || 9.99,
-      is_free: form.is_free,
-      slug: form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-    }).select().single();
-    if (error) { setErr(error.message); setSaving(false); return; }
-    setChannels(prev => [...prev, data]);
-    setForm({ name:"", description:"", subscription_price:"9.99", is_free:false });
-    setAdding(false);
-    setSaving(false);
-  }
-
-  async function deleteChannel(id: string) {
-    if (!confirm("Delete this channel? Posts in it will remain but won't be assigned to a channel.")) return;
-    await (supabase as any).from("channels").delete().eq("id", id);
-    setChannels(prev => prev.filter(c => c.id !== id));
-  }
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Channels</p>
-        <h1 className="pane-title">Your <em>channels.</em></h1>
-        <p className="pane-lede">Channels are the subscription tiers fans see on your page. A free channel builds your audience. A paid channel is what they subscribe to.</p>
-      </div>
-
-      {err && <div className="db-err"><span>{err}</span><button className="db-err-x" onClick={() => setErr(null)}>×</button></div>}
-
-      {loading ? <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p> : (
-        <div style={{ display:"flex", flexDirection:"column", gap:2, marginBottom:"var(--s-6)" }}>
-          {channels.length === 0 && !adding && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-10)", textAlign:"center" }}>
-              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-2)" }}>No channels yet.</p>
-              <p style={{ fontSize:13, color:"var(--muted)" }}>Create at least one free channel and one paid channel to get started.</p>
-            </div>
-          )}
-          {channels.map(ch => (
-            <div key={ch.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-6)", display:"grid", gridTemplateColumns:"1fr auto", gap:"var(--s-4)", alignItems:"center" }}>
-              <div>
-                <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)", marginBottom:4 }}>
-                  <span style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff" }}>{ch.name}</span>
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".12em", textTransform:"uppercase", padding:"2px 8px", border:"1px solid", borderRadius:2, color: ch.is_free ? "var(--accent-open)" : "var(--accent)", borderColor: ch.is_free ? "rgba(52,211,153,.25)" : "var(--accent-border)", background: ch.is_free ? "rgba(52,211,153,.08)" : "var(--accent-soft)" }}>
-                    {ch.is_free ? "Free" : `$${Number(ch.subscription_price).toFixed(2)}/mo`}
-                  </span>
-                </div>
-                {ch.description && <p style={{ fontSize:12, color:"var(--muted)", margin:0 }}>{ch.description}</p>}
-              </div>
-              <button onClick={() => deleteChannel(ch.id)} style={{ background:"none", border:"none", color:"var(--muted-faint)", cursor:"pointer", fontSize:18, lineHeight:1 }}>×</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {adding ? (
-        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
-          <p style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff", marginBottom:"var(--s-5)" }}>New channel</p>
-          <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
-            <div><label className="label">Channel name</label><input className="input" value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} placeholder="e.g. Free Workouts, The Program, Behind the Scenes" /></div>
-            <div><label className="label">Description (optional)</label><input className="input" value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} placeholder="What fans get in this channel" /></div>
-            <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
-              <input type="checkbox" id="ch-free" checked={form.is_free} onChange={e => setForm(f => ({...f, is_free:e.target.checked}))} />
-              <label htmlFor="ch-free" style={{ fontSize:13, color:"var(--text-soft)", cursor:"pointer" }}>Free channel (no subscription required)</label>
-            </div>
-            {!form.is_free && (
-              <div>
-                <label className="label">Monthly price (USD)</label>
-                <div style={{ display:"flex", gap:"var(--s-2)", alignItems:"center" }}>
-                  <span style={{ color:"var(--muted)" }}>$</span>
-                  <input className="input" type="number" min="1" max="999" step="0.01" style={{ maxWidth:120 }}
-                    value={form.subscription_price} onChange={e => setForm(f => ({...f, subscription_price:e.target.value}))} />
-                  <span style={{ fontSize:12, color:"var(--muted)" }}>/month</span>
-                </div>
-              </div>
-            )}
-            <div style={{ display:"flex", gap:"var(--s-3)" }}>
-              <button className="btn btn--primary btn--small" onClick={createChannel} disabled={saving || !form.name.trim()}>{saving ? "Creating…" : "Create channel"}</button>
-              <button className="btn btn--ghost btn--small" onClick={() => setAdding(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <button className="btn btn--secondary" onClick={() => setAdding(true)}>+ Add channel</button>
-      )}
-    </div>
-  );
-}
-
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Posts — list + composer
-// ──────────────────────────────────────────────────────────────────
-
-function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
-  const supabase = createClient();
-  const [posts, setPosts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [composing, setComposing] = useState(false);
-  const [body, setBody] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [mediaType, setMediaType] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [posting, setPosting] = useState(false);
-  const [lockType, setLockType] = useState<"free" | "subscription" | "purchase">("free");
-  const [unlockPrice, setUnlockPrice] = useState("");
-  const [earlyAccess, setEarlyAccess] = useState(false);
-  const [earlyAccessAt, setEarlyAccessAt] = useState("");
-
-  const load = useCallback(async () => {
+  const load = React.useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("posts")
-      .select("*")
+    const { data } = await (supabase as any)
+      .from("digital_products").select("*")
       .eq("creator_profile_id", profile.id ?? "")
+      .neq("status", "deleted")
       .order("created_at", { ascending: false });
-
-    if (error) {
-      setPosts([]);
-    } else {
-      setPosts(data ?? []);
-    }
+    setProducts(data ?? []);
     setLoading(false);
   }, [profile.id, supabase]);
 
-  useEffect(() => {
-    if (profile.id) void load();
-    else setLoading(false);
-  }, [load, profile.id]);
+  React.useEffect(() => { if (profile.id) void load(); else setLoading(false); }, [load, profile.id]);
 
-  async function publish(e: FormEvent) {
-    e.preventDefault();
-    if (!profile.id) {
-      setErr("Profile is missing an id. Refresh and try again.");
-      return;
-    }
-    if (!body.trim()) return;
-
-    setPosting(true);
-    setErr(null);
-
-    const res = await fetch("/api/posts/publish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        caption: body.trim() || null,
-        mediaUrl: mediaUrl || null,
-        mediaType: mediaType || null,
-        tier: lockType === "subscription" ? "premium" : "free",
-        lockType,
-        unlockPrice: lockType === "purchase" ? parseFloat(unlockPrice) || null : null,
-        earlyAccessAt: earlyAccess && earlyAccessAt ? new Date(earlyAccessAt).toISOString() : null,
-        creatorProfileId: profile.id,
-      }),
-    });
+  async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploading(true);
+    const fd = new FormData(); fd.append("file", file);
+    const res = await fetch("/api/digital/upload", { method: "POST", body: fd });
     const data = await res.json();
-    if (!res.ok) {
-      setErr(data.error || "Failed to publish");
-      setPosting(false);
-      return;
-    }
-
-    setBody(""); setLockType("free"); setUnlockPrice("");
-    setEarlyAccess(false); setEarlyAccessAt("");
-    setComposing(false);
-    setPosting(false);
-    void load();
+    if (!res.ok) { setErr(data.error); setUploading(false); return; }
+    setFileUrl(data.url); setFileName(file.name); setFileSizeBytes(file.size); setFileType(data.fileType);
+    setUploading(false); e.target.value = "";
   }
+
+  async function uploadPreview(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setUploading(true);
+    const fd = new FormData(); fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (data.url) setPreviewImageUrl(data.url);
+    setUploading(false); e.target.value = "";
+  }
+
+  async function createProduct(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || !fileUrl || !price) { setErr("Title, file, and price are required"); return; }
+    setSaving(true);
+    await (supabase as any).from("digital_products").insert({
+      creator_profile_id: profile.id,
+      title: title.trim(), description: description.trim() || null,
+      price: parseFloat(price), file_url: fileUrl, file_name: fileName,
+      file_size_bytes: fileSizeBytes, file_type: fileType, category,
+      preview_image_url: previewImageUrl || null,
+    });
+    setCreating(false); setTitle(""); setDescription(""); setPrice("");
+    setFileUrl(""); setFileName(""); setCategory("other"); setPreviewImageUrl("");
+    setSaving(false); void load();
+  }
+
+  async function toggleStatus(id: string, current: string) {
+    const next = current === "active" ? "paused" : "active";
+    await (supabase as any).from("digital_products").update({ status: next }).eq("id", id);
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: next } : p));
+  }
+
+  async function deleteProduct(id: string) {
+    if (!confirm("Remove this product? Existing buyers keep their downloads.")) return;
+    await (supabase as any).from("digital_products").update({ status: "deleted" }).eq("id", id);
+    setProducts(prev => prev.filter(p => p.id !== id));
+  }
+
+  const formatBytes = (b: number) => b > 1e6 ? `${(b/1e6).toFixed(1)} MB` : `${(b/1e3).toFixed(0)} KB`;
 
   return (
     <div className="pane">
       <div className="pane-head pane-head--row">
         <div>
-          <p className="kicker">Posts · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
-          <h1 className="pane-title">Your work.</h1>
+          <p className="kicker">Digital Store</p>
+          <h1 className="pane-title">Sell your <em>work.</em></h1>
+          <p style={{ fontSize:13, color:"var(--muted)", marginTop:"var(--s-2)", maxWidth:480 }}>
+            PDFs, preset packs, beat packs, templates, courses — anything digital. 10% platform fee, you keep 90%. Fans get an instant download link after purchase.
+          </p>
         </div>
-        <button
-          className="btn btn--primary"
-          onClick={() => setComposing((c) => !c)}
-          type="button"
-        >
-          {composing ? "Cancel" : "+ New post"}
+        <button className="btn btn--primary" type="button" onClick={() => setCreating(c => !c)}>
+          {creating ? "Cancel" : "+ New product"}
         </button>
       </div>
 
-      {composing && (
-        <form className="composer" onSubmit={publish}>
-
-          <textarea
-            className="composer-body"
-            placeholder="What's on your mind?"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            rows={6}
-            autoFocus
-          />
-          {mediaUrl && (
-            <div style={{ padding:"0 var(--s-4) var(--s-3)", position:"relative", display:"inline-block" }}>
-              {mediaType?.startsWith("video") ? (
-                <video src={mediaUrl} style={{ maxHeight:180, borderRadius:"var(--r-1)" }} controls />
+      {creating && (
+        <form onSubmit={createProduct} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6) var(--s-7)", marginBottom:"var(--s-4)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-5)" }}>New digital product</p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Title</label>
+              <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="12-Week Fitness Program" required />
+            </div>
+            <div className="form-field">
+              <label className="label">Price ($)</label>
+              <input className="input" type="number" min="1" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="29.00" required />
+            </div>
+          </div>
+          <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
+            <label className="label">Description</label>
+            <textarea className="textarea" value={description} onChange={e => setDescription(e.target.value)} placeholder="What\'s included? Who is it for?" rows={3} />
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Category</label>
+              <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
+                {DIGITAL_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="label">Digital file</label>
+              <input ref={fileRef} type="file" style={{ display:"none" }} onChange={uploadFile} accept=".pdf,.zip,.mp3,.mp4,.epub,.psd" />
+              {fileUrl ? (
+                <div style={{ display:"flex", alignItems:"center", gap:"var(--s-2)", padding:"var(--s-3) var(--s-4)", background:"rgba(52,211,153,0.06)", border:"1px solid rgba(52,211,153,0.2)", borderRadius:"var(--r-2)" }}>
+                  <span style={{ color:"#34D399" }}>✓</span>
+                  <span style={{ fontSize:12, color:"var(--text-soft)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{fileName}</span>
+                  <span style={{ fontSize:11, color:"var(--muted)", flexShrink:0 }}>{formatBytes(fileSizeBytes)}</span>
+                </div>
               ) : (
-                <img src={mediaUrl} alt="" style={{ maxHeight:180, borderRadius:"var(--r-1)", display:"block" }} />
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="btn btn--secondary" style={{ width:"100%", borderRadius:"var(--r-1)" }}>
+                  {uploading ? "Uploading…" : "Upload file (PDF, ZIP, MP3…)"}
+                </button>
               )}
-              <button type="button" onClick={() => { setMediaUrl(""); setMediaType(""); }}
-                style={{ position:"absolute", top:4, right:4, background:"rgba(0,0,0,.7)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</button>
+            </div>
+          </div>
+          <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
+            <label className="label">Cover image <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+            <input ref={imageRef} type="file" accept="image/*" style={{ display:"none" }} onChange={uploadPreview} />
+            <div style={{ display:"flex", alignItems:"center", gap:"var(--s-4)" }}>
+              <div style={{ width:80, height:60, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", overflow:"hidden", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                {previewImageUrl ? <img src={previewImageUrl} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:22, color:"var(--muted)" }}>🖼️</span>}
+              </div>
+              <button type="button" onClick={() => imageRef.current?.click()} className="btn btn--secondary" style={{ borderRadius:"var(--r-pill)", fontSize:12 }}>Upload cover</button>
+            </div>
+          </div>
+          {price && (
+            <div style={{ background:"rgba(240,180,41,0.06)", border:"1px solid rgba(240,180,41,0.15)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-4)", marginBottom:"var(--s-5)", fontSize:13 }}>
+              At ${parseFloat(price||"0").toFixed(2)}: <strong style={{ color:"var(--text)" }}>You earn ${(parseFloat(price||"0") * 0.90).toFixed(2)}</strong>
+              <span style={{ color:"var(--muted)" }}> · Platform fee ${(parseFloat(price||"0") * 0.10).toFixed(2)}</span>
             </div>
           )}
-
-          {/* Access controls */}
-          <div style={{ padding:"var(--s-4) var(--s-4) 0", display:"flex", flexDirection:"column", gap:"var(--s-3)" }}>
-            <div style={{ display:"flex", gap:"var(--s-2)", flexWrap:"wrap" }}>
-              {(["free","subscription","purchase"] as const).map(t => (
-                <button key={t} type="button" onClick={() => setLockType(t)} style={{
-                  fontFamily:"var(--font-display)", fontSize:12, fontWeight:700,
-                  padding:"6px 14px", borderRadius:"var(--r-pill)", border:"1px solid", cursor:"pointer",
-                  background: lockType === t ? "var(--accent)" : "var(--surface-2)",
-                  color: lockType === t ? "#09090C" : "var(--muted)",
-                  borderColor: lockType === t ? "var(--accent)" : "var(--border)",
-                }}>
-                  {t === "free" ? "Free" : t === "subscription" ? "Subscribers only" : "Unlock to purchase"}
-                </button>
-              ))}
-            </div>
-
-            {lockType === "purchase" && (
-              <div style={{ display:"flex", alignItems:"center", gap:"var(--s-2)" }}>
-                <span style={{ color:"var(--muted)", fontSize:14 }}>$</span>
-                <input type="number" min="1" max="999" step="0.01" placeholder="Price to unlock"
-                  value={unlockPrice} onChange={e => setUnlockPrice(e.target.value)}
-                  className="input" style={{ maxWidth:160 }} />
-              </div>
-            )}
-
-            {lockType === "subscription" && (
-              <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
-                <label style={{ display:"flex", alignItems:"center", gap:"var(--s-2)", cursor:"pointer" }}>
-                  <input type="checkbox" checked={earlyAccess} onChange={e => setEarlyAccess(e.target.checked)} />
-                  <span style={{ fontSize:13, color:"var(--text-soft)" }}>Early Access — fans with a pass see this 30 min before others</span>
-                </label>
-              </div>
-            )}
-
-            {lockType === "subscription" && earlyAccess && (
-              <div>
-                <p className="label" style={{ marginBottom:"var(--s-2)" }}>Available to Early Access fans at</p>
-                <input type="datetime-local" value={earlyAccessAt} onChange={e => setEarlyAccessAt(e.target.value)}
-                  className="input" style={{ maxWidth:260 }} />
-                <p style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>All subscribers see it 30 minutes later.</p>
-              </div>
-            )}
-          </div>
-
-          <div className="composer-actions">
-            <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:11, fontWeight:600, color:"var(--muted)", padding:"7px 12px", border:"1px solid var(--border)", borderRadius:"var(--r-1)" }}>
-              {uploading ? "Uploading…" : "📎 Media"}
-              <input type="file" accept="image/*,video/*" style={{ display:"none" }} disabled={uploading}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setUploading(true);
-                  const fd = new FormData(); fd.append("file", file);
-                  const res = await fetch("/api/upload", { method:"POST", body:fd });
-                  const data = await res.json();
-                  if (data.url) { setMediaUrl(data.url); setMediaType(file.type); }
-                  setUploading(false); e.target.value = "";
-                }} />
-            </label>
-            <p className="hint">{body.length} chars</p>
-            <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
-              {posting ? "Publishing..." : "Publish"}
-            </button>
-          </div>
+          <button type="submit" className="btn btn--primary" disabled={saving || !fileUrl || !title || !price}>
+            {saving ? "Publishing…" : "Publish product"}
+          </button>
         </form>
       )}
 
       {loading ? (
-        <p className="kicker">Loading posts...</p>
-      ) : posts.length === 0 ? (
-        <div className="empty">
-          <p className="empty-mark">◌</p>
-          <h3 className="empty-title">No posts yet.</h3>
-          <p className="empty-text">Hit "+ New post" up there to publish your first one.</p>
+        <p style={{ color:"var(--muted)", fontSize:13 }}>Loading…</p>
+      ) : products.length === 0 && !creating ? (
+        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"48px 40px", textAlign:"center" }}>
+          <div style={{ fontSize:40, marginBottom:16 }}>📦</div>
+          <h3 style={{ fontFamily:"var(--font-serif)", fontSize:24, fontWeight:300, color:"#fff", marginBottom:8 }}>Nothing for sale yet.</h3>
+          <p style={{ fontSize:13, color:"var(--muted)", marginBottom:24 }}>Upload a PDF guide, preset pack, course, or anything else your fans would pay for.</p>
+          <button className="btn btn--primary" onClick={() => setCreating(true)}>Create your first product →</button>
         </div>
       ) : (
-        <ul className="post-list">
-          {posts.map((p) => (
-            <li key={p.id} className="post-item">
-              <p className="post-body">{p.caption}</p>
-              <p className="post-meta">
-                {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
-                {p.status && p.status !== "published" ? `   ${p.status}` : ""}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Settings — account-level (email, dangerous actions later)
-// ──────────────────────────────────────────────────────────────────
-
-function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: string | null }) {
-  const [subPrice, setSubPrice] = React.useState(Number((profile as any).subscription_price || 9.99).toFixed(2));
-  const [priceSaved, setPriceSaved] = React.useState(false);
-  const [deleting, setDeleting] = React.useState(false);
-  const [deleteConfirm, setDeleteConfirm] = React.useState("");
-  const supabase = createClient();
-
-  async function savePrice() {
-    const val = parseFloat(subPrice);
-    if (!val || val < 1) return;
-    await (supabase as any).from("creator_profiles").update({ subscription_price: val }).eq("id", profile.id);
-    setPriceSaved(true);
-    setTimeout(() => setPriceSaved(false), 2000);
-  }
-
-  async function deleteAccount() {
-    if (deleteConfirm !== profile.handle) return;
-    setDeleting(true);
-    await (supabase as any).from("creator_profiles").update({ deleted_at: new Date().toISOString() }).eq("id", profile.id);
-    await supabase.auth.signOut();
-    window.location.href = "/";
-  }
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Settings</p>
-        <h1 className="pane-title">Your <em>account.</em></h1>
-      </div>
-
-      <div className="settings-block">
-        <p className="label">Email</p>
-        <p className="settings-val">{userEmail ?? "—"}</p>
-      </div>
-
-      <div className="settings-block">
-        <p className="label">Handle</p>
-        <p className="settings-val">@{profile.handle}</p>
-      </div>
-
-      <div className="settings-block">
-        <p className="label">Public page</p>
-        <p className="settings-val">
-          <Link href={`/${profile.handle}`} className="settings-link" target="_blank">
-            spotlightly.app/{profile.handle} →
-          </Link>
-        </p>
-      </div>
-
-      <div className="settings-block">
-        <p className="label">Subscription price</p>
-        <p style={{ fontSize:12, color:"var(--muted)", marginBottom:"var(--s-2)", lineHeight:1.5 }}>
-          What fans pay per month. Existing subscribers keep their rate until they renew.
-        </p>
-        <div style={{ display:"flex", gap:"var(--s-3)", alignItems:"center" }}>
-          <span style={{ color:"var(--muted)", fontSize:16 }}>$</span>
-          <input className="input" type="number" min="1" max="999" step="0.01"
-            style={{ maxWidth:120 }} value={subPrice}
-            onChange={e => setSubPrice(e.target.value)} />
-          <button className="btn btn--secondary btn--small" onClick={savePrice}>
-            {priceSaved ? "✓ Saved" : "Save"}
-          </button>
-        </div>
-      </div>
-
-      <div className="settings-block">
-        <p className="label">Stripe Connect</p>
-        {(profile as any).stripe_onboarded ? (
-          <div style={{ display:"flex", alignItems:"center", gap:"var(--s-4)" }}>
-            <span style={{ color:"var(--accent-open)", fontSize:13 }}>✓ Connected</span>
-            <a href="https://dashboard.stripe.com" target="_blank" className="settings-link" style={{ fontSize:12 }}>Stripe Dashboard →</a>
-          </div>
-        ) : (
-          <button className="btn btn--primary btn--small" onClick={async () => {
-            const res = await fetch("/api/stripe/connect/start", { method:"POST" });
-            const { url } = await res.json();
-            if (url) window.location.href = url;
-          }}>Connect Stripe — 3 minutes</button>
-        )}
-      </div>
-
-      <div className="settings-block" style={{ borderTop:"2px solid var(--red)", marginTop:"var(--s-10)", paddingTop:"var(--s-6)" }}>
-        <p className="label" style={{ color:"var(--red)" }}>Delete account</p>
-        <p style={{ fontSize:12, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-4)" }}>
-          This permanently deletes your profile and all content. Type your handle <strong style={{ color:"var(--text)" }}>@{profile.handle}</strong> to confirm.
-        </p>
-        <div style={{ display:"flex", gap:"var(--s-3)", flexWrap:"wrap" }}>
-          <input className="input" type="text" placeholder={`Type ${profile.handle} to confirm`}
-            style={{ maxWidth:280 }} value={deleteConfirm}
-            onChange={e => setDeleteConfirm(e.target.value)} />
-          <button
-            className="btn btn--small"
-            disabled={deleteConfirm !== profile.handle || deleting}
-            style={{ background:"var(--red-soft)", color:"var(--red)", border:"1px solid var(--red-border)" }}
-            onClick={deleteAccount}>
-            {deleting ? "Deleting…" : "Delete my account"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────────
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Payments — Stripe Connect + CCBill setup
-// ──────────────────────────────────────────────────────────────────
-function PaymentsPane({ profile }: { profile: Profile }) {
-  const [connecting, setConnecting] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const stripeConnected = !!(profile as any).stripe_account_id;
-
-  async function connectStripe() {
-    setConnecting(true);
-    setErr(null);
-    try {
-      const res = await fetch("/api/stripe/connect/start", { method: "POST" });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      window.location.href = data.url;
-    } catch (e: any) {
-      setErr(e.message);
-      setConnecting(false);
-    }
-  }
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Payments</p>
-        <h1 className="pane-title">Get <em>paid.</em></h1>
-        <p className="pane-lede">Connect your payment accounts so fans can subscribe and tip you. Payment buttons on your public page stay disabled until Stripe is connected.</p>
-      </div>
-      {err && <div style={{ background:"var(--red-soft)",border:"1px solid var(--red-border)",borderRadius:"var(--r-2)",padding:"12px 18px",marginBottom:"var(--s-6)",fontSize:13,color:"var(--red)" }}>⚠ {err}</div>}
-      <div style={{ display:"flex",flexDirection:"column",gap:2,marginBottom:"var(--s-10)" }}>
-        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",borderTop:"2px solid var(--accent)",padding:"var(--s-8) var(--s-6)" }}>
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"var(--s-4)" }}>
-            <div>
-              <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Spotlight payments</p>
-              <h3 style={{ fontFamily:"var(--font-serif)",fontSize:26,fontWeight:400,color:"#fff",margin:0 }}>Stripe Connect</h3>
-            </div>
-            <span style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".14em",textTransform:"uppercase" as const,padding:"4px 10px",border:"1px solid",borderRadius:"var(--r-1)",color:stripeConnected?"var(--accent-open)":"var(--muted)",borderColor:stripeConnected?"rgba(110,231,183,.25)":"var(--border)",background:stripeConnected?"rgba(110,231,183,.08)":"rgba(255,255,255,.03)" }}>
-              {stripeConnected ? "Connected" : "Not connected"}
-            </span>
-          </div>
-          <p style={{ fontSize:13,color:"var(--text-soft)",lineHeight:1.75,marginBottom:"var(--s-5)" }}>
-            {stripeConnected ? "Your Stripe account is connected. Fans can subscribe and tip you." : "Takes about 3 minutes — you'll need your legal name, address, SSN (last 4), and bank account."}
-          </p>
-          {stripeConnected ? (
-            <a href="https://dashboard.stripe.com" target="_blank" rel="noopener" className="btn btn--secondary btn--small">Stripe Dashboard →</a>
-          ) : (
-            <button onClick={connectStripe} disabled={connecting} className="btn btn--primary">
-              {connecting ? "Redirecting to Stripe..." : "Connect Stripe — 3 minutes"}
-            </button>
-          )}
-        </div>
-        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",padding:"var(--s-6)" }}>
-          <h3 style={{ fontFamily:"var(--font-serif)",fontSize:20,fontWeight:400,color:"#fff",marginBottom:"var(--s-3)" }}>Fee summary</h3>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--s-1)" }}>
-            {[
-              { label:"Your monthly Spotlightly fee", val:"Flat, based on subscriber count" },
-              { label:"Stripe processing", val:"2.9% + 30¢ per transaction (Stripe's fee, not ours)" },
-              { label:"Tips", val:"0% — you keep 100%" },
-              { label:"Subscriptions", val:"0% — you keep 100% (minus Stripe)" },
-              { label:"Front Row Messages", val:"50% to you, 50% platform" },
-              { label:"Super Tips", val:"85% to you, 15% platform" },
-            ].map((r, i) => (
-              <div key={i} style={{ background:"var(--surface-2)",border:"1px solid var(--border)",padding:"var(--s-3) var(--s-4)" }}>
-                <div style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase" as const,color:"var(--muted)",marginBottom:4 }}>{r.label}</div>
-                <div style={{ fontSize:13,color:"var(--text)" }}>{r.val}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Moderation — creator's flagged content
-// ──────────────────────────────────────────────────────────────────
-function ModerationPane({ profile }: { profile: Profile }) {
-  const [events, setEvents] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const supabase = createClient();
-
-  React.useEffect(() => {
-    async function load() {
-      const { data } = await (supabase as any)
-        .from("moderation_events")
-        .select("*")
-        .eq("creator_id", (profile as any).id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      setEvents(data ?? []);
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Moderation</p>
-        <h1 className="pane-title">Your <em>flags.</em></h1>
-        <p className="pane-lede">AI reviews every post before it goes live. Flagged content appears here.</p>
-      </div>
-      {loading && <p style={{ color:"var(--muted)",fontSize:14 }}>Loading...</p>}
-      {!loading && events.length === 0 && (
-        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",padding:"var(--s-10)",textAlign:"center" as const }}>
-          <p style={{ fontFamily:"var(--font-serif)",fontSize:22,fontStyle:"italic",color:"#fff",marginBottom:"var(--s-2)" }}>All clear.</p>
-          <p style={{ fontSize:13,color:"var(--muted)" }}>No flagged content on your profile.</p>
-        </div>
-      )}
-      <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
-        {events.map((e: any) => (
-          <div key={e.id} style={{ background:"var(--surface)",border:"1px solid var(--border)",borderLeft:`3px solid ${e.severity==="critical"||e.severity==="high"?"var(--red)":"var(--accent)"}`,padding:"var(--s-5) var(--s-6)" }}>
-            <div style={{ display:"flex",gap:"var(--s-3)",marginBottom:"var(--s-3)",flexWrap:"wrap" as const }}>
-              <span style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase" as const,padding:"3px 8px",borderRadius:"var(--r-1)",border:"1px solid",color:e.severity==="critical"||e.severity==="high"?"var(--red)":"var(--accent)",background:e.severity==="critical"||e.severity==="high"?"var(--red-soft)":"rgba(245,200,66,.08)",borderColor:e.severity==="critical"||e.severity==="high"?"var(--red-border)":"rgba(245,200,66,.25)" }}>{e.severity}</span>
-            </div>
-            <p style={{ fontSize:13,color:"var(--text-soft)",lineHeight:1.65,marginBottom:"var(--s-2)" }}>{e.flag_reason ?? "Content flagged for review"}</p>
-            <p style={{ fontFamily:"var(--font-mono)",fontSize:10,color:"var(--muted)" }}>{new Date(e.created_at).toLocaleDateString()}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-
-function CCBillForm({ profileId }: { profileId: string }) {
-  const [acct, setAcct] = React.useState("");
-  const [sub, setSub] = React.useState("");
-  const [saved, setSaved] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const supabase = createClient();
-
-  async function save() {
-    if (!acct.trim()) return;
-    setSaving(true);
-    await (supabase as any).from("creator_profiles").update({
-      ccbill_account_number: acct.trim(),
-      ccbill_sub_account: sub.trim() || null,
-    }).eq("id", profileId);
-    setSaved(true);
-    setSaving(false);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-3)" }}>
-      <div>
-        <label className="label">CCBill Account Number</label>
-        <input className="input" placeholder="e.g. 123456" style={{ maxWidth:280 }}
-          value={acct} onChange={e => setAcct(e.target.value)} />
-      </div>
-      <div>
-        <label className="label">CCBill Sub-Account Number</label>
-        <input className="input" placeholder="e.g. 0000" style={{ maxWidth:280 }}
-          value={sub} onChange={e => setSub(e.target.value)} />
-      </div>
-      <div style={{ display:"flex", gap:"var(--s-3)" }}>
-        <button className="btn btn--primary" onClick={save} disabled={saving || !acct.trim()}>
-          {saving ? "Saving…" : saved ? "✓ Saved" : "Save CCBill credentials"}
-        </button>
-        <a href="https://ccbill.com" target="_blank" rel="noopener" className="btn btn--ghost">Apply for CCBill →</a>
-      </div>
-    </div>
-  );
-}
-
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Contact Blocks — pre-emptive blocking by email or phone
-// ──────────────────────────────────────────────────────────────────
-function ContactBlocksPane({ profile }: { profile: Profile }) {
-  const [blocks, setBlocks] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [contactType, setContactType] = React.useState<"email" | "phone">("email");
-  const [contactValue, setContactValue] = React.useState("");
-  const [note, setNote] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-
-  const supabase = createClient();
-
-  React.useEffect(() => {
-    (supabase as any)
-      .from("creator_contact_blocks")
-      .select("*")
-      .eq("creator_profile_id", profile.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }: any) => { setBlocks(data ?? []); setLoading(false); });
-  }, []);
-
-  async function addBlock() {
-    if (!contactValue.trim()) return;
-    setSaving(true);
-    setErr(null);
-    const res = await fetch("/api/blocks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        creatorProfileId: profile.id,
-        contactType,
-        contactValue: contactValue.trim(),
-        note: note.trim() || null,
-      }),
-    });
-    const data = await res.json();
-    if (data.error) { setErr(data.error); setSaving(false); return; }
-    setBlocks(prev => [data.block, ...prev]);
-    setContactValue(""); setNote("");
-    setSaving(false);
-  }
-
-  async function removeBlock(id: string) {
-    await fetch("/api/blocks", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ blockId: id }),
-    });
-    setBlocks(prev => prev.filter(b => b.id !== id));
-  }
-
-  return (
-    <div className="pane">
-      <div className="pane-head">
-        <p className="kicker">Privacy & Safety</p>
-        <h1 className="pane-title">Pre-emptive <em>blocking.</em></h1>
-        <p className="pane-lede">
-          Know someone you never want as a subscriber? Add their email or phone number.
-          They won&apos;t be able to subscribe — and they won&apos;t be told why.
-          This works even if they create a new account.
-        </p>
-      </div>
-
-      <div className="pane" style={{ maxWidth: 560, padding: 0 }}>
-        {/* Add block form */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "var(--s-6)", marginBottom: 2 }}>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: "var(--s-4)" }}>
-            Add contact to block list
-          </p>
-          <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-3)" }}>
-            {(["email", "phone"] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setContactType(t)}
-                style={{
-                  fontFamily: "var(--font-display)", fontSize: 12, fontWeight: 700,
-                  padding: "7px 16px", border: "1px solid", borderRadius: "var(--r-pill)", cursor: "pointer",
-                  background: contactType === t ? "var(--accent)" : "var(--surface-2)",
-                  color: contactType === t ? "#fff" : "var(--muted)",
-                  borderColor: contactType === t ? "var(--accent)" : "var(--border)",
-                }}
-              >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            ))}
-          </div>
-          <input
-            type={contactType === "email" ? "email" : "tel"}
-            placeholder={contactType === "email" ? "their@email.com" : "+1 555 000 0000"}
-            value={contactValue}
-            onChange={e => setContactValue(e.target.value)}
-            style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", color: "var(--text)", fontSize: 14, outline: "none", marginBottom: "var(--s-3)" }}
-          />
-          <input
-            type="text"
-            placeholder="Private note (optional) — only you see this"
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", color: "var(--text)", fontSize: 14, outline: "none", marginBottom: "var(--s-4)" }}
-          />
-          {err && <p style={{ fontSize: 12, color: "var(--red)", marginBottom: "var(--s-3)" }}>{err}</p>}
-          <button onClick={addBlock} disabled={saving || !contactValue.trim()} className="btn btn--primary" style={{ borderRadius: "var(--r-pill)" }}>
-            {saving ? "Adding…" : "Block this contact"}
-          </button>
-        </div>
-
-        {/* Block list */}
-        {!loading && blocks.length > 0 && (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "var(--s-5)" }}>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", marginBottom: "var(--s-4)" }}>
-              {blocks.length} blocked contact{blocks.length !== 1 ? "s" : ""}
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {blocks.map(b => (
-                <div key={b.id} style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-3) var(--s-4)", background: "var(--surface-2)", borderRadius: "var(--r-2)" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", width: 40, flexShrink: 0 }}>{b.contact_type}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text)", flex: 1 }}>{b.display_hint}</span>
-                  {b.note && <span style={{ fontSize: 11, color: "var(--muted)", fontStyle: "italic", flex: 1 }}>{b.note}</span>}
-                  <button onClick={() => removeBlock(b.id)} style={{ fontFamily: "var(--font-display)", fontSize: 11, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
-                    Remove
-                  </button>
+        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+          {products.map((p: any) => {
+            const cat = DIGITAL_CATEGORIES.find(c => c.id === p.category);
+            return (
+              <div key={p.id} style={{ display:"flex", alignItems:"center", gap:"var(--s-4)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", opacity: p.status === "paused" ? 0.6 : 1 }}>
+                <div style={{ width:52, height:40, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+                  {p.preview_image_url ? <img src={p.preview_image_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:20 }}>{cat?.emoji ?? "📦"}</span>}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!loading && blocks.length === 0 && (
-          <p style={{ fontSize: 13, color: "var(--muted)", padding: "var(--s-5)" }}>
-            No contacts blocked yet.
-          </p>
-        )}
-      </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.title}</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)", fontWeight:700 }}>${Number(p.price).toFixed(2)}</span>
+                    <span style={{ fontSize:11, color:"var(--muted)" }}>{cat?.label}</span>
+                    <span style={{ fontSize:11, color:"var(--muted)" }}>{p.sales_count} sold</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", color: p.status === "active" ? "#34D399" : "var(--muted)", background: p.status === "active" ? "rgba(52,211,153,0.08)" : "rgba(255,255,255,0.04)", border: `1px solid ${p.status === "active" ? "rgba(52,211,153,0.2)" : "var(--border)"}`, padding:"1px 7px", borderRadius:99 }}>{p.status}</span>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
+                  <button className="btn btn--secondary" style={{ fontSize:11, padding:"5px 12px", borderRadius:"var(--r-pill)" }} onClick={() => toggleStatus(p.id, p.status)}>
+                    {p.status === "active" ? "Pause" : "Activate"}
+                  </button>
+                  <button onClick={() => deleteProduct(p.id)} style={{ background:"none", border:"none", color:"rgba(248,113,113,0.5)", cursor:"pointer", fontSize:11, padding:"5px 8px" }}>Remove</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
-// ──────────────────────────────────────────────────────────────────
-// PANE: Billing — creator's platform subscription
-// ──────────────────────────────────────────────────────────────────
+
 function BillingPane() {
   const [data, setData] = React.useState<any | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -2774,6 +1874,955 @@ function LivePane({ profile }: { profile: Profile }) {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+
+function AnalyticsPane({ profile }: { profile: Profile }) {
+  const supabase = createClient();
+  const [stats, setStats] = React.useState({
+    totalSubs: 0, activeSubs: 0, totalTips: 0, totalPosts: 0,
+    recentTips: [] as any[], subsByMonth: [] as any[], newSubsThisMonth: 0,
+  });
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function load() {
+      const [
+        { count: activeSubs },
+        { data: tips },
+        { count: totalPosts },
+        { data: allSubs },
+      ] = await Promise.all([
+        (supabase as any).from("subscriptions").select("id", { count:"exact", head:true })
+          .eq("creator_profile_id", profile.id).eq("status", "active"),
+        (supabase as any).from("tips").select("amount, created_at")
+          .eq("creator_profile_id", profile.id).order("created_at", { ascending:false }).limit(50),
+        (supabase as any).from("posts").select("id", { count:"exact", head:true })
+          .eq("creator_profile_id", profile.id).eq("status", "live"),
+        (supabase as any).from("subscriptions").select("created_at")
+          .eq("creator_profile_id", profile.id),
+      ]);
+
+      const totalTips = (tips ?? []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+      const now = new Date();
+      const thisMonth = allSubs?.filter((s: any) => new Date(s.created_at).getMonth() === now.getMonth() && new Date(s.created_at).getFullYear() === now.getFullYear()) ?? [];
+
+      // Subs by month (last 6)
+      const monthMap: Record<string, number> = {};
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = d.toLocaleString("default", { month:"short", year:"numeric" });
+        monthMap[key] = 0;
+      }
+      (allSubs ?? []).forEach((s: any) => {
+        const d = new Date(s.created_at);
+        const key = d.toLocaleString("default", { month:"short", year:"numeric" });
+        if (key in monthMap) monthMap[key]++;
+      });
+
+      setStats({
+        activeSubs: activeSubs ?? 0,
+        totalSubs: allSubs?.length ?? 0,
+        totalTips,
+        totalPosts: totalPosts ?? 0,
+        recentTips: (tips ?? []).slice(0, 10),
+        subsByMonth: Object.entries(monthMap).map(([month, count]) => ({ month, count })),
+        newSubsThisMonth: thisMonth.length,
+      });
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const maxCount = Math.max(...stats.subsByMonth.map(m => m.count), 1);
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Analytics</p>
+        <h1 className="pane-title">Your <em>numbers.</em></h1>
+      </div>
+
+      {loading ? <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p> : (
+        <>
+          {/* Top stats */}
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:2, marginBottom:"var(--s-6)" }}>
+            {[
+              { label:"Active subscribers", val: stats.activeSubs.toLocaleString(), accent:true },
+              { label:"New this month", val: stats.newSubsThisMonth.toLocaleString() },
+              { label:"Total tips earned", val: `$${stats.totalTips.toFixed(2)}` },
+              { label:"Posts live", val: stats.totalPosts.toLocaleString() },
+            ].map(s => (
+              <div key={s.label} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-4)" }}>
+                <div style={{ fontFamily:"var(--font-display)", fontSize:28, fontWeight:800, letterSpacing:"-0.03em", color: s.accent ? "var(--accent-bright)" : "#fff", lineHeight:1, marginBottom:"var(--s-2)" }}>
+                  {s.val}
+                </div>
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)" }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Subscriber growth chart */}
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)", marginBottom:"var(--s-4)" }}>
+            <p className="kicker" style={{ marginBottom:"var(--s-5)" }}>New subscribers — last 6 months</p>
+            <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:120 }}>
+              {stats.subsByMonth.map(m => (
+                <div key={m.month} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"var(--s-2)" }}>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--accent-bright)", fontWeight:600 }}>
+                    {m.count > 0 ? m.count : ""}
+                  </div>
+                  <div style={{
+                    width:"100%", borderRadius:"var(--r-1) var(--r-1) 0 0",
+                    background: m.count > 0 ? "linear-gradient(to top, var(--accent), var(--accent-bright))" : "var(--surface-3)",
+                    height: `${Math.max(4, Math.round((m.count / maxCount) * 80))}px`,
+                    transition:"height 0.8s var(--ease)",
+                  }} />
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:".06em", color:"var(--muted)", textAlign:"center", lineHeight:1.3 }}>
+                    {m.month.split(" ").map((w: string, i: number) => <div key={i}>{w}</div>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent tips */}
+          {stats.recentTips.length > 0 && (
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
+              <p className="kicker" style={{ marginBottom:"var(--s-4)" }}>Recent tips</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+                {stats.recentTips.map((t: any, i: number) => (
+                  <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"var(--s-3) var(--s-4)", background:"var(--surface-2)", borderRadius:"var(--r-1)" }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
+                      {new Date(t.created_at).toLocaleDateString()}
+                    </span>
+                    <span style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--accent-bright)" }}>
+                      ${Number(t.amount).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stats.activeSubs === 0 && stats.totalTips === 0 && (
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-10)", textAlign:"center" }}>
+              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-3)" }}>Your stage is set.</p>
+              <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.7 }}>Connect Stripe, create a channel, and share your Spotlightly link in your bios.<br />Your first subscriber changes everything.</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Wishlist — fund-my-purchase model
+// ──────────────────────────────────────────────────────────────────
+
+function WishlistPane({ profile }: { profile: Profile }) {
+  const supabase = createClient();
+  const [items, setItems] = React.useState<any[]>([]);
+  const [purchases, setPurchases] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [adding, setAdding] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [savingAddr, setSavingAddr] = React.useState(false);
+  const [addrSaved, setAddrSaved] = React.useState(false);
+  const [tab, setTab] = React.useState<"items"|"gifted"|"address">("items");
+  const [addr, setAddr] = React.useState({
+    shipping_name: (profile as any).shipping_name ?? "",
+    shipping_address: (profile as any).shipping_address ?? "",
+    shipping_city: (profile as any).shipping_city ?? "",
+    shipping_state: (profile as any).shipping_state ?? "",
+    shipping_zip: (profile as any).shipping_zip ?? "",
+    shipping_country: (profile as any).shipping_country ?? "US",
+  });
+  const [form, setForm] = React.useState({ name:"", description:"", price:"", store_url:"", store_name:"", image_url:"" });
+  const [confirming, setConfirming] = React.useState<string|null>(null);
+
+  React.useEffect(() => {
+    async function load() {
+      const { data: i } = await (supabase as any)
+        .from("wishlist_items").select("*")
+        .eq("creator_profile_id", profile.id)
+        .order("is_purchased").order("created_at", { ascending: false });
+      setItems(i ?? []);
+
+      const { data: p } = await (supabase as any)
+        .from("wishlist_purchases")
+        .select("*, item:wishlist_item_id(name, store_url, store_name, price, image_url), buyer:buyer_user_id(email)")
+        .eq("creator_profile_id", profile.id)
+        .order("created_at", { ascending: false });
+      setPurchases(p ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  async function saveAddress() {
+    setSavingAddr(true);
+    await (supabase as any).from("creator_profiles").update(addr).eq("id", profile.id);
+    setAddrSaved(true); setSavingAddr(false);
+    setTimeout(() => setAddrSaved(false), 2000);
+  }
+
+  async function addItem() {
+    if (!form.name.trim() || !form.price) return;
+    setSaving(true);
+    const { data, error } = await (supabase as any).from("wishlist_items").insert({
+      creator_profile_id: profile.id,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      price: parseFloat(form.price),
+      store_url: form.store_url.trim() || null,
+      store_name: form.store_name.trim() || null,
+      image_url: form.image_url.trim() || null,
+    }).select().single();
+    if (!error) {
+      setItems(prev => [data, ...prev]);
+      setForm({ name:"", description:"", price:"", store_url:"", store_name:"", image_url:"" });
+      setAdding(false);
+    }
+    setSaving(false);
+  }
+
+  async function removeItem(id: string) {
+    if (!confirm("Remove this item?")) return;
+    await (supabase as any).from("wishlist_items").delete().eq("id", id);
+    setItems(prev => prev.filter(i => i.id !== id));
+  }
+
+  async function confirmPurchase(purchaseId: string) {
+    setConfirming(purchaseId);
+    const res = await fetch("/api/wishlist/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ purchaseId }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setPurchases(prev => prev.map(p =>
+        p.id === purchaseId ? { ...p, status:"creator_purchased" } : p
+      ));
+    } else {
+      alert(data.error || "Something went wrong");
+    }
+    setConfirming(null);
+  }
+
+  const pending = purchases.filter((p:any) => p.status === "paid_pending_purchase");
+  const tabStyle = (t: string) => ({
+    fontFamily:"var(--font-display)", fontSize:12, fontWeight:700,
+    padding:"8px 16px", border:"none", cursor:"pointer",
+    borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent",
+    color: tab === t ? "var(--text)" : "var(--muted)", background:"transparent",
+  } as const);
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Wishlist</p>
+        <h1 className="pane-title">Your <em>wish list.</em></h1>
+        <p className="pane-lede">
+          Fans fund items from your list. When they pay, you get notified — then go buy it yourself
+          from any store and we transfer the item cost directly to your Stripe account.
+          Your address stays completely private.
+        </p>
+      </div>
+
+      {pending.length > 0 && (
+        <div style={{ background:"rgba(240,180,41,.07)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-5)", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"var(--s-3)" }}>
+          <div>
+            <span style={{ fontFamily:"var(--font-display)", fontWeight:700, color:"var(--accent)", marginRight:8 }}>🎁 {pending.length} gift{pending.length > 1 ? "s" : ""} waiting</span>
+            <span style={{ fontSize:13, color:"var(--text-soft)" }}>Go buy the items, then mark them done — we'll transfer the cost to you immediately.</span>
+          </div>
+          <button onClick={() => setTab("gifted")} className="btn btn--primary btn--small">View gifts →</button>
+        </div>
+      )}
+
+      <div style={{ display:"flex", gap:0, borderBottom:"1px solid var(--border)", marginBottom:"var(--s-6)" }}>
+        <button style={tabStyle("items")} onClick={() => setTab("items")}>
+          Wish list ({items.filter((i:any) => !i.is_purchased).length})
+        </button>
+        <button style={tabStyle("gifted")} onClick={() => setTab("gifted")}>
+          Gifts {pending.length > 0 && <span style={{ marginLeft:4, background:"var(--accent)", color:"#0a0a0d", borderRadius:99, fontSize:10, padding:"1px 6px", fontWeight:700 }}>{pending.length}</span>}
+        </button>
+        <button style={tabStyle("address")} onClick={() => setTab("address")}>
+          My address
+        </button>
+      </div>
+
+      {/* ITEMS TAB */}
+      {tab === "items" && (
+        <>
+          <div style={{ display:"flex", flexDirection:"column", gap:2, marginBottom:"var(--s-5)" }}>
+            {loading && <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p>}
+            {!loading && items.filter((i:any) => !i.is_purchased).length === 0 && !adding && (
+              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-10)", textAlign:"center" }}>
+                <p style={{ fontFamily:"var(--font-serif)", fontSize:18, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-2)" }}>Nothing on your list yet.</p>
+                <p style={{ fontSize:13, color:"var(--muted)" }}>Add things you want — gear, clothes, books, anything from any store.</p>
+              </div>
+            )}
+            {items.filter((i:any) => !i.is_purchased).map((item: any) => (
+              <div key={item.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", display:"grid", gridTemplateColumns:"auto 1fr auto", gap:"var(--s-4)", alignItems:"center" }}>
+                {item.image_url
+                  ? <img src={item.image_url} alt="" style={{ width:52, height:52, objectFit:"cover", borderRadius:"var(--r-1)" }} />
+                  : <div style={{ width:52, height:52, background:"var(--surface-3)", borderRadius:"var(--r-1)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>🎁</div>
+                }
+                <div>
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"#fff", marginBottom:3 }}>{item.name}</div>
+                  <div style={{ display:"flex", gap:"var(--s-3)", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
+                    <span style={{ color:"var(--accent-bright)", fontWeight:600 }}>${Number(item.price).toFixed(2)}</span>
+                    {item.store_name && <span>{item.store_name}</span>}
+                    {item.store_url && <a href={item.store_url} target="_blank" rel="noopener" style={{ color:"var(--accent)" }}>View product →</a>}
+                  </div>
+                  {item.description && <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>{item.description}</div>}
+                </div>
+                <button onClick={() => removeItem(item.id)} style={{ background:"none", border:"none", color:"var(--muted-faint)", cursor:"pointer", fontSize:18 }}>×</button>
+              </div>
+            ))}
+            {items.filter((i:any) => i.is_purchased).length > 0 && (
+              <div style={{ marginTop:"var(--s-4)" }}>
+                <p className="kicker" style={{ marginBottom:"var(--s-3)" }}>Already funded</p>
+                {items.filter((i:any) => i.is_purchased).map((item: any) => (
+                  <div key={item.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-5)", opacity:0.5, display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2 }}>
+                    <span style={{ fontSize:13, color:"var(--muted)", textDecoration:"line-through" }}>{item.name}</span>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent-open)" }}>✓ Funded</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {adding ? (
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
+              <p style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff", marginBottom:"var(--s-5)" }}>Add item</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-3)" }}>
+                <div><label className="label">Item name</label><input className="input" placeholder="e.g. Sony ZV-E10 Camera, Nike Air Max 270, Standing desk" value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} /></div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-3)" }}>
+                  <div>
+                    <label className="label">Price ($)</label>
+                    <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+                      <span style={{ color:"var(--muted)" }}>$</span>
+                      <input className="input" type="number" min="1" step="0.01" placeholder="249.99" value={form.price} onChange={e => setForm(f => ({...f, price:e.target.value}))} />
+                    </div>
+                  </div>
+                  <div><label className="label">Store name</label><input className="input" placeholder="Amazon, Nike, Best Buy…" value={form.store_name} onChange={e => setForm(f => ({...f, store_name:e.target.value}))} /></div>
+                </div>
+                <div><label className="label">Product URL</label><input className="input" type="url" placeholder="Paste the product link from the store" value={form.store_url} onChange={e => setForm(f => ({...f, store_url:e.target.value}))} /></div>
+                <div><label className="label">Product image URL (optional)</label><input className="input" type="url" placeholder="Right-click the product image → Copy image address" value={form.image_url} onChange={e => setForm(f => ({...f, image_url:e.target.value}))} /></div>
+                <div><label className="label">Note (optional)</label><input className="input" placeholder="Why you want it, what it's for" value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} /></div>
+                <div style={{ display:"flex", gap:"var(--s-3)" }}>
+                  <button className="btn btn--primary btn--small" onClick={addItem} disabled={saving || !form.name.trim() || !form.price}>{saving ? "Adding…" : "Add to list"}</button>
+                  <button className="btn btn--ghost btn--small" onClick={() => setAdding(false)}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button className="btn btn--secondary" onClick={() => setAdding(true)}>+ Add item</button>
+          )}
+        </>
+      )}
+
+      {/* GIFTED TAB */}
+      {tab === "gifted" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+          {purchases.length === 0 && <p style={{ color:"var(--muted)", fontSize:14 }}>No gifts yet. Share your page and mention your wish list.</p>}
+          {purchases.map((p: any) => (
+            <div key={p.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderLeft:`3px solid ${p.status === "creator_purchased" ? "var(--accent-open)" : "var(--accent)"}`, borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-6)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"start", gap:"var(--s-4)", flexWrap:"wrap", marginBottom:"var(--s-4)" }}>
+                <div>
+                  <div style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff", marginBottom:4 }}>{p.item?.name}</div>
+                  <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
+                    From <span style={{ color:"var(--text-soft)" }}>{p.buyer?.email}</span>
+                    {" · "}${Number(p.item_price).toFixed(2)} funded
+                    {" · "}{new Date(p.created_at).toLocaleDateString()}
+                  </div>
+                  {p.buyer_message && (
+                    <div style={{ fontFamily:"var(--font-serif)", fontSize:13, fontStyle:"italic", color:"var(--text-soft)", marginTop:"var(--s-3)", padding:"var(--s-2) var(--s-3)", background:"var(--surface-2)", borderRadius:"var(--r-1)", borderLeft:"2px solid var(--border-strong)" }}>
+                      "{p.buyer_message}"
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".14em", textTransform:"uppercase", padding:"3px 8px", border:"1px solid", borderRadius:2, flexShrink:0,
+                  color: p.status === "creator_purchased" ? "var(--accent-open)" : "var(--accent)",
+                  borderColor: p.status === "creator_purchased" ? "rgba(52,211,153,.25)" : "var(--accent-border)",
+                  background: p.status === "creator_purchased" ? "rgba(52,211,153,.08)" : "var(--accent-soft)",
+                }}>
+                  {p.status === "creator_purchased" ? "✓ Done" : "Waiting for you"}
+                </span>
+              </div>
+
+              {p.status === "paid_pending_purchase" && (
+                <div style={{ background:"rgba(240,180,41,.06)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)" }}>
+                  <p style={{ fontSize:13, color:"var(--text-soft)", lineHeight:1.7, marginBottom:"var(--s-4)" }}>
+                    <strong style={{ color:"var(--accent)" }}>Your move:</strong> Go buy this item from any store — doesn&apos;t have to be the exact one linked, any equivalent works.
+                    Once you&apos;ve purchased it, click below and we&apos;ll immediately transfer{" "}
+                    <strong style={{ color:"var(--accent-bright)" }}>${Number(p.item_price).toFixed(2)}</strong> to your Stripe account.
+                  </p>
+                  {p.item?.store_url && (
+                    <a href={p.item.store_url} target="_blank" rel="noopener" className="btn btn--secondary btn--small" style={{ display:"inline-block", marginRight:"var(--s-3)", marginBottom:"var(--s-3)", textDecoration:"none" }}>
+                      View original product →
+                    </a>
+                  )}
+                  <button
+                    onClick={() => confirmPurchase(p.id)}
+                    disabled={confirming === p.id}
+                    className="btn btn--primary btn--small">
+                    {confirming === p.id ? "Transferring…" : `✓ I bought it — transfer me $${Number(p.item_price).toFixed(2)}`}
+                  </button>
+                </div>
+              )}
+
+              {p.status === "creator_purchased" && (
+                <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent-open)", letterSpacing:".1em" }}>
+                  ✓ ${Number(p.item_price).toFixed(2)} transferred to your Stripe account
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ADDRESS TAB */}
+      {tab === "address" && (
+        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
+          <div style={{ background:"rgba(240,180,41,.04)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-5)", fontSize:13, color:"var(--text-soft)", lineHeight:1.7 }}>
+            🔒 <strong style={{ color:"var(--accent)" }}>Completely private.</strong> Never shown to fans, never visible on your profile, never shared with anyone. This is just for your own reference — since you buy the items yourself, you ship to wherever you want.
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
+            <div><label className="label">Your name</label><input className="input" value={addr.shipping_name} onChange={e => setAddr(a => ({...a, shipping_name:e.target.value}))} placeholder="For your own reference" /></div>
+            <div><label className="label">Address</label><input className="input" value={addr.shipping_address} onChange={e => setAddr(a => ({...a, shipping_address:e.target.value}))} placeholder="Your shipping address" /></div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 100px", gap:"var(--s-3)" }}>
+              <div><label className="label">City</label><input className="input" value={addr.shipping_city} onChange={e => setAddr(a => ({...a, shipping_city:e.target.value}))} /></div>
+              <div><label className="label">State</label><input className="input" value={addr.shipping_state} onChange={e => setAddr(a => ({...a, shipping_state:e.target.value}))} maxLength={2} /></div>
+              <div><label className="label">ZIP</label><input className="input" value={addr.shipping_zip} onChange={e => setAddr(a => ({...a, shipping_zip:e.target.value}))} /></div>
+            </div>
+            <button className="btn btn--primary btn--small" onClick={saveAddress} disabled={savingAddr}>
+              {savingAddr ? "Saving…" : addrSaved ? "✓ Saved" : "Save"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Channels — full CRUD
+// ──────────────────────────────────────────────────────────────────
+
+function ChannelsPane({ profile }: { profile: Profile }) {
+  const supabase = createClient();
+  const [channels, setChannels] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [adding, setAdding] = React.useState(false);
+  const [form, setForm] = React.useState({ name:"", description:"", subscription_price:"9.99", is_free: false });
+  const [saving, setSaving] = React.useState(false);
+  const [err, setErr] = React.useState<string|null>(null);
+
+  React.useEffect(() => {
+    async function load() {
+      const { data } = await (supabase as any).from("channels").select("*").eq("creator_profile_id", profile.id).order("created_at");
+      setChannels(data ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  async function createChannel() {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    const { data, error } = await (supabase as any).from("channels").insert({
+      creator_profile_id: profile.id,
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      subscription_price: form.is_free ? 0 : parseFloat(form.subscription_price) || 9.99,
+      is_free: form.is_free,
+      slug: form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    }).select().single();
+    if (error) { setErr(error.message); setSaving(false); return; }
+    setChannels(prev => [...prev, data]);
+    setForm({ name:"", description:"", subscription_price:"9.99", is_free:false });
+    setAdding(false);
+    setSaving(false);
+  }
+
+  async function deleteChannel(id: string) {
+    if (!confirm("Delete this channel? Posts in it will remain but won't be assigned to a channel.")) return;
+    await (supabase as any).from("channels").delete().eq("id", id);
+    setChannels(prev => prev.filter(c => c.id !== id));
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Channels</p>
+        <h1 className="pane-title">Your <em>channels.</em></h1>
+        <p className="pane-lede">Channels are the subscription tiers fans see on your page. A free channel builds your audience. A paid channel is what they subscribe to.</p>
+      </div>
+
+      {err && <div className="db-err"><span>{err}</span><button className="db-err-x" onClick={() => setErr(null)}>×</button></div>}
+
+      {loading ? <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p> : (
+        <div style={{ display:"flex", flexDirection:"column", gap:2, marginBottom:"var(--s-6)" }}>
+          {channels.length === 0 && !adding && (
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-10)", textAlign:"center" }}>
+              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-2)" }}>No channels yet.</p>
+              <p style={{ fontSize:13, color:"var(--muted)" }}>Create at least one free channel and one paid channel to get started.</p>
+            </div>
+          )}
+          {channels.map(ch => (
+            <div key={ch.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-6)", display:"grid", gridTemplateColumns:"1fr auto", gap:"var(--s-4)", alignItems:"center" }}>
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)", marginBottom:4 }}>
+                  <span style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff" }}>{ch.name}</span>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".12em", textTransform:"uppercase", padding:"2px 8px", border:"1px solid", borderRadius:2, color: ch.is_free ? "var(--accent-open)" : "var(--accent)", borderColor: ch.is_free ? "rgba(52,211,153,.25)" : "var(--accent-border)", background: ch.is_free ? "rgba(52,211,153,.08)" : "var(--accent-soft)" }}>
+                    {ch.is_free ? "Free" : `$${Number(ch.subscription_price).toFixed(2)}/mo`}
+                  </span>
+                </div>
+                {ch.description && <p style={{ fontSize:12, color:"var(--muted)", margin:0 }}>{ch.description}</p>}
+              </div>
+              <button onClick={() => deleteChannel(ch.id)} style={{ background:"none", border:"none", color:"var(--muted-faint)", cursor:"pointer", fontSize:18, lineHeight:1 }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {adding ? (
+        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
+          <p style={{ fontFamily:"var(--font-display)", fontSize:15, fontWeight:700, color:"#fff", marginBottom:"var(--s-5)" }}>New channel</p>
+          <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
+            <div><label className="label">Channel name</label><input className="input" value={form.name} onChange={e => setForm(f => ({...f, name:e.target.value}))} placeholder="e.g. Free Workouts, The Program, Behind the Scenes" /></div>
+            <div><label className="label">Description (optional)</label><input className="input" value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} placeholder="What fans get in this channel" /></div>
+            <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
+              <input type="checkbox" id="ch-free" checked={form.is_free} onChange={e => setForm(f => ({...f, is_free:e.target.checked}))} />
+              <label htmlFor="ch-free" style={{ fontSize:13, color:"var(--text-soft)", cursor:"pointer" }}>Free channel (no subscription required)</label>
+            </div>
+            {!form.is_free && (
+              <div>
+                <label className="label">Monthly price (USD)</label>
+                <div style={{ display:"flex", gap:"var(--s-2)", alignItems:"center" }}>
+                  <span style={{ color:"var(--muted)" }}>$</span>
+                  <input className="input" type="number" min="1" max="999" step="0.01" style={{ maxWidth:120 }}
+                    value={form.subscription_price} onChange={e => setForm(f => ({...f, subscription_price:e.target.value}))} />
+                  <span style={{ fontSize:12, color:"var(--muted)" }}>/month</span>
+                </div>
+              </div>
+            )}
+            <div style={{ display:"flex", gap:"var(--s-3)" }}>
+              <button className="btn btn--primary btn--small" onClick={createChannel} disabled={saving || !form.name.trim()}>{saving ? "Creating…" : "Create channel"}</button>
+              <button className="btn btn--ghost btn--small" onClick={() => setAdding(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button className="btn btn--secondary" onClick={() => setAdding(true)}>+ Add channel</button>
+      )}
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Posts — list + composer
+// ──────────────────────────────────────────────────────────────────
+
+
+function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
+  const supabase = createClient();
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [composing, setComposing] = useState(false);
+  const [body, setBody] = useState("");
+  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaType, setMediaType] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [posting, setPosting] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("creator_profile_id", profile.id ?? "")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      // Posts table may not have rows yet, or column names may differ — show as empty
+      setPosts([]);
+    } else {
+      setPosts(data ?? []);
+    }
+    setLoading(false);
+  }, [profile.id, supabase]);
+
+  useEffect(() => {
+    if (profile.id) void load();
+    else setLoading(false);
+  }, [load, profile.id]);
+
+  async function publish(e: FormEvent) {
+    e.preventDefault();
+    if (!profile.id) {
+      setErr("Profile is missing an id. Refresh and try again.");
+      return;
+    }
+    if (!body.trim()) return;
+
+    setPosting(true);
+    setErr(null);
+
+    const res = await fetch("/api/posts/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        caption: body.trim() || null,
+        mediaUrl: mediaUrl || null,
+        mediaType: mediaType || null,
+        tier: "free",
+        creatorProfileId: profile.id,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setErr(data.error || "Failed to publish");
+      setPosting(false);
+      return;
+    }
+
+    setBody("");
+    setComposing(false);
+    setPosting(false);
+    void load();
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head pane-head--row">
+        <div>
+          <p className="kicker">Posts · {profile.kind === "spotlight" ? "Spotlight" : "Backstage"}</p>
+          <h1 className="pane-title">Your work.</h1>
+        </div>
+        <button
+          className="btn btn--primary"
+          onClick={() => setComposing((c) => !c)}
+          type="button"
+        >
+          {composing ? "Cancel" : "+ New post"}
+        </button>
+      </div>
+
+      {composing && (
+        <form className="composer" onSubmit={publish}>
+
+          <textarea
+            className="composer-body"
+            placeholder="What's on your mind?"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={6}
+            autoFocus
+          />
+          {mediaUrl && (
+            <div style={{ padding:"0 var(--s-4) var(--s-3)", position:"relative", display:"inline-block" }}>
+              {mediaType?.startsWith("video") ? (
+                <video src={mediaUrl} style={{ maxHeight:180, borderRadius:"var(--r-1)" }} controls />
+              ) : (
+                <img src={mediaUrl} alt="" style={{ maxHeight:180, borderRadius:"var(--r-1)", display:"block" }} />
+              )}
+              <button type="button" onClick={() => { setMediaUrl(""); setMediaType(""); }}
+                style={{ position:"absolute", top:4, right:4, background:"rgba(0,0,0,.7)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</button>
+            </div>
+          )}
+          <div className="composer-actions">
+            <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:11, fontWeight:600, color:"var(--muted)", padding:"7px 12px", border:"1px solid var(--border)", borderRadius:"var(--r-1)" }}>
+              {uploading ? "Uploading…" : "📎 Media"}
+              <input type="file" accept="image/*,video/*" style={{ display:"none" }} disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]; if (!file) return;
+                  setUploading(true);
+                  const fd = new FormData(); fd.append("file", file);
+                  const res = await fetch("/api/upload", { method:"POST", body:fd });
+                  const data = await res.json();
+                  if (data.url) { setMediaUrl(data.url); setMediaType(file.type); }
+                  setUploading(false); e.target.value = "";
+                }} />
+            </label>
+            <p className="hint">{body.length} chars</p>
+            <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
+              {posting ? "Publishing..." : "Publish"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <p className="kicker">Loading posts...</p>
+      ) : posts.length === 0 ? (
+        <div className="empty">
+          <p className="empty-mark">◌</p>
+          <h3 className="empty-title">No posts yet.</h3>
+          <p className="empty-text">Hit "+ New post" up there to publish your first one.</p>
+        </div>
+      ) : (
+        <ul className="post-list">
+          {posts.map((p) => (
+            <li key={p.id} className="post-item">
+              <p className="post-body">{p.caption}</p>
+              <p className="post-meta">
+                {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                {p.status && p.status !== "published" ? `   ${p.status}` : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Settings — account-level (email, dangerous actions later)
+// ──────────────────────────────────────────────────────────────────
+
+
+function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: string | null }) {
+  const [subPrice, setSubPrice] = React.useState(Number((profile as any).subscription_price || 9.99).toFixed(2));
+  const [priceSaved, setPriceSaved] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteConfirm, setDeleteConfirm] = React.useState("");
+  const supabase = createClient();
+
+  async function savePrice() {
+    const val = parseFloat(subPrice);
+    if (!val || val < 1) return;
+    await (supabase as any).from("creator_profiles").update({ subscription_price: val }).eq("id", profile.id);
+    setPriceSaved(true);
+    setTimeout(() => setPriceSaved(false), 2000);
+  }
+
+  async function deleteAccount() {
+    if (deleteConfirm !== profile.handle) return;
+    setDeleting(true);
+    await (supabase as any).from("creator_profiles").update({ deleted_at: new Date().toISOString() }).eq("id", profile.id);
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Settings</p>
+        <h1 className="pane-title">Your <em>account.</em></h1>
+      </div>
+
+      <div className="settings-block">
+        <p className="label">Email</p>
+        <p className="settings-val">{userEmail ?? "—"}</p>
+      </div>
+
+      <div className="settings-block">
+        <p className="label">Handle</p>
+        <p className="settings-val">@{profile.handle}</p>
+      </div>
+
+      <div className="settings-block">
+        <p className="label">Public page</p>
+        <p className="settings-val">
+          <Link href={`/${profile.handle}`} className="settings-link" target="_blank">
+            spotlightly.app/{profile.handle} →
+          </Link>
+        </p>
+      </div>
+
+      <div className="settings-block">
+        <p className="label">Subscription price</p>
+        <p style={{ fontSize:12, color:"var(--muted)", marginBottom:"var(--s-2)", lineHeight:1.5 }}>
+          What fans pay per month. Existing subscribers keep their rate until they renew.
+        </p>
+        <div style={{ display:"flex", gap:"var(--s-3)", alignItems:"center" }}>
+          <span style={{ color:"var(--muted)", fontSize:16 }}>$</span>
+          <input className="input" type="number" min="1" max="999" step="0.01"
+            style={{ maxWidth:120 }} value={subPrice}
+            onChange={e => setSubPrice(e.target.value)} />
+          <button className="btn btn--secondary btn--small" onClick={savePrice}>
+            {priceSaved ? "✓ Saved" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-block">
+        <p className="label">Stripe Connect</p>
+        {(profile as any).stripe_onboarded ? (
+          <div style={{ display:"flex", alignItems:"center", gap:"var(--s-4)" }}>
+            <span style={{ color:"var(--accent-open)", fontSize:13 }}>✓ Connected</span>
+            <a href="https://dashboard.stripe.com" target="_blank" className="settings-link" style={{ fontSize:12 }}>Stripe Dashboard →</a>
+          </div>
+        ) : (
+          <button className="btn btn--primary btn--small" onClick={async () => {
+            const res = await fetch("/api/stripe/connect/start", { method:"POST" });
+            const { url } = await res.json();
+            if (url) window.location.href = url;
+          }}>Connect Stripe — 3 minutes</button>
+        )}
+      </div>
+
+      <div className="settings-block" style={{ borderTop:"2px solid var(--red)", marginTop:"var(--s-10)", paddingTop:"var(--s-6)" }}>
+        <p className="label" style={{ color:"var(--red)" }}>Delete account</p>
+        <p style={{ fontSize:12, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-4)" }}>
+          This permanently deletes your profile and all content. Type your handle <strong style={{ color:"var(--text)" }}>@{profile.handle}</strong> to confirm.
+        </p>
+        <div style={{ display:"flex", gap:"var(--s-3)", flexWrap:"wrap" }}>
+          <input className="input" type="text" placeholder={`Type ${profile.handle} to confirm`}
+            style={{ maxWidth:280 }} value={deleteConfirm}
+            onChange={e => setDeleteConfirm(e.target.value)} />
+          <button
+            className="btn btn--small"
+            disabled={deleteConfirm !== profile.handle || deleting}
+            style={{ background:"var(--red-soft)", color:"var(--red)", border:"1px solid var(--red-border)" }}
+            onClick={deleteAccount}>
+            {deleting ? "Deleting…" : "Delete my account"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────────────────────────
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Payments — Stripe Connect + CCBill setup
+// ──────────────────────────────────────────────────────────────────
+
+function PaymentsPane({ profile }: { profile: Profile }) {
+  const [connecting, setConnecting] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+  const stripeConnected = !!(profile as any).stripe_account_id;
+
+  async function connectStripe() {
+    setConnecting(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/stripe/connect/start", { method: "POST" });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      window.location.href = data.url;
+    } catch (e: any) {
+      setErr(e.message);
+      setConnecting(false);
+    }
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Payments</p>
+        <h1 className="pane-title">Get <em>paid.</em></h1>
+        <p className="pane-lede">Connect your payment accounts so fans can subscribe and tip you. Payment buttons on your public page stay disabled until Stripe is connected.</p>
+      </div>
+      {err && <div style={{ background:"var(--red-soft)",border:"1px solid var(--red-border)",borderRadius:"var(--r-2)",padding:"12px 18px",marginBottom:"var(--s-6)",fontSize:13,color:"var(--red)" }}>⚠ {err}</div>}
+      <div style={{ display:"flex",flexDirection:"column",gap:2,marginBottom:"var(--s-10)" }}>
+        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",borderTop:"2px solid var(--accent)",padding:"var(--s-8) var(--s-6)" }}>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"var(--s-4)" }}>
+            <div>
+              <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Spotlight payments</p>
+              <h3 style={{ fontFamily:"var(--font-serif)",fontSize:26,fontWeight:400,color:"#fff",margin:0 }}>Stripe Connect</h3>
+            </div>
+            <span style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".14em",textTransform:"uppercase" as const,padding:"4px 10px",border:"1px solid",borderRadius:"var(--r-1)",color:stripeConnected?"var(--accent-open)":"var(--muted)",borderColor:stripeConnected?"rgba(110,231,183,.25)":"var(--border)",background:stripeConnected?"rgba(110,231,183,.08)":"rgba(255,255,255,.03)" }}>
+              {stripeConnected ? "Connected" : "Not connected"}
+            </span>
+          </div>
+          <p style={{ fontSize:13,color:"var(--text-soft)",lineHeight:1.75,marginBottom:"var(--s-5)" }}>
+            {stripeConnected ? "Your Stripe account is connected. Fans can subscribe and tip you." : "Takes about 3 minutes — you'll need your legal name, address, SSN (last 4), and bank account."}
+          </p>
+          {stripeConnected ? (
+            <a href="https://dashboard.stripe.com" target="_blank" rel="noopener" className="btn btn--secondary btn--small">Stripe Dashboard →</a>
+          ) : (
+            <button onClick={connectStripe} disabled={connecting} className="btn btn--primary">
+              {connecting ? "Redirecting to Stripe..." : "Connect Stripe — 3 minutes"}
+            </button>
+          )}
+        </div>
+        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",padding:"var(--s-6)" }}>
+          <h3 style={{ fontFamily:"var(--font-serif)",fontSize:20,fontWeight:400,color:"#fff",marginBottom:"var(--s-3)" }}>Fee summary</h3>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:"var(--s-1)" }}>
+            {[
+              { label:"Your monthly Spotlightly fee", val:"Flat, based on subscriber count" },
+              { label:"Stripe processing", val:"2.9% + 30¢ per transaction (Stripe's fee, not ours)" },
+              { label:"Tips", val:"0% — you keep 100%" },
+              { label:"Subscriptions", val:"0% — you keep 100% (minus Stripe)" },
+              { label:"Front Row Messages", val:"50% to you, 50% platform" },
+              { label:"Super Tips", val:"85% to you, 15% platform" },
+            ].map((r, i) => (
+              <div key={i} style={{ background:"var(--surface-2)",border:"1px solid var(--border)",padding:"var(--s-3) var(--s-4)" }}>
+                <div style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase" as const,color:"var(--muted)",marginBottom:4 }}>{r.label}</div>
+                <div style={{ fontSize:13,color:"var(--text)" }}>{r.val}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Moderation — creator's flagged content
+// ──────────────────────────────────────────────────────────────────
+
+function ModerationPane({ profile }: { profile: Profile }) {
+  const [events, setEvents] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const supabase = createClient();
+
+  React.useEffect(() => {
+    async function load() {
+      const { data } = await (supabase as any)
+        .from("moderation_events")
+        .select("*")
+        .eq("creator_id", (profile as any).id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setEvents(data ?? []);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Moderation</p>
+        <h1 className="pane-title">Your <em>flags.</em></h1>
+        <p className="pane-lede">AI reviews every post before it goes live. Flagged content appears here.</p>
+      </div>
+      {loading && <p style={{ color:"var(--muted)",fontSize:14 }}>Loading...</p>}
+      {!loading && events.length === 0 && (
+        <div style={{ background:"var(--surface)",border:"1px solid var(--border)",padding:"var(--s-10)",textAlign:"center" as const }}>
+          <p style={{ fontFamily:"var(--font-serif)",fontSize:22,fontStyle:"italic",color:"#fff",marginBottom:"var(--s-2)" }}>All clear.</p>
+          <p style={{ fontSize:13,color:"var(--muted)" }}>No flagged content on your profile.</p>
+        </div>
+      )}
+      <div style={{ display:"flex",flexDirection:"column",gap:2 }}>
+        {events.map((e: any) => (
+          <div key={e.id} style={{ background:"var(--surface)",border:"1px solid var(--border)",borderLeft:`3px solid ${e.severity==="critical"||e.severity==="high"?"var(--red)":"var(--accent)"}`,padding:"var(--s-5) var(--s-6)" }}>
+            <div style={{ display:"flex",gap:"var(--s-3)",marginBottom:"var(--s-3)",flexWrap:"wrap" as const }}>
+              <span style={{ fontFamily:"var(--font-mono)",fontSize:9,letterSpacing:".12em",textTransform:"uppercase" as const,padding:"3px 8px",borderRadius:"var(--r-1)",border:"1px solid",color:e.severity==="critical"||e.severity==="high"?"var(--red)":"var(--accent)",background:e.severity==="critical"||e.severity==="high"?"var(--red-soft)":"rgba(245,200,66,.08)",borderColor:e.severity==="critical"||e.severity==="high"?"var(--red-border)":"rgba(245,200,66,.25)" }}>{e.severity}</span>
+            </div>
+            <p style={{ fontSize:13,color:"var(--text-soft)",lineHeight:1.65,marginBottom:"var(--s-2)" }}>{e.flag_reason ?? "Content flagged for review"}</p>
+            <p style={{ fontFamily:"var(--font-mono)",fontSize:10,color:"var(--muted)" }}>{new Date(e.created_at).toLocaleDateString()}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

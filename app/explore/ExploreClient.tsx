@@ -206,7 +206,10 @@ function CreatorCard({ creator: c, reason }: { creator: Creator; reason?: string
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,0.2)" }}>Spotlight</span>
           {c.location_city && (
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>· 📍 {c.location_city}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>· 📍 {c.location_city}</span>
+          )}
+          {(c as any).offers_services && (
+            <span style={{ fontSize: 11, color: 'rgba(52,211,153,0.7)', background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)', padding: '1px 7px', borderRadius: 99 }}>📅 Bookings</span>
           )}
         </div>
         {c.subscription_price && (

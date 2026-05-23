@@ -1,0 +1,125 @@
+"use client";
+import { useRef, useState } from "react";
+
+interface Props {
+  value: string;
+  onChange: (url: string) => void;
+  shape?: "circle" | "rect";
+  label?: string;
+  hint?: string;
+  previewWidth?: number;
+  previewHeight?: number;
+}
+
+export default function ImageUpload({
+  value,
+  onChange,
+  shape = "circle",
+  label = "Upload photo",
+  hint = "JPG, PNG or WebP · Max 10MB",
+  previewWidth = 80,
+  previewHeight = 80,
+}: Props) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const radius = shape === "circle" ? "50%" : "10px";
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error ?? "Upload failed");
+    } else {
+      onChange(data.url);
+    }
+
+    setUploading(false);
+    e.target.value = "";
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      {/* Preview */}
+      <div style={{
+        width: previewWidth, height: previewHeight,
+        borderRadius: radius,
+        background: value ? "transparent" : "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        overflow: "hidden", flexShrink: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        {value ? (
+          <img src={value} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <span style={{ fontSize: shape === "circle" ? 28 : 22, color: "rgba(255,255,255,0.2)" }}>
+            {shape === "circle" ? "👤" : "🖼️"}
+          </span>
+        )}
+      </div>
+
+      {/* Controls */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <input
+          ref={ref}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          style={{ display: "none" }}
+          onChange={handleFile}
+        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={() => ref.current?.click()}
+            disabled={uploading}
+            style={{
+              fontFamily: "var(--font-display, 'DM Sans', sans-serif)",
+              fontSize: 12, fontWeight: 700,
+              padding: "8px 16px", borderRadius: 999,
+              border: "1px solid rgba(255,255,255,0.15)",
+              background: uploading ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.06)",
+              color: uploading ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.8)",
+              cursor: uploading ? "not-allowed" : "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            {uploading ? "Uploading…" : label}
+          </button>
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              style={{
+                fontSize: 11, fontFamily: "var(--font-display, 'DM Sans', sans-serif)",
+                background: "none", border: "none",
+                color: "rgba(248,113,113,0.6)", cursor: "pointer", padding: "4px 8px",
+              }}
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 6, lineHeight: 1.5 }}>
+          {hint}
+        </p>
+        {error && (
+          <p style={{ fontSize: 12, color: "#F87171", marginTop: 6 }}>
+            {error.includes("not configured")
+              ? "⚠ File upload not set up yet — add BunnyCDN keys in Admin → Credentials."
+              : `⚠ ${error}`}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

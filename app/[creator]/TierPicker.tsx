@@ -1,0 +1,142 @@
+"use client";
+import { useState } from "react";
+
+interface Tier {
+  id: string;
+  name: string;
+  description?: string;
+  perks: string[];
+  monthly_price: number;
+  yearly_price?: number;
+  yearly_discount_pct?: number;
+}
+
+interface Props {
+  tiers: Tier[];
+  creatorProfileId: string;
+  stripeReady: boolean;
+}
+
+export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Props) {
+  const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const [selectedTier, setSelectedTier] = useState<string>(tiers[0]?.id ?? "");
+  const [loading, setLoading] = useState(false);
+
+  const hasYearly = tiers.some(t => t.yearly_price);
+
+  async function subscribe() {
+    if (!selectedTier || !stripeReady) return;
+    setLoading(true);
+    const fd = new FormData();
+    fd.append("creator_profile_id", creatorProfileId);
+    fd.append("tier_id", selectedTier);
+    fd.append("billing_period", billing);
+    const res = await fetch("/api/subscribe", { method: "POST", body: fd });
+    // The route redirects to Stripe — follow the redirect
+    if (res.redirected) {
+      window.location.href = res.url;
+    } else {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Monthly / Yearly toggle */}
+      {hasYearly && (
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.06)", borderRadius: 999, padding: 3, alignSelf: "flex-start" }}>
+          {(["monthly", "yearly"] as const).map(period => (
+            <button
+              key={period}
+              onClick={() => setBilling(period)}
+              style={{
+                padding: "6px 16px", borderRadius: 999, border: "none", cursor: "pointer",
+                fontSize: 12, fontWeight: 600,
+                background: billing === period ? "#F0B429" : "transparent",
+                color: billing === period ? "#09090C" : "rgba(255,255,255,0.5)",
+                transition: "all 0.15s",
+              }}
+            >
+              {period === "monthly" ? "Monthly" : "Yearly"}
+              {period === "yearly" && (
+                <span style={{ marginLeft: 6, fontSize: 10, background: "rgba(52,211,153,0.15)", color: "#34D399", padding: "1px 6px", borderRadius: 99 }}>
+                  Save up to {Math.max(...tiers.filter(t => t.yearly_discount_pct).map(t => t.yearly_discount_pct ?? 0))}%
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Tier cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {tiers.map(tier => {
+          const price = billing === "yearly" && tier.yearly_price ? tier.yearly_price : tier.monthly_price;
+          const period = billing === "yearly" && tier.yearly_price ? "yr" : "mo";
+          const selected = selectedTier === tier.id;
+
+          return (
+            <button
+              key={tier.id}
+              onClick={() => setSelectedTier(tier.id)}
+              style={{
+                display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+                padding: "14px 16px", borderRadius: 10, border: "1.5px solid", cursor: "pointer",
+                background: selected ? "rgba(240,180,41,0.06)" : "rgba(255,255,255,0.03)",
+                borderColor: selected ? "rgba(240,180,41,0.4)" : "rgba(255,255,255,0.1)",
+                textAlign: "left", transition: "all 0.15s",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${selected ? "#F0B429" : "rgba(255,255,255,0.3)"}`, background: selected ? "#F0B429" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {selected && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#09090C" }} />}
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: selected ? "#F0B429" : "#F2F2F0" }}>{tier.name}</span>
+                </div>
+                {tier.description && (
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
+                )}
+                {tier.perks?.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginLeft: 24 }}>
+                    {tier.perks.slice(0, 3).map((perk, i) => (
+                      <span key={i} style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>✓ {perk}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
+                <p style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: selected ? "#F0B429" : "rgba(255,255,255,0.7)", lineHeight: 1 }}>
+                  ${Number(price).toFixed(2)}
+                </p>
+                <p style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>/{period}</p>
+                {billing === "yearly" && tier.yearly_discount_pct && (
+                  <p style={{ fontSize: 10, color: "#34D399", marginTop: 2 }}>{tier.yearly_discount_pct}% off</p>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={subscribe}
+        disabled={!stripeReady || loading || !selectedTier}
+        style={{
+          width: "100%", background: "#F0B429", color: "#09090C",
+          fontWeight: 700, fontSize: 14, padding: "13px 0",
+          borderRadius: 999, border: "none", cursor: "pointer",
+          opacity: !stripeReady || loading ? 0.5 : 1,
+        }}
+      >
+        {loading ? "Redirecting…" : `Subscribe · ${billing}`}
+      </button>
+
+      {!stripeReady && (
+        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>
+          Payments coming soon
+        </p>
+      )}
+    </div>
+  );
+}

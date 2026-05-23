@@ -24,6 +24,7 @@ export const CREATOR_CATEGORIES = [
   { id: "education",  label: "Education",            emoji: "📚" },
   { id: "wellness",   label: "Wellness & Mindset",   emoji: "🧘" },
   { id: "diy",        label: "DIY & Crafts",         emoji: "🔨" },
+  { id: "services",   label: "Services & Bookings",  emoji: "📅" },
   { id: "adult",      label: "Adult Content",        emoji: "🔞" },
 ] as const;
 
