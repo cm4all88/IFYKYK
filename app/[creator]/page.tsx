@@ -8,6 +8,7 @@ import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
 import TiersSection from "./TiersSection";
+import ReferralTracker from "./ReferralTracker";
 import TierPicker from "./TierPicker";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
@@ -271,6 +272,8 @@ export default async function CreatorPage(props: {
             </div>
           </div>
         </header>
+
+        <ReferralTracker creatorHandle={spotlight.handle} />
 
         {/* Calendly embed — shows when booking URL is a Calendly link */}
         {(spotlight as any).booking_url?.includes("calendly.com") && (

@@ -79,6 +79,12 @@ export default function SignupPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
 
+  // Persist ?ref= param to localStorage so it survives navigation
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) localStorage.setItem("spotlightly_creator_ref", ref);
+  }, []);
+
   // Kick off the conversation when we land on the chat phase
   useEffect(() => {
     if (phase === "chat" && messages.length === 0 && !streaming) {
@@ -241,8 +247,22 @@ export default function SignupPage() {
       // Welcome email (fire and forget)
       fetch("/api/email/welcome", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email: form.email}) }).catch(()=>{});
 
-      // Start 30-day free trial (fire and forget — creates Stripe customer + trial subscription)
+      // Start 30-day free trial
       fetch("/api/billing", { method:"POST" }).catch(()=>{});
+
+      // Record creator referral if ?ref= was present
+      const refHandle = typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("ref")
+          ?? localStorage.getItem("spotlightly_creator_ref")
+        : null;
+      if (refHandle) {
+        fetch("/api/referrals/creator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
+        }).catch(() => {});
+        localStorage.removeItem("spotlightly_creator_ref");
+      }
 
       router.push("/onboarding");
     } catch (e: any) {

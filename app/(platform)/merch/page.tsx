@@ -75,10 +75,14 @@ export default function MerchPage() {
         <h1 style={{ fontFamily: "var(--font-serif)", fontSize: 48, fontWeight: 300, color: "#fff", lineHeight: 1, letterSpacing: "-.02em", marginBottom: 12 }}>
           Your <em style={{ fontStyle: "italic", color: "var(--accent)" }}>merch.</em>
         </h1>
-        <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.75, marginBottom: 40, maxWidth: 520 }}>
+        <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.75, marginBottom: 28, maxWidth: 520 }}>
           Upload your design. Pick your products. Loudcap handles printing, packaging, and shipping to your fans worldwide.
           You keep {((1 - 0.1) * 100).toFixed(0)}% of profit after fulfillment costs.
         </p>
+
+        <a href="/merch/create" style={{ display:"inline-flex", alignItems:"center", gap:10, background:"var(--accent)", color:"#09090C", fontWeight:700, fontSize:14, padding:"13px 24px", borderRadius:999, textDecoration:"none", marginBottom:32 }}>
+          🎨 Open Merch Designer →
+        </a>
 
         {loading ? (
           <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>

@@ -1,42 +1,44 @@
 /* ══════════════════════════════════════════════════════════════════
-   SPOTLIGHTLY — DESIGN SYSTEM v2
-   Cinematic. Luxury. Stage presence.
-   One platform. One spotlight. Your whole career.
+   SPOTLIGHTLY — DESIGN SYSTEM v3
+   "Golden Spotlight" — Warm cinematic. Stage presence. Creator luxury.
    ══════════════════════════════════════════════════════════════════ */
 
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Mono:wght@400;500&display=swap");
 
-/* ── TOKENS ── */
+/* ── DARK MODE TOKENS (default) — "Golden Spotlight Dark" ── */
 :root {
-  /* Surfaces — deep, rich, layered */
-  --bg:          #09090C;
-  --bg-elevated: #0D0D11;
-  --surface:     #111115;
-  --surface-2:   #161619;
-  --surface-3:   #1C1C21;
+  /* Surfaces */
+  --bg:          #17181B;
+  --bg-elevated: #1E2024;
+  --surface:     #232428;
+  --surface-2:   #2A2D33;
+  --surface-3:   #2E3035;
 
   /* Borders */
-  --border:       rgba(255,255,255,0.07);
+  --border:        rgba(255,255,255,0.07);
   --border-strong: rgba(255,255,255,0.14);
 
   /* Text */
-  --text:       #F2F2F0;
-  --text-soft:  rgba(242,242,240,0.72);
-  --text-faint: rgba(242,242,240,0.44);
-  --muted:      #71717A;
-  --muted-faint: #52525B;
+  --text:        #F7F3EC;
+  --text-soft:   rgba(247,243,236,0.72);
+  --text-faint:  rgba(247,243,236,0.44);
+  --muted:       #A7A19A;
+  --muted-faint: #6B6560;
 
-  /* Brand accent — spotlight gold. Used like a literal spotlight beam. */
-  --accent:        #F0B429;
-  --accent-bright: #F5C842;
-  --accent-soft:   rgba(240,180,41,0.1);
-  --accent-border: rgba(240,180,41,0.22);
-  --accent-glow:   rgba(240,180,41,0.18);
-  --accent-spot:   #F0B429;
+  /* Accent — warm amber gold */
+  --accent:        #F2B84B;
+  --accent-bright: #F5C55A;
+  --accent-soft:   rgba(242,184,75,0.12);
+  --accent-border: rgba(242,184,75,0.25);
+  --accent-glow:   #FFBE5C20;
+  --accent-spot:   #F2B84B;
 
   /* Tier colors */
   --accent-open: #34D399;
   --accent-back: #A855F7;
+
+  /* Secondary accent */
+  --accent-secondary: #D97A32;
 
   /* Semantic */
   --red:        #EF4444;
@@ -50,51 +52,58 @@
   --font-mono:    "DM Mono", "SF Mono", Consolas, monospace;
 
   /* Radius */
-  --r-1: 3px;
-  --r-2: 6px;
-  --r-3: 10px;
-  --r-4: 16px;
-  --r-pill: 999px;
+  --r-1: 3px; --r-2: 6px; --r-3: 10px; --r-4: 16px; --r-pill: 999px;
 
-  /* Spacing — base 4px */
+  /* Spacing */
   --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
   --s-5: 20px;  --s-6: 24px;  --s-8: 32px;  --s-10: 40px;
   --s-12: 48px; --s-16: 64px; --s-20: 80px; --s-24: 96px;
 
   /* Motion */
-  --ease:      cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in:   cubic-bezier(0.4, 0, 1, 1);
-  --t-fast:    0.12s;
-  --t-base:    0.22s;
-  --t-slow:    0.4s;
+  --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --t-fast:  0.12s; --t-base: 0.22s; --t-slow: 0.4s;
 
   /* Layout */
-  --container:       1000px;
-  --container-wide:  1240px;
+  --container:        1000px;
+  --container-wide:   1240px;
   --container-narrow: 680px;
+
+  /* Cinematic glow */
+  --spotlight-glow: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(242,184,75,0.10) 0%, transparent 70%);
+  --ambient-glow:   #FFBE5C20;
 }
 
-/* Light mode */
+/* ── LIGHT MODE — "Golden Spotlight Light" ── */
 [data-theme="light"] {
-  --bg:          #FAFAF8;
-  --bg-elevated: #F4F4F1;
-  --surface:     #FFFFFF;
-  --surface-2:   #F0EFEB;
-  --surface-3:   #E8E7E1;
-  --border:       rgba(0,0,0,0.08);
-  --border-strong: rgba(0,0,0,0.18);
-  --text:       #111113;
-  --text-soft:  rgba(17,17,19,0.72);
-  --text-faint: rgba(17,17,19,0.44);
-  --muted:      #71717A;
-  --muted-faint: #A1A1AA;
-  --accent:        #B45309;
-  --accent-bright: #D97706;
-  --accent-soft:   rgba(180,83,9,0.08);
-  --accent-border: rgba(180,83,9,0.2);
-  --accent-glow:   rgba(180,83,9,0.12);
+  --bg:          #F6F1E8;
+  --bg-elevated: #EFE8DC;
+  --surface:     #ECE5DA;
+  --surface-2:   #E5DDD0;
+  --surface-3:   #E2D8CA;
+
+  --border:        rgba(42,42,46,0.10);
+  --border-strong: rgba(42,42,46,0.20);
+
+  --text:        #2A2A2E;
+  --text-soft:   rgba(42,42,46,0.72);
+  --text-faint:  rgba(42,42,46,0.44);
+  --muted:       #68645F;
+  --muted-faint: #9B968F;
+
+  --accent:        #E6A43B;
+  --accent-bright: #F0B84A;
+  --accent-soft:   rgba(230,164,59,0.12);
+  --accent-border: rgba(230,164,59,0.30);
+  --accent-glow:   #FFB34725;
+  --accent-spot:   #E6A43B;
+
+  --accent-secondary: #C86B2A;
   --accent-back: #7C3AED;
-  --accent-open: #059669;
+  --accent-open: #2D9E6F;
+
+  --ambient-glow:    #FFB34725;
+  --spotlight-glow:  radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230,164,59,0.12) 0%, transparent 70%);
 }
 
 html { transition: background-color var(--t-slow), color var(--t-slow); }
@@ -111,6 +120,8 @@ html,body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  background-image: var(--spotlight-glow);
+  background-attachment: fixed;
 }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
@@ -170,7 +181,7 @@ img { max-width: 100%; display: block; }
 }
 .btn--primary:not(:disabled):hover {
   background: var(--accent-bright);
-  box-shadow: 0 4px 24px rgba(240,180,41,0.35), 0 0 0 1px rgba(240,180,41,0.4) inset;
+  box-shadow: 0 4px 24px rgba(242,184,75,0.35), 0 0 0 1px rgba(242,184,75,0.4) inset;
 }
 
 .btn--secondary {
@@ -255,7 +266,7 @@ img { max-width: 100%; display: block; }
 .card:hover { border-color: var(--border-strong); }
 
 .card--glow:hover {
-  box-shadow: 0 0 40px rgba(240,180,41,0.08);
+  box-shadow: 0 0 40px rgba(242,184,75,0.07);
   border-color: var(--accent-border);
 }
 
@@ -295,8 +306,8 @@ img { max-width: 100%; display: block; }
   height: 100%;
   background:
     radial-gradient(ellipse 55% 65% at 50% 5%,
-      rgba(240,180,41,0.2) 0%,
-      rgba(240,180,41,0.08) 40%,
+      rgba(242,184,75,0.18) 0%,
+      rgba(242,184,75,0.07) 40%,
       transparent 68%);
   pointer-events: none;
   animation: spotlight-breathe 6s ease-in-out infinite alternate;
@@ -405,7 +416,7 @@ img { max-width: 100%; display: block; }
   border-radius: var(--r-pill);
 }
 .hero-cta:not(:disabled):hover {
-  box-shadow: 0 8px 40px rgba(240,180,41,0.4), 0 2px 8px rgba(240,180,41,0.3);
+  box-shadow: 0 8px 40px rgba(242,184,75,0.38), 0 2px 8px rgba(242,184,75,0.28);
 }
 
 .hero-stats {

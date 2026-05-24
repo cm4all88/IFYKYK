@@ -27,7 +27,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -243,6 +243,9 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="store" onClick={setPane}>
               Digital Store
             </PaneButton>
+            <PaneButton current={pane} target="refer" onClick={setPane}>
+              Refer &amp; Earn
+            </PaneButton>
             <PaneButton current={pane} target="billing" onClick={setPane}>
               Billing
             </PaneButton>
@@ -345,6 +348,9 @@ export default function DashboardPage() {
           )}
           {pane === "store" && active && (
             <DigitalStorePane profile={active} setErr={setErrMsg} />
+          )}
+          {pane === "refer" && active && (
+            <ReferPane profile={active} />
           )}
           {pane === "billing" && (
             <BillingPane />
@@ -1693,6 +1699,161 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Refer & Earn
+// ──────────────────────────────────────────────────────────────────
+function ReferPane({ profile }: { profile: Profile }) {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/referrals/stats")
+      .then(r => r.json())
+      .then(d => { setStats(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  function copy(text: string, key: string) {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  const creatorLink = `https://spotlightly.app/signup?ref=${profile.handle}`;
+  const subLink = `https://spotlightly.app/${profile.handle}?ref=${profile.handle}`;
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Refer &amp; Earn</p>
+        <h1 className="pane-title">Grow together. <em>Earn together.</em></h1>
+        <p className="pane-lede">Two ways to earn free months — refer creators to Spotlightly, or refer fans to your page.</p>
+      </div>
+
+      {loading ? (
+        <p style={{ color:"var(--muted)", fontSize:13 }}>Loading…</p>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-3)" }}>
+
+          {/* Creator referral */}
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderTop:"2px solid var(--accent)", borderRadius:"var(--r-3)", padding:"var(--s-6) var(--s-6)" }}>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:"var(--s-4)", marginBottom:"var(--s-5)", flexWrap:"wrap" }}>
+              <div>
+                <p style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"#fff", marginBottom:4 }}>🤝 Refer a creator</p>
+                <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.65, maxWidth:480 }}>
+                  Share your link with creators who should be on Spotlightly. Every 5 who sign up earns you 1 free month — no limit on how many you can earn.
+                </p>
+              </div>
+              {stats?.credits?.pendingUsd > 0 && (
+                <div style={{ background:"rgba(240,180,41,0.1)", border:"1px solid rgba(240,180,41,0.2)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-4)", flexShrink:0, textAlign:"center" }}>
+                  <p style={{ fontFamily:"var(--font-display)", fontSize:22, fontWeight:800, color:"var(--accent)", lineHeight:1 }}>${stats.credits.pendingUsd}</p>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".15em", textTransform:"uppercase", color:"var(--accent)", opacity:.7, marginTop:4 }}>credit earned</p>
+                </div>
+              )}
+            </div>
+
+            {/* Progress bar */}
+            <div style={{ marginBottom:"var(--s-5)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"var(--s-2)" }}>
+                <p style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--muted)" }}>
+                  {stats?.creatorReferrals?.progressToNextCredit ?? 0} / 5 toward next free month
+                </p>
+                <p style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--muted)" }}>
+                  {stats?.creatorReferrals?.total ?? 0} total referrals
+                </p>
+              </div>
+              <div style={{ height:8, background:"var(--surface-2)", borderRadius:"var(--r-pill)", overflow:"hidden" }}>
+                <div style={{ height:"100%", background:"var(--accent)", borderRadius:"var(--r-pill)", width:`${stats?.creatorReferrals?.percentage ?? 0}%`, transition:"width 0.6s ease" }} />
+              </div>
+            </div>
+
+            {/* Link */}
+            <div style={{ display:"flex", gap:"var(--s-2)", alignItems:"center" }}>
+              <div style={{ flex:1, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"10px 14px", fontFamily:"var(--font-mono)", fontSize:12, color:"var(--muted)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {creatorLink}
+              </div>
+              <button onClick={() => copy(creatorLink, "creator")} className="btn btn--secondary" style={{ fontSize:12, flexShrink:0 }}>
+                {copied === "creator" ? "✓ Copied" : "Copy link"}
+              </button>
+            </div>
+          </div>
+
+          {/* Subscriber referral */}
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderTop:"2px solid var(--accent-open)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
+            <div style={{ marginBottom:"var(--s-5)" }}>
+              <p style={{ fontFamily:"var(--font-display)", fontSize:18, fontWeight:700, color:"#fff", marginBottom:4 }}>📣 Refer a subscriber</p>
+              <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.65, maxWidth:480 }}>
+                Share your referral link on social media. When someone clicks it and subscribes to your page, it&apos;s tracked. See exactly how many subscribers came from your own promotion.
+              </p>
+            </div>
+
+            {/* Stats */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"var(--s-2)", marginBottom:"var(--s-5)" }}>
+              {[
+                { label:"Total clicks", value: stats?.subscriberReferrals?.total ?? 0 },
+                { label:"Subscribed", value: stats?.subscriberReferrals?.converted ?? 0 },
+                { label:"Conversion", value: `${stats?.subscriberReferrals?.conversionRate ?? 0}%` },
+              ].map((s, i) => (
+                <div key={i} style={{ background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4)", textAlign:"center" }}>
+                  <p style={{ fontFamily:"var(--font-display)", fontSize:22, fontWeight:800, color:"#fff", lineHeight:1 }}>{s.value}</p>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".15em", textTransform:"uppercase", color:"var(--muted)", marginTop:"var(--s-2)" }}>{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Link */}
+            <div style={{ display:"flex", gap:"var(--s-2)", alignItems:"center" }}>
+              <div style={{ flex:1, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"10px 14px", fontFamily:"var(--font-mono)", fontSize:12, color:"var(--muted)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                {subLink}
+              </div>
+              <button onClick={() => copy(subLink, "sub")} className="btn btn--secondary" style={{ fontSize:12, flexShrink:0 }}>
+                {copied === "sub" ? "✓ Copied" : "Copy link"}
+              </button>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-5) var(--s-6)" }}>
+            <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".2em", textTransform:"uppercase", color:"var(--muted)", marginBottom:"var(--s-4)" }}>How creator referrals work</p>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"var(--s-2)" }}>
+              {[
+                { step:"1", text:"Share your creator link with friends who create content" },
+                { step:"2", text:"They sign up using your link and start their free trial" },
+                { step:"3", text:"5 signups = 1 free month automatically added to your account" },
+                { step:"4", text:"No limit — refer 50 creators, get 10 free months" },
+              ].map(s => (
+                <div key={s.step} style={{ textAlign:"center", padding:"var(--s-4)" }}>
+                  <div style={{ width:32, height:32, borderRadius:"50%", background:"rgba(240,180,41,0.1)", border:"1px solid rgba(240,180,41,0.2)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto var(--s-3)", fontFamily:"var(--font-display)", fontSize:13, fontWeight:800, color:"var(--accent)" }}>{s.step}</div>
+                  <p style={{ fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>{s.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Applied credits */}
+          {(stats?.credits?.applied > 0 || stats?.credits?.pending > 0) && (
+            <div style={{ background:"rgba(52,211,153,0.05)", border:"1px solid rgba(52,211,153,0.15)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-6)", display:"flex", alignItems:"center", gap:"var(--s-4)" }}>
+              <span style={{ fontSize:24 }}>🎉</span>
+              <div>
+                <p style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>
+                  {stats.credits.pendingUsd > 0
+                    ? `$${stats.credits.pendingUsd} credit ready — applied against your next bill`
+                    : `$${stats.credits.appliedUsd} earned through referrals so far`}
+                </p>
+                <p style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>
+                  ${stats.credits.totalUsd} total earned · ${stats.credits.appliedUsd} applied · ${stats.credits.pendingUsd} pending
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
