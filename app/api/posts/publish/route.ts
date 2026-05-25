@@ -79,13 +79,18 @@ export async function POST(req: NextRequest) {
 
   // ── Content moderation gate ─────────────────────────────────────
   if (caption?.trim()) {
-    const mod = await withTimeout(
-      moderateChatMessage(caption.trim(), {
-        creatorType: profile.kind === "backstage" ? "backstage" : "spotlight",
-      }),
-      5000,
-      { allowed: true, reason: "" }
-    );
+    let mod = { allowed: true, reason: "" };
+    try {
+      mod = await withTimeout(
+        moderateChatMessage(caption.trim(), {
+          creatorType: profile.kind === "backstage" ? "backstage" : "spotlight",
+        }),
+        5000,
+        { allowed: true, reason: "" }
+      );
+    } catch {
+      // Moderation unavailable — allow post through
+    }
     if (!(mod as any).allowed) {
       await (supabase as any).from("moderation_events").insert({
         creator_id: creatorProfileId,
@@ -102,11 +107,16 @@ export async function POST(req: NextRequest) {
   // Only runs when creator is charging for a specific post.
   // Checks that the description isn't misleading buyers.
   if (lockType === "purchase" && unlockPrice > 0 && caption?.trim()) {
-    const honesty = await withTimeout(
-      verifyLockedPostDescription(caption.trim(), unlockPrice, mediaType ?? null, profile.kind),
-      5000,
-      { honest: true, reason: "" }
-    );
+    let honesty = { honest: true, reason: "" };
+    try {
+      honesty = await withTimeout(
+        verifyLockedPostDescription(caption.trim(), unlockPrice, mediaType ?? null, profile.kind),
+        5000,
+        { honest: true, reason: "" }
+      );
+    } catch {
+      // Honesty check unavailable — allow post through
+    }
     if (!honesty.honest) {
       return NextResponse.json({
         error: `Your description needs to be updated before this post can be sold: ${honesty.reason}`,

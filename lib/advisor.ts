@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getClient() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 const SYSTEM_PROMPT = `You are Spotlightly's creator monetization strategist. Help creators identify their best conversion moments and build personalized monetization strategies.
 
@@ -12,7 +14,7 @@ export async function streamAdvisorResponse(
   messages: Anthropic.MessageParam[],
   onChunk: (text: string) => void
 ) {
-  const stream = await client.messages.stream({
+  const stream = await getClient().messages.stream({
     model: "claude-sonnet-4-20250514",
     max_tokens: 1200,
     system: SYSTEM_PROMPT,
@@ -42,7 +44,7 @@ export async function moderateChatMessage(
       "Permissive. Block slurs, threats, doxxing attempts, and direct harassment only.",
   }[context.creatorType];
 
-  const response = await client.messages.create({
+  const response = await getClient().messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 100,
     system: `You are a content moderator for a creator platform. Strictness: ${strictness}
