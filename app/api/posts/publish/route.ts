@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
   // ── Content moderation gate ─────────────────────────────────────
   if (caption?.trim()) {
-    let mod = { allowed: true, reason: "" };
+    let mod: { allowed: boolean; reason?: string } = { allowed: true, reason: "" };
     try {
       mod = await withTimeout(
         moderateChatMessage(caption.trim(), {
