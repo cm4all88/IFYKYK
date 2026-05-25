@@ -119,7 +119,7 @@ export default function TipButton({ creatorProfileId }: { creatorProfileId: stri
       </div>
 
       <p style={{ fontSize: 11, color: "var(--muted)", marginTop: "var(--s-3)", lineHeight: 1.5 }}>
-        100% goes to the creator. Spotlightly takes nothing from tips.
+        Show your support directly.
       </p>
     </div>
   );

@@ -61,7 +61,7 @@ export default function SuperTipButton({ creatorProfileId, handle }: Props) {
         </div>
 
         <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16, lineHeight: 1.6 }}>
-          85% goes to the creator. You get a gold Top Supporter badge for 30 days.
+          You get a gold Top Supporter badge pinned for 30 days.
         </p>
 
         {/* Amount picker */}
