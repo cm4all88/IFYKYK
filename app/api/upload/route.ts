@@ -88,6 +88,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const publicUrl = `https://${BUNNY_CDN_URL}/${filePath}`;
+  // Strip any accidental protocol/slashes from the CDN URL env var
+  const cleanCdnUrl = BUNNY_CDN_URL
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "")
+    .replace(/^\/+/, "");
+  const publicUrl = `https://${cleanCdnUrl}/${filePath}`;
   return NextResponse.json({ url: publicUrl });
 }
