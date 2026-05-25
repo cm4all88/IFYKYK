@@ -1,60 +1,47 @@
 import { createClient } from "@/lib/supabase-server";
 
-// Simple in-memory cache to avoid hitting the DB on every request.
-// Cache lives for the lifetime of the serverless function instance.
-// Cleared via clearSettingsCache() when admin updates a value.
-
 let cache: Record<string, string | null> | null = null;
 let cacheLoadedAt = 0;
-const CACHE_TTL_MS = 60_000; // 1 minute
+const CACHE_TTL_MS = 60_000;
 
 async function loadAll(): Promise<Record<string, string | null>> {
-  const supabase = await createClient();
-  // Use service role-style query — but we don't have service role client here,
-  // so we rely on the request being from the admin user OR being unauthenticated.
-  // For unauthenticated requests, RLS blocks reads.
-  // The pattern: server components and route handlers that need secrets
-  // create their own privileged (supabase as any) client using service role key
-  // when settings are needed. For now, store secrets in env where possible
-  // and fall back to platform_settings for keys that change frequently.
+  try {
+    const supabase = await createClient();
+    const { data } = await (supabase as any)
+      .from("platform_settings")
+      .select("key, value");
 
-  const { data } = await (supabase as any)
-    .from("platform_settings")
-    .select("key, value");
-
-  const map: Record<string, string | null> = {};
-  for (const row of data ?? []) {
-    map[row.key] = row.value;
+    const map: Record<string, string | null> = {};
+    for (const row of data ?? []) {
+      map[row.key] = row.value;
+    }
+    return map;
+  } catch {
+    return {};
   }
-  return map;
 }
 
 /**
- * Get a single secret value. Returns null if missing or empty.
- *
- * USAGE:
- *   const stripeKey = await getSecret("STRIPE_SECRET_KEY");
- *   if (!stripeKey) return Response.json({ error: "Stripe not configured yet" }, { status: 503 });
+ * Resolve a secret: DB (platform_settings) first, then process.env fallback.
+ * This means keys set in Vercel env vars work automatically without needing
+ * to be entered in the admin panel.
  */
+function resolveFromEnv(key: string): string | null {
+  const val = process.env[key];
+  return val && val.trim().length > 0 ? val : null;
+}
+
 export async function getSecret(key: string): Promise<string | null> {
   const now = Date.now();
   if (!cache || now - cacheLoadedAt > CACHE_TTL_MS) {
     cache = await loadAll();
     cacheLoadedAt = now;
   }
-  const v = cache[key];
-  return v && v.trim().length > 0 ? v : null;
+  const dbVal = cache[key];
+  if (dbVal && dbVal.trim().length > 0) return dbVal;
+  return resolveFromEnv(key);
 }
 
-/**
- * Get multiple secrets at once. Useful when you need several to do anything.
- *
- * USAGE:
- *   const { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } = await getSecrets([
- *     "STRIPE_SECRET_KEY",
- *     "STRIPE_WEBHOOK_SECRET",
- *   ]);
- */
 export async function getSecrets<K extends string>(
   keys: readonly K[]
 ): Promise<Record<K, string | null>> {
@@ -65,22 +52,20 @@ export async function getSecrets<K extends string>(
   }
   const result: Record<string, string | null> = {};
   for (const k of keys) {
-    const v = cache[k];
-    result[k] = v && v.trim().length > 0 ? v : null;
+    const dbVal = cache[k];
+    if (dbVal && dbVal.trim().length > 0) {
+      result[k] = dbVal;
+    } else {
+      result[k] = resolveFromEnv(k);
+    }
   }
   return result as Record<K, string | null>;
 }
 
-/**
- * Check if a secret has a non-empty value. Used for "is this integration configured?" checks.
- */
 export async function hasSecret(key: string): Promise<boolean> {
   return (await getSecret(key)) !== null;
 }
 
-/**
- * Force a refresh of the cache. Call after updating settings via the admin page.
- */
 export function clearSettingsCache() {
   cache = null;
   cacheLoadedAt = 0;

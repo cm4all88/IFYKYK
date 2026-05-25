@@ -364,6 +364,16 @@ export default function OnboardingPage() {
         position: "relative",
         overflow: "hidden",
       }}>
+        {/* Hero background — muted stage texture */}
+        <div style={{
+          position: "fixed", inset: 0,
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          opacity: 0.07,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
         {/* Spotlight beam from top */}
         <div style={{
           position: "absolute", top: 0, left: "50%",
@@ -503,6 +513,16 @@ export default function OnboardingPage() {
         position: "relative",
         overflow: "hidden",
       }}>
+        {/* Hero background — muted stage texture */}
+        <div style={{
+          position: "fixed", inset: 0,
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          opacity: 0.05,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
         <div style={{
           position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
           width: 400, height: "50%",
@@ -680,12 +700,25 @@ export default function OnboardingPage() {
           @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         `}</style>
 
+        {/* Hero background — muted */}
+        <div style={{
+          position: "fixed", inset: 0,
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          opacity: 0.04,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
+
         {/* Left — form */}
         <div style={{
           padding: "48px 48px 80px",
           overflowY: "auto",
           borderRight: "1px solid rgba(255,255,255,0.06)",
           maxHeight: "100vh",
+          position: "relative",
+          zIndex: 1,
         }}
           className="onb-split"
         >
@@ -845,6 +878,16 @@ export default function OnboardingPage() {
         alignItems: "center", justifyContent: "center",
         padding: "80px 24px", position: "relative", overflow: "hidden",
       }}>
+        {/* Hero background — muted */}
+        <div style={{
+          position: "fixed", inset: 0,
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          opacity: 0.05,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
         <div style={{
           position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
           width: 400, height: "50%",
@@ -928,6 +971,16 @@ export default function OnboardingPage() {
         overflow: "hidden",
         padding: "24px",
       }}>
+        {/* Hero background — muted stage texture */}
+        <div style={{
+          position: "fixed", inset: 0,
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+          opacity: 0.08,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
         {/* Full spotlight on the creator */}
         <div style={{
           position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",

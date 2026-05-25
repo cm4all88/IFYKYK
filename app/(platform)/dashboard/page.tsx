@@ -148,7 +148,17 @@ export default function DashboardPage() {
   const active = tab === "spotlight" ? spotlight : backstage;
 
   return (
-    <main className="db">
+    <main className="db" style={{ position: "relative" }}>
+      {/* Stage background — creator's cover or hero-bg, muted */}
+      <div style={{
+        position: "fixed", inset: 0,
+        backgroundImage: `url('${(active as any)?.cover_url || "/hero-bg.jpg"}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        opacity: 0.05,
+        pointerEvents: "none",
+        zIndex: 0,
+      }} />
       {/* TOP BAR */}
       <header className="db-top">
         <div className="db-top-inner">
@@ -426,7 +436,7 @@ function OverviewPane({
       {/* Stats grid */}
       <div className="stats">
         <div className="stat">
-          <p className="stat-label">Subscribers</p>
+          <p className="stat-label">Audience</p>
           <p className="stat-num">0</p>
           <p className="stat-meta">Build your audience</p>
         </div>
@@ -476,48 +486,48 @@ function OverviewPane({
       {/* Quick actions */}
       <div className="quick">
         <Link href="/dashboard?pane=profile" className="quick-card">
-          <h4>Edit your profile</h4>
-          <p>Bio, avatar, cover. Make it yours.</p>
+          <h4>✦ Edit profile</h4>
+          <p>Avatar, bio, cover. Your first impression.</p>
         </Link>
         <Link href="/dashboard?pane=posts" className="quick-card">
-          <h4>New post</h4>
-          <p>Get something out there.</p>
+          <h4>✦ New post</h4>
+          <p>Free posts build your audience. Paid posts build your income.</p>
         </Link>
         <Link href="/dashboard?pane=payments" className="quick-card">
-          <h4>Connect Stripe</h4>
-          <p>Required before fans can pay you.</p>
+          <h4>✦ Connect Stripe</h4>
+          <p>Required before your audience can pay you.</p>
         </Link>
         <Link href="/messages" className="quick-card">
-          <h4>Messages</h4>
-          <p>Fan inbox and Front Row messages.</p>
+          <h4>✦ Messages</h4>
+          <p>Inbox and Front Row messages from your audience.</p>
         </Link>
         <Link href="/live" className="quick-card">
-          <h4>Go Live</h4>
-          <p>Stream to fans. First hour free.</p>
+          <h4>✦ Go Live</h4>
+          <p>Stream directly to your audience. First hour free.</p>
+        </Link>
+        <Link href="/dashboard?pane=social" className="quick-card">
+          <h4>✦ Social posts</h4>
+          <p>Paste your Instagram, TikTok, or YouTube links. They live on your page.</p>
         </Link>
         <Link href="/merch" className="quick-card">
-          <h4>Merch</h4>
-          <p>Sell branded products via Printful.</p>
-        </Link>
-        <Link href="/archive" className="quick-card">
-          <h4>Archive</h4>
-          <p>View and restore archived posts.</p>
-        </Link>
-        <Link href="/help" className="quick-card">
-          <h4>Help</h4>
-          <p>Setup guide and support.</p>
+          <h4>✦ Merch</h4>
+          <p>Design and sell branded products. No upfront cost.</p>
         </Link>
         <Link href="/dashboard?pane=digital" className="quick-card">
-          <h4>💾 Digital Store</h4>
-          <p>Sell guides, presets, courses.</p>
-        </Link>
-        <Link href="/gear" className="quick-card">
-          <h4>📦 Creator Gear</h4>
-          <p>Equipment guide for every budget.</p>
+          <h4>✦ Digital store</h4>
+          <p>Sell guides, presets, courses. 0% cut.</p>
         </Link>
         <Link href="/dashboard?pane=analytics" className="quick-card">
-          <h4>Analytics</h4>
-          <p>Subscribers, earnings, growth.</p>
+          <h4>✦ Analytics</h4>
+          <p>Audience growth, earnings, post performance.</p>
+        </Link>
+        <Link href="/archive" className="quick-card">
+          <h4>✦ Archive</h4>
+          <p>View and restore archived posts.</p>
+        </Link>
+        <Link href="/gear" className="quick-card">
+          <h4>✦ Creator gear</h4>
+          <p>Equipment guide for every budget.</p>
         </Link>
       </div>
     </div>
@@ -720,6 +730,9 @@ function ProfilePane({
         <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
           <label className="label" style={{ marginBottom:"var(--s-3)" }}>Cover image</label>
           <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="JPG, PNG or WebP · 1500×500px recommended" previewWidth={180} previewHeight={60} />
+          <p style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", marginTop:"var(--s-2)", letterSpacing:"0.06em" }}>
+            ✦ Your cover image also appears as a muted background behind your dashboard.
+          </p>
         </div>
 
         <div className="form-actions">
@@ -3234,7 +3247,7 @@ function PaneButton({
 function DashboardStyles() {
   return (
     <style jsx global>{`
-      .db { min-height: 100vh; }
+      .db { min-height: 100vh; position: relative; z-index: 1; }
 
       .db-loading {
         min-height: 60vh;
@@ -3569,25 +3582,35 @@ function DashboardStyles() {
         gap: 2px;
       }
       .quick-card {
-        background: var(--surface-2);
+        background: var(--surface);
         border: 1px solid var(--border);
+        border-left: 3px solid transparent;
         padding: var(--s-5) var(--s-6);
         text-decoration: none;
         color: inherit;
-        transition: border-color var(--t-fast);
+        transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+        cursor: pointer;
+        display: block;
       }
-      .quick-card:hover { border-color: var(--border-strong); }
+      .quick-card:hover {
+        border-color: var(--accent-border);
+        border-left-color: var(--accent);
+        background: var(--bg-elevated);
+        transform: translateY(-1px);
+      }
       .quick-card h4 {
         font-family: var(--font-serif);
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 400;
         color: #fff;
         margin: 0 0 var(--s-2);
+        line-height: 1.2;
       }
       .quick-card p {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--muted);
         margin: 0;
+        line-height: 1.5;
       }
 
       /* FORM */

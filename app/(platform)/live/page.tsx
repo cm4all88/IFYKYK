@@ -75,7 +75,7 @@ export default function LivePage() {
               </button>
             </div>
 
-            <div style={{ ...card, borderTop: "2px solid var(--accent-back)", marginTop: 2 }}>
+            <div style={{ ...card, borderTop: "2px solid var(--accent)", marginTop: 2 }}>
               <div style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 400, color: "#fff", marginBottom: 8 }}>Requirements</div>
               <div style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.85 }}>
                 · A streaming app: <strong style={{ color: "var(--text)" }}>OBS Studio</strong> (free, recommended), Streamlabs, or StreamYard<br />

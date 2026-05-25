@@ -193,13 +193,13 @@ export default function MerchCreatePage() {
   const previewImage = mode === "image" ? imageData : null;
 
   return (
-    <div style={{ minHeight:"100vh", background:"#09090C", color:"#F2F2F0", fontFamily:"'DM Sans',sans-serif" }}>
+    <div style={{ minHeight:"100vh", background:"var(--bg)", color:"var(--text)", fontFamily:"var(--font-sans)" }}>
       <style>{`:root{--accent:#F0B429;--surface:#111115;--border:rgba(255,255,255,.07);--muted:#71717A;}`}</style>
 
       {/* Header */}
-      <header style={{ borderBottom:"1px solid var(--border)", padding:"14px 28px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10, background:"#09090C" }}>
+      <header style={{ borderBottom:"1px solid var(--border)", padding:"14px 28px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10, background:"var(--bg)" }}>
         <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <Link href="/" style={{ fontFamily:"Georgia,serif", fontSize:20, color:"#fff", textDecoration:"none" }}>
+          <Link href="/" style={{ fontFamily:"var(--font-serif)", fontSize:20, color:"var(--text)", textDecoration:"none" }}>
             Spot<span style={{ color:"var(--accent)" }}>light</span>ly
           </Link>
           <span style={{ color:"var(--muted)", fontSize:13 }}>/ Loudcap Designer</span>
@@ -216,11 +216,11 @@ export default function MerchCreatePage() {
         <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
           <div style={{ padding:"20px 0 8px" }}>
             <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".2em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Loudcap Merch Designer</p>
-            <h1 style={{ fontFamily:"Georgia,serif", fontSize:32, fontWeight:300, color:"#fff" }}>Design your <em style={{ color:"var(--accent)" }}>product.</em></h1>
+            <h1 style={{ fontFamily:"var(--font-serif)", fontSize:32, fontWeight:300, color:"var(--text)" }}>Design your <em style={{ color:"var(--accent)" }}>product.</em></h1>
           </div>
 
           {/* Mode */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:16 }}>
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16 }}>
             <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:10 }}>Design type</p>
             <div style={{ display:"flex", gap:3 }}>
               {(["text","image"] as const).map(m => (
@@ -236,11 +236,11 @@ export default function MerchCreatePage() {
 
           {/* Text controls */}
           {mode === "text" && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:20, display:"flex", flexDirection:"column", gap:18 }}>
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:20, display:"flex", flexDirection:"column", gap:18 }}>
               <div>
                 <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:8 }}>Your text</p>
                 <input type="text" value={text} onChange={e => setText(e.target.value.toUpperCase())} maxLength={24}
-                  style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.12)", borderRadius:8, padding:"12px 16px", color:"#F2F2F0", fontSize:18, fontWeight:700, outline:"none", fontFamily:"monospace", letterSpacing:".05em" }} />
+                  style={{ width:"100%", background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:6, padding:"12px 16px", color:"var(--text)", fontSize:18, fontWeight:700, outline:"none", fontFamily:"var(--font-mono)", letterSpacing:".05em" }} />
               </div>
 
               <div>
@@ -324,7 +324,7 @@ export default function MerchCreatePage() {
 
           {/* Image controls */}
           {mode === "image" && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:20 }}>
+            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:20 }}>
               <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:12 }}>Upload your design</p>
               <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style={{ display:"none" }} onChange={handleImageUpload} />
               <button onClick={() => fileRef.current?.click()} style={{ width:"100%", padding:"24px", borderRadius:8, border:"2px dashed rgba(255,255,255,0.15)", background:"rgba(255,255,255,0.02)", color:"var(--muted)", cursor:"pointer", fontSize:14 }}>
@@ -339,7 +339,7 @@ export default function MerchCreatePage() {
         <div style={{ display:"flex", flexDirection:"column", gap:3, position:"sticky", top:80 }}>
 
           {/* Product picker */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:16 }}>
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16 }}>
             <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:10 }}>Product</p>
             <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:4, marginBottom:14 }}>
               {PRODUCTS.map(p => (
@@ -361,9 +361,9 @@ export default function MerchCreatePage() {
           </div>
 
           {/* Preview */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:16 }}>
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16 }}>
             <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:12 }}>Preview</p>
-            <div style={{ background:"linear-gradient(135deg,#1a1a2e,#0d0d16)", borderRadius:8, padding:24, display:"flex", alignItems:"center", justifyContent:"center", minHeight:220 }}>
+            <div style={{ background:"var(--bg-elevated)", borderRadius:8, padding:24, display:"flex", alignItems:"center", justifyContent:"center", minHeight:220 }}>
               {/* Simple mockup preview */}
               <div style={{ position:"relative", width:160, height:160 }}>
                 {/* Product silhouette */}
@@ -393,7 +393,7 @@ export default function MerchCreatePage() {
           </div>
 
           {/* Save */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:10, padding:16, display:"flex", flexDirection:"column", gap:10 }}>
+          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16, display:"flex", flexDirection:"column", gap:10 }}>
             <div>
               <label style={{ display:"block", fontFamily:"monospace", fontSize:9, letterSpacing:".15em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Product name</label>
               <input type="text" value={productName} onChange={e => setProductName(e.target.value)}
@@ -411,7 +411,7 @@ export default function MerchCreatePage() {
               </p>
             </div>
             {err && <p style={{ fontSize:12, color:"#F87171" }}>{err}</p>}
-            <button onClick={save} disabled={saving} style={{ width:"100%", background:"var(--accent)", color:"#09090C", fontWeight:700, fontSize:14, padding:"14px 0", borderRadius:999, border:"none", cursor:"pointer", opacity:saving?0.7:1 }}>
+            <button onClick={save} disabled={saving} style={{ width:"100%", background:"var(--accent)", color:"#09090C", fontFamily:"var(--font-mono)", fontWeight:500, fontSize:11, letterSpacing:"0.14em", textTransform:"uppercase", padding:"14px 0", borderRadius:4, border:"none", cursor:"pointer", opacity:saving?0.45:1 }}>
               {saving ? "Saving to Loudcap…" : "Save to merch page →"}
             </button>
           </div>
