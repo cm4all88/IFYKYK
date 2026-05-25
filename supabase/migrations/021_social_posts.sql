@@ -9,7 +9,7 @@ create table if not exists social_posts (
   oembed_html text,
   caption text,
   thumbnail_url text,
-  original_posted_at timestamptz,  -- from oEmbed response where available
+  original_posted_at timestamptz,
   pinned boolean default false,
   created_at timestamptz default now()
 );
@@ -19,9 +19,14 @@ create index social_posts_original_posted_at_idx on social_posts(original_posted
 
 alter table social_posts enable row level security;
 
+-- Fix: creator_id references creator_profiles(id), not auth.users(id)
 create policy "Creators manage own social posts"
   on social_posts for all
-  using (creator_id = auth.uid());
+  using (
+    creator_id in (
+      select id from creator_profiles where user_id = auth.uid()
+    )
+  );
 
 create policy "Public can view social posts"
   on social_posts for select

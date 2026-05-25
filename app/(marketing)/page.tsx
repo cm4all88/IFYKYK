@@ -1,6 +1,7 @@
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import Footer from "@/components/Footer";
+import StigmaSection from "@/components/StigmaSection";
 
 export const metadata = {
   title: "Spotlightly — Every creator deserves a spotlight",
@@ -262,6 +263,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── STIGMA — The platform problem */}
+      <StigmaSection />
 
       {/* ── CREATOR CONTROL — Know your fans, own your space ── */}
       <section className="control-section">

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import ThemeToggle from "@/components/ThemeToggle";
+import SocialPostsManager from "@/components/dashboard/SocialPostsManager";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
 import ImageUpload from "@/components/ImageUpload";
 
@@ -27,7 +28,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "social" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -249,11 +250,8 @@ export default function DashboardPage() {
             <PaneButton current={pane} target="billing" onClick={setPane}>
               Billing
             </PaneButton>
-            <PaneButton current={pane} target="store" onClick={setPane}>
-              Digital Store
-            </PaneButton>
-            <PaneButton current={pane} target="store" onClick={setPane}>
-              Tiers & Pricing
+            <PaneButton current={pane} target="social" onClick={setPane}>
+              Social Posts
             </PaneButton>
             {!backstage && (
               <a href="/backstage-setup" style={{ display:"block", padding:"10px var(--s-4)", fontSize:13, color:"var(--accent-back)", borderRadius:"var(--r-2)", textDecoration:"none" }}>+ Add Backstage</a>
@@ -343,12 +341,6 @@ export default function DashboardPage() {
           {pane === "store" && active && (
             <DigitalStorePane profile={active} setErr={setErrMsg} />
           )}
-          {pane === "store" && active && (
-            <DigitalStorePane profile={active} setErr={setErrMsg} />
-          )}
-          {pane === "store" && active && (
-            <DigitalStorePane profile={active} setErr={setErrMsg} />
-          )}
           {pane === "refer" && active && (
             <ReferPane profile={active} />
           )}
@@ -390,6 +382,11 @@ export default function DashboardPage() {
           )}
           {pane === "live" && active && (
             <LivePane profile={active} />
+          )}
+          {pane === "social" && active && (
+            <div className="pane">
+              <SocialPostsManager />
+            </div>
           )}
 
         </section>
