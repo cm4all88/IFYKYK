@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import BrowserStream from "@/components/BrowserStream";
+import LiveStreamView from "@/components/LiveStreamView";
 
 type Mode = "choose" | "browser" | "obs";
 
 export default function LivePage() {
   const [mode, setMode] = useState<Mode>("choose");
   const [title, setTitle] = useState("");
-  const [stream, setStream] = useState<{ rtmpUrl: string; streamKey: string; playbackUrl: string } | null>(null);
+  const [stream, setStream] = useState<{ rtmpUrl: string; streamKey: string; playbackUrl: string; streamId?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -45,7 +46,7 @@ export default function LivePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setStream(data);
+      setStream({ ...data, streamId: data.streamId });
     } catch (e: any) {
       setErr(e.message || "Failed to start stream");
     } finally {

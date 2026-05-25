@@ -1877,9 +1877,22 @@ function BillingPane() {
   const [openingPortal, setOpeningPortal] = React.useState(false);
 
   React.useEffect(() => {
-    fetch("/api/billing")
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); });
+    async function loadBilling() {
+      const res = await fetch("/api/billing");
+      const d = await res.json();
+      // Auto-create billing record if none exists
+      if (!d.billing) {
+        const createRes = await fetch("/api/billing", { method: "POST" });
+        const created = await createRes.json();
+        const refetch = await fetch("/api/billing");
+        const fresh = await refetch.json();
+        setData(fresh);
+      } else {
+        setData(d);
+      }
+      setLoading(false);
+    }
+    loadBilling();
   }, []);
 
   async function openPortal() {
@@ -1909,7 +1922,7 @@ function BillingPane() {
       {loading ? (
         <p style={{ fontSize: 13, color: "var(--muted)" }}>Loading…</p>
       ) : !data?.billing ? (
-        <p style={{ fontSize: 13, color: "var(--muted)" }}>No billing account found. Try refreshing.</p>
+        <p style={{ fontSize: 13, color: "var(--muted)" }}>Setting up your account…</p>
       ) : (
         <div style={{ maxWidth: 560 }}>
 

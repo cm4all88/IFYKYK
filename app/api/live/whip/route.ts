@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const res = await fetch(whipUrl, {
     method: "POST",
     headers: {
-      "AccessKey": BUNNY.STREAM_KEY,
+      "Authorization": `Bearer ${BUNNY.STREAM_KEY}`,
       "Content-Type": "application/sdp",
     },
     body: sdpOffer,
@@ -53,7 +53,7 @@ export async function DELETE(req: NextRequest) {
 
   await fetch(`https://video.bunnycdn.com/library/${BUNNY.STREAM_LIBRARY_ID}/videos/${videoId}/whip`, {
     method: "DELETE",
-    headers: { "AccessKey": BUNNY.STREAM_KEY },
+    headers: { "Authorization": `Bearer ${BUNNY.STREAM_KEY}` },
   });
 
   return NextResponse.json({ ok: true });
