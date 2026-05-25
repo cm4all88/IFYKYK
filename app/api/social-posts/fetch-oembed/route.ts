@@ -13,12 +13,13 @@ async function fetchOembed(url: string, platform: string) {
   let endpoint = ''
 
   switch (platform) {
-    case 'instagram':
+    case 'instagram': {
       const appId = process.env.FACEBOOK_APP_ID
       const appSecret = process.env.FACEBOOK_APP_SECRET
       if (!appId || !appSecret) throw new Error('Instagram oEmbed requires FACEBOOK_APP_ID and FACEBOOK_APP_SECRET')
       endpoint = `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(url)}&access_token=${appId}|${appSecret}`
       break
+    }
     case 'tiktok':
       endpoint = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
       break
@@ -28,12 +29,13 @@ async function fetchOembed(url: string, platform: string) {
     case 'x':
       endpoint = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}`
       break
-    case 'facebook':
+    case 'facebook': {
       const fbAppId = process.env.FACEBOOK_APP_ID
       const fbAppSecret = process.env.FACEBOOK_APP_SECRET
       if (!fbAppId || !fbAppSecret) throw new Error('Facebook oEmbed requires FACEBOOK_APP_ID and FACEBOOK_APP_SECRET')
       endpoint = `https://graph.facebook.com/v18.0/oembed_post?url=${encodeURIComponent(url)}&access_token=${fbAppId}|${fbAppSecret}`
       break
+    }
     default:
       throw new Error('Unsupported platform')
   }
@@ -53,7 +55,9 @@ export async function POST(req: NextRequest) {
 
     const platform = detectPlatform(url)
     if (!platform) {
-      return NextResponse.json({ error: 'Unsupported platform. Paste a link from Instagram, TikTok, YouTube, X, or Facebook.' }, { status: 400 })
+      return NextResponse.json({
+        error: 'Unsupported platform. Paste a link from Instagram, TikTok, YouTube, X, or Facebook.'
+      }, { status: 400 })
     }
 
     let oembed = null
@@ -65,8 +69,7 @@ export async function POST(req: NextRequest) {
       caption = oembed.title || oembed.author_name || null
       thumbnail_url = oembed.thumbnail_url || null
     } catch (e) {
-      // oEmbed failed — return a link card fallback, not an error
-      // Creator can still add the post, it'll render as a plain link card
+      // oEmbed failed — return link card fallback, not an error
       console.warn('oEmbed fetch failed, falling back to link card:', e)
     }
 
