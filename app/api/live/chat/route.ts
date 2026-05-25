@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   const { allowed, cleaned, reason } = await Promise.race([
     moderateMessage(message.trim(), level, bannedWords, isBackstage),
-    new Promise<{ allowed: boolean; cleaned: string }>(resolve =>
+    new Promise<{ allowed: boolean; cleaned: string; reason?: string }>(resolve =>
       setTimeout(() => resolve({ allowed: true, cleaned: message.trim() }), 3000)
     ),
   ]);
