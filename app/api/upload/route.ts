@@ -61,7 +61,9 @@ export async function POST(req: NextRequest) {
 
   // Upload to Bunny Storage
   const buffer = await file.arrayBuffer();
-  const uploadUrl = `https://storage.bunnycdn.com/${BUNNY_STORAGE_ZONE}/${path}`;
+  // Region-specific endpoint — LA zone uses la.storage.bunnycdn.com
+  const storageEndpoint = process.env.BUNNY_STORAGE_ENDPOINT || 'storage.bunnycdn.com';
+  const uploadUrl = `https://${storageEndpoint}/${BUNNY_STORAGE_ZONE}/${path}`;
 
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
