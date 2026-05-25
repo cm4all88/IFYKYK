@@ -61,6 +61,15 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Pro
   return Promise.race([promise, timeout]);
 }
 
+// Normalize mediaType to constraint-allowed values
+function normalizeMediaType(raw: string | null): "image" | "video" | "gallery" | null {
+  if (!raw) return null;
+  if (raw.startsWith("image/") || raw === "image") return "image";
+  if (raw.startsWith("video/") || raw === "video") return "video";
+  if (raw === "gallery") return "gallery";
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -135,7 +144,7 @@ export async function POST(req: NextRequest) {
       creator_profile_id: creatorProfileId,
       caption: caption?.trim() || null,
       media_url: mediaUrl || null,
-      media_type: mediaType || null,
+      media_type: normalizeMediaType(mediaType),
       tier: resolvedTier,
       lock_type: resolvedLockType,
       unlock_price: lockType === "purchase" ? (unlockPrice ?? null) : null,
