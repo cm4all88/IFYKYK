@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase-client";
 
 export default function LivePage() {
   const [title, setTitle] = useState("");
@@ -9,15 +10,34 @@ export default function LivePage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await (supabase as any)
+        .from("creator_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("kind", "spotlight")
+        .maybeSingle();
+      if (data) setProfileId(data.id);
+    }
+    loadProfile();
+  }, []);
 
   async function goLive() {
+    if (!profileId) { setErr("Profile not loaded — try refreshing."); return; }
     setLoading(true);
     setErr(null);
     try {
       const res = await fetch("/api/live/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title || "Live Stream" }),
+        body: JSON.stringify({ title: title || "Live Stream", creatorProfileId: profileId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -55,7 +75,7 @@ export default function LivePage() {
           Go <em style={{ fontStyle: "italic", color: "var(--accent)" }}>live.</em>
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.75, marginBottom: 40, maxWidth: 560 }}>
-          Your first hour is always free. After that, $0.01 per viewer per hour — billed in 15-minute increments. Use any streaming software: OBS, Streamlabs, StreamYard, or your phone.
+          Stream directly to your audience. Use any streaming software — OBS, Streamlabs, StreamYard, or your phone.
         </p>
 
         {!stream ? (
@@ -70,7 +90,7 @@ export default function LivePage() {
                 style={{ width: "100%", marginBottom: 20 }}
               />
               {err && <div style={{ color: "var(--red)", fontSize: 13, marginBottom: 16, padding: "10px 14px", background: "var(--red-soft)", border: "1px solid var(--red-border)", borderRadius: "var(--r-2)" }}>⚠ {err}</div>}
-              <button onClick={goLive} disabled={loading} className="btn btn--primary" style={{ padding: "14px 28px", fontSize: 12 }}>
+              <button onClick={goLive} disabled={loading || !profileId} className="btn btn--primary" style={{ padding: "14px 28px", fontSize: 12, opacity: !profileId ? 0.5 : 1 }}>
                 {loading ? "Setting up stream..." : "🔴  Start live stream"}
               </button>
             </div>
@@ -80,8 +100,7 @@ export default function LivePage() {
               <div style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.85 }}>
                 · A streaming app: <strong style={{ color: "var(--text)" }}>OBS Studio</strong> (free, recommended), Streamlabs, or StreamYard<br />
                 · A stable internet connection (minimum 5 Mbps upload for 1080p)<br />
-                · Your stream title and RTMP credentials — provided below after you start<br />
-                · Your Backstage verification must be complete before streaming adult content
+                · Your stream title and RTMP credentials — provided below after you start
               </div>
             </div>
           </div>
@@ -121,7 +140,7 @@ export default function LivePage() {
                 4. Stream Key: paste the Stream Key above<br />
                 5. Click <strong style={{ color: "var(--text)" }}>Apply → OK</strong><br />
                 6. Click <strong style={{ color: "var(--accent)" }}>Start Streaming</strong> in OBS<br />
-                7. Your fans will see you live on your Spotlightly page automatically
+                7. Your audience will see you live on your Spotlightly page automatically
               </div>
             </div>
 

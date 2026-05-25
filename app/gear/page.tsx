@@ -117,14 +117,14 @@ export default function GearPage() {
 
         {/* Header */}
         <div style={{ marginBottom: 56 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Creator gear guide</p>
-          <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(36px,5vw,56px)", fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 16 }}>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", marginBottom: 8 }}>Creator gear guide</p>
+          <h1 style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: "clamp(36px,5vw,56px)", fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 16 }}>
             The exact setup you need.<br /><em style={{ color: "#F0B429" }}>At every budget.</em>
           </h1>
-          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.5)", lineHeight: 1.75, maxWidth: 580 }}>
+          <p style={{ fontSize: 16, color: "rgba(242,242,240,0.65)", lineHeight: 1.75, maxWidth: 580 }}>
             Curated by Spotlightly for creators at every stage. Audio first — always. These are the exact products top creators use, organized by what actually moves the needle.
           </p>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 16, fontFamily: "monospace", letterSpacing: ".06em" }}>
+          <p style={{ fontSize: 11, color: "rgba(242,242,240,0.45)", marginTop: 16, fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: ".06em" }}>
             DISCLOSURE: We earn a commission on purchases made through these links at no extra cost to you. We only recommend gear we&apos;d use ourselves.
           </p>
         </div>
@@ -132,18 +132,18 @@ export default function GearPage() {
         {/* Bundle cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 80 }}>
           {BUNDLES.map(bundle => (
-            <div key={bundle.id} style={{ background: "#111115", border: `1px solid ${bundle.colorBorder}`, borderRadius: 12, overflow: "hidden" }}>
+            <div key={bundle.id} style={{ background: "#232428", border: `1px solid ${bundle.colorBorder}`, borderRadius: 6, overflow: "hidden" }}>
               {/* Bundle header */}
               <div style={{ background: bundle.colorSoft, borderBottom: `1px solid ${bundle.colorBorder}`, padding: "28px 32px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                    <span style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: bundle.color, background: `rgba(0,0,0,0.2)`, border: `1px solid ${bundle.colorBorder}`, padding: "3px 10px", borderRadius: 999 }}>
+                    <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: bundle.color, background: `rgba(0,0,0,0.2)`, border: `1px solid ${bundle.colorBorder}`, padding: "3px 10px", borderRadius: 4 }}>
                       {bundle.name} Bundle
                     </span>
-                    <span style={{ fontFamily: "Georgia,serif", fontSize: 22, fontWeight: 400, color: bundle.color }}>{bundle.price}</span>
+                    <span style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: 22, fontWeight: 400, color: bundle.color }}>{bundle.price}</span>
                   </div>
                   <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 6 }}>{bundle.tagline}</p>
-                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.65, maxWidth: 500 }}>{bundle.description}</p>
+                  <p style={{ fontSize: 13, color: "rgba(242,242,240,0.65)", lineHeight: 1.65, maxWidth: 500 }}>{bundle.description}</p>
                 </div>
               </div>
 
@@ -163,14 +163,14 @@ export default function GearPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: "#F2F2F0" }}>{item.name}</span>
-                        <span style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: bundle.color, background: bundle.colorSoft, border: `1px solid ${bundle.colorBorder}`, padding: "2px 8px", borderRadius: 3 }}>{item.role}</span>
-                        {item.essential && <span style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", padding: "2px 8px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 3 }}>Essential</span>}
+                        <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: bundle.color, background: bundle.colorSoft, border: `1px solid ${bundle.colorBorder}`, padding: "2px 8px", borderRadius: 3 }}>{item.role}</span>
+                        {item.essential && <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 9, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", padding: "2px 8px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 3 }}>Essential</span>}
                       </div>
                       <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, margin: 0 }}>{item.why}</p>
                     </div>
                     <div style={{ flexShrink: 0, textAlign: "right" }}>
-                      <p style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: bundle.color, marginBottom: 4 }}>{item.price}</p>
-                      <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)" }}>Amazon →</p>
+                      <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 14, fontWeight: 700, color: bundle.color, marginBottom: 4 }}>{item.price}</p>
+                      <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(242,242,240,0.5)" }}>Amazon →</p>
                     </div>
                   </a>
                 ))}
@@ -181,13 +181,13 @@ export default function GearPage() {
 
         {/* Individual products */}
         <div style={{ marginBottom: 80 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 32 }}>Shop by category</p>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", marginBottom: 32 }}>Shop by category</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 3 }}>
             {INDIVIDUAL.map(cat => (
-              <div key={cat.category} style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, overflow: "hidden" }}>
+              <div key={cat.category} style={{ background: "#232428", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
                 <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 18 }}>{cat.emoji}</span>
-                  <span style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)" }}>{cat.category}</span>
+                  <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "rgba(242,242,240,0.65)" }}>{cat.category}</span>
                 </div>
                 {cat.products.map((p, i) => (
                   <a
@@ -199,10 +199,10 @@ export default function GearPage() {
                   >
                     <div style={{ flex: 1 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, color: "#F2F2F0", marginBottom: 2 }}>{p.name}</p>
-                      <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{p.tagline}</p>
+                      <p style={{ fontSize: 11, color: "rgba(242,242,240,0.55)" }}>{p.tagline}</p>
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ fontFamily: "monospace", fontSize: 13, color: "#F0B429", fontWeight: 700 }}>{p.price}</p>
+                      <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 13, color: "#F0B429", fontWeight: 700 }}>{p.price}</p>
                     </div>
                   </a>
                 ))}
@@ -212,9 +212,9 @@ export default function GearPage() {
         </div>
 
         {/* The one rule */}
-        <div style={{ background: "rgba(240,180,41,0.05)", border: "1px solid rgba(240,180,41,0.15)", borderRadius: 12, padding: "32px 40px", marginBottom: 48 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(240,180,41,0.5)", marginBottom: 12 }}>The one rule</p>
-          <h3 style={{ fontFamily: "Georgia,serif", fontSize: 24, fontWeight: 300, color: "#fff", marginBottom: 12, lineHeight: 1.1 }}>
+        <div style={{ background: "rgba(240,180,41,0.05)", border: "1px solid rgba(240,180,41,0.15)", borderRadius: 6, padding: "32px 40px", marginBottom: 48 }}>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(240,180,41,0.5)", marginBottom: 12 }}>The one rule</p>
+          <h3 style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: 24, fontWeight: 300, color: "#fff", marginBottom: 12, lineHeight: 1.1 }}>
             Audio first. Always.
           </h3>
           <p style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", lineHeight: 1.75, maxWidth: 560, margin: 0 }}>
@@ -225,7 +225,7 @@ export default function GearPage() {
 
         {/* CTA */}
         <div style={{ textAlign: "center" }}>
-          <p style={{ fontFamily: "Georgia,serif", fontSize: 28, fontWeight: 300, color: "#fff", marginBottom: 12 }}>
+          <p style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: 28, fontWeight: 300, color: "#fff", marginBottom: 12 }}>
             Got your setup? <em style={{ color: "#F0B429" }}>Your stage is waiting.</em>
           </p>
           <a href="/dashboard" style={{ display: "inline-block", background: "#F0B429", color: "#09090C", fontFamily: "var(--font-mono, 'DM Mono', monospace)", fontWeight: 500, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", padding: "15px 36px", borderRadius: 4, textDecoration: "none" }}>

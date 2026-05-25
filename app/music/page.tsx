@@ -96,20 +96,20 @@ export default function MusicPage() {
 
         {/* Header */}
         <div style={{ marginBottom: 56 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Music licensing guide</p>
-          <h1 style={{ fontFamily: "Georgia,serif", fontSize: "clamp(34px,5vw,54px)", fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 16 }}>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", marginBottom: 8 }}>Music licensing guide</p>
+          <h1 style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: "clamp(34px,5vw,54px)", fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 16 }}>
             Never get a copyright<br /><em style={{ color: "#F0B429" }}>strike again.</em>
           </h1>
-          <p style={{ fontSize: 16, color: "rgba(255,255,255,0.5)", lineHeight: 1.75, maxWidth: 580 }}>
+          <p style={{ fontSize: 16, color: "rgba(242,242,240,0.65)", lineHeight: 1.75, maxWidth: 580 }}>
             The biggest legal risk for creators is music. One background song can trigger a strike, demonetize a video, or end a channel. Here&apos;s the complete guide to licensing it right.
           </p>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 16, fontFamily: "monospace", letterSpacing: ".06em" }}>
+          <p style={{ fontSize: 11, color: "rgba(242,242,240,0.45)", marginTop: 16, fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: ".06em" }}>
             DISCLOSURE: We may earn a commission on referrals at no extra cost to you.
           </p>
         </div>
 
         {/* Warning banner */}
-        <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10, padding: "20px 24px", marginBottom: 48, display: "flex", alignItems: "flex-start", gap: 14 }}>
+        <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 6, padding: "20px 24px", marginBottom: 48, display: "flex", alignItems: "flex-start", gap: 14 }}>
           <span style={{ fontSize: 20, flexShrink: 0 }}>⚠️</span>
           <div>
             <p style={{ fontSize: 14, fontWeight: 700, color: "#F87171", marginBottom: 4 }}>Spotify, Apple Music, and streaming platforms are not licensed for creator use.</p>
@@ -122,14 +122,14 @@ export default function MusicPage() {
         {/* Platform cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 3, marginBottom: 72 }}>
           {PLATFORMS.map((p, i) => (
-            <div key={i} style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, overflow: "hidden" }}>
+            <div key={i} style={{ background: "#232428", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, overflow: "hidden" }}>
               <div style={{ padding: "28px 32px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-                      <h2 style={{ fontFamily: "Georgia,serif", fontSize: 22, fontWeight: 400, color: "#fff" }}>{p.name}</h2>
+                      <h2 style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: 22, fontWeight: 400, color: "#fff" }}>{p.name}</h2>
                       {p.badge && (
-                        <span style={{ fontFamily: "monospace", fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: p.badgeColor, background: `${p.badgeColor}15`, border: `1px solid ${p.badgeColor}30`, padding: "3px 10px", borderRadius: 3 }}>
+                        <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 9, letterSpacing: ".12em", textTransform: "uppercase", color: p.badgeColor, background: `${p.badgeColor}15`, border: `1px solid ${p.badgeColor}30`, padding: "3px 10px", borderRadius: 3 }}>
                           {p.badge}
                         </span>
                       )}
@@ -137,9 +137,9 @@ export default function MusicPage() {
                     <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{p.tagline}</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ fontFamily: "monospace", fontSize: 13, color: "#F0B429", fontWeight: 700, marginBottom: 8 }}>{p.price}</p>
+                    <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 13, color: "#F0B429", fontWeight: 700, marginBottom: 8 }}>{p.price}</p>
                     <a href={p.affiliate} target="_blank" rel="noopener noreferrer nofollow"
-                      style={{ display: "inline-block", background: p.name === "YouTube Audio Library" ? "rgba(255,255,255,0.06)" : "#F0B429", color: p.name === "YouTube Audio Library" ? "rgba(255,255,255,0.7)" : "#09090C", fontWeight: 700, fontSize: 12, padding: "9px 20px", borderRadius: 999, textDecoration: "none", border: p.name === "YouTube Audio Library" ? "1px solid rgba(255,255,255,0.1)" : "none" }}>
+                      style={{ display: "inline-block", background: p.name === "YouTube Audio Library" ? "rgba(255,255,255,0.06)" : "#F0B429", color: p.name === "YouTube Audio Library" ? "rgba(255,255,255,0.7)" : "#09090C", fontWeight: 700, fontSize: 12, padding: "9px 20px", borderRadius: 4, textDecoration: "none", border: p.name === "YouTube Audio Library" ? "1px solid rgba(255,255,255,0.1)" : "none" }}>
                       {p.name === "YouTube Audio Library" ? "Open free library" : "Try it free →"}
                     </a>
                   </div>
@@ -154,8 +154,8 @@ export default function MusicPage() {
                 </div>
               </div>
               <div style={{ padding: "14px 32px", background: "rgba(255,255,255,0.01)" }}>
-                <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
-                  <span style={{ color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>Best for: </span>
+                <p style={{ fontSize: 12, color: "rgba(242,242,240,0.55)" }}>
+                  <span style={{ color: "rgba(242,242,240,0.65)", fontWeight: 600 }}>Best for: </span>
                   {p.bestFor}
                 </p>
               </div>
@@ -165,26 +165,26 @@ export default function MusicPage() {
 
         {/* FAQ */}
         <div style={{ marginBottom: 64 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 24 }}>Common questions</p>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", marginBottom: 24 }}>Common questions</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {FAQ.map((item, i) => (
-              <div key={i} style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "20px 24px" }}>
+              <div key={i} style={{ background: "#232428", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "20px 24px" }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#F2F2F0", marginBottom: 8 }}>{item.q}</p>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.7 }}>{item.a}</p>
+                <p style={{ fontSize: 13, color: "rgba(242,242,240,0.65)", lineHeight: 1.7 }}>{item.a}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Bottom CTAs */}
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", padding: "40px 0", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-          <Link href="/gear" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.5)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999 }}>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", padding: "40px 0", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+          <Link href="/gear" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "rgba(242,242,240,0.65)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4 }}>
             📦 Creator gear guide
           </Link>
-          <Link href="/tools" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "rgba(255,255,255,0.5)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999 }}>
+          <Link href="/tools" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "rgba(242,242,240,0.65)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4 }}>
             ⚡ Software toolkit
           </Link>
-          <Link href="/signup" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#F0B429", color: "#09090C", fontSize: 13, fontWeight: 700, textDecoration: "none", padding: "10px 24px", borderRadius: 999 }}>
+          <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#F0B429", color: "#09090C", fontSize: 13, fontWeight: 700, textDecoration: "none", padding: "10px 24px", borderRadius: 4 }}>
             Start earning on Spotlightly →
           </Link>
         </div>

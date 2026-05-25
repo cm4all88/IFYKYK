@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import Footer from "@/components/Footer";
+import CreatorFooter from "@/components/CreatorFooter";
 import SuccessBanner from "./SuccessBanner";
 import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
@@ -867,7 +868,7 @@ export default async function CreatorPage(props: {
           }
         `}</style>
       </main>
-      <Footer />
+      <CreatorFooter />
     </>
   );
 }
