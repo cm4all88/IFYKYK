@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'creator_id required' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('social_posts')
     .select('*')
     .eq('creator_id', creatorId)
@@ -30,18 +30,18 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
-  // PATCH (toggle pin) — detected by presence of id + pinned fields only
+  const { data: profile } = await (supabase as any)
+    .from('creator_profiles')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .single()
+
+  if (!profile) return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
+
+  // PATCH (toggle pin) — detected by presence of id + pinned, no url
   if (body.id && typeof body.pinned === 'boolean' && !body.url) {
-    const { data: profile } = await (supabase as any)
-      .from('creator_profiles')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .single()
-
-    if (!profile) return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
-
-    const { error } = await supabase
-      .from('social_posts' as any)
+    const { error } = await (supabase as any)
+      .from('social_posts')
       .update({ pinned: body.pinned })
       .eq('id', body.id)
       .eq('creator_id', profile.id)
@@ -53,16 +53,8 @@ export async function POST(req: NextRequest) {
   // Normal POST — add new social post
   const { url, platform, oembed_html, caption, thumbnail_url, original_posted_at } = body
 
-  const { data: profile } = await (supabase as any)
-    .from('creator_profiles')
-    .select('id')
-    .eq('user_id', session.user.id)
-    .single()
-
-  if (!profile) return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
-
-  const { data, error } = await supabase
-    .from('social_posts' as any)
+  const { data, error } = await (supabase as any)
+    .from('social_posts')
     .insert({
       creator_id: profile.id,
       url,
@@ -97,8 +89,8 @@ export async function DELETE(req: NextRequest) {
 
   if (!profile) return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
 
-  const { error } = await supabase
-    .from('social_posts' as any)
+  const { error } = await (supabase as any)
+    .from('social_posts')
     .delete()
     .eq('id', postId)
     .eq('creator_id', profile.id)
