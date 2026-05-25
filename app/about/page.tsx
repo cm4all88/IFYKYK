@@ -69,7 +69,7 @@ export default function AboutPage() {
           </div>
 
           <div style={{ marginTop:"var(--s-10)", display:"flex", gap:"var(--s-4)", flexWrap:"wrap" }}>
-            <Link href="/signup" className="btn btn--primary">Claim your handle →</Link>
+            <Link href="/dashboard" className="btn btn--primary">Go to your stage →</Link>
             <Link href="/terms" className="btn btn--secondary">Terms of Service</Link>
             <Link href="/privacy" className="btn btn--secondary">Privacy Policy</Link>
           </div>

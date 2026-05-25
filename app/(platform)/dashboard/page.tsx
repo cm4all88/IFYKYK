@@ -50,7 +50,7 @@ export default function DashboardPage() {
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "settings"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "digital", "tiers", "store", "refer", "social", "settings"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -385,7 +385,7 @@ export default function DashboardPage() {
             <ModerationPane profile={spotlight} />
           )}
           {pane === "blocks" && active && (
-            <div className="pane"><p className="kicker">Block List</p><h1 className="pane-title">Blocked contacts.</h1><p style={{ color:"var(--muted)", fontSize:13, marginTop:"var(--s-4)" }}>Pre-emptively block fans from contacting you by email or phone hash.</p></div>
+            <BlockPane profile={active} />
           )}
           {pane === "messages" && active && (
             <MessagesPane profile={active} />
@@ -3243,6 +3243,182 @@ function PaneButton({
 // ──────────────────────────────────────────────────────────────────
 // Styles
 // ──────────────────────────────────────────────────────────────────
+
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Block List
+// ──────────────────────────────────────────────────────────────────
+function BlockPane({ profile }: { profile: Profile }) {
+  const [blocks, setBlocks] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [contactType, setContactType] = React.useState("email");
+  const [contactValue, setContactValue] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [adding, setAdding] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  const TYPES = [
+    { id: "email",  label: "Email address",  placeholder: "fan@example.com",   hint: "Hashed for privacy — exact match only" },
+    { id: "phone",  label: "Phone number",   placeholder: "+1 555 000 0000",    hint: "Hashed for privacy — digits only matched" },
+    { id: "handle", label: "Handle / username", placeholder: "@username",       hint: "Their Spotlightly handle or social username" },
+    { id: "name",   label: "Name",           placeholder: "Full name",          hint: "Block by display name" },
+    { id: "region", label: "Region",         placeholder: "e.g. Texas, US or Germany", hint: "Block all signups from a country or state" },
+  ];
+
+  React.useEffect(() => {
+    fetch(`/api/blocks?creatorProfileId=${profile.id}`)
+      .then(r => r.json())
+      .then(d => { setBlocks(d.blocks ?? []); setLoading(false); });
+  }, [profile.id]);
+
+  async function addBlock() {
+    if (!contactValue.trim()) return;
+    setAdding(true);
+    setErr(null);
+    const res = await fetch("/api/blocks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creatorProfileId: profile.id,
+        contactType,
+        contactValue: contactValue.trim(),
+        note: note.trim() || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setErr(data.error); setAdding(false); return; }
+    setBlocks(prev => [data.block, ...prev]);
+    setContactValue("");
+    setNote("");
+    setAdding(false);
+  }
+
+  async function removeBlock(id: string) {
+    await fetch("/api/blocks", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ blockId: id }),
+    });
+    setBlocks(prev => prev.filter(b => b.id !== id));
+  }
+
+  const currentType = TYPES.find(t => t.id === contactType)!;
+
+  const typeColors: Record<string, string> = {
+    email: "rgba(96,165,250,0.8)",
+    phone: "rgba(52,211,153,0.8)",
+    handle: "rgba(242,184,75,0.8)",
+    name: "rgba(192,132,252,0.8)",
+    region: "rgba(251,146,60,0.8)",
+  };
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Block List</p>
+        <h1 className="pane-title">Blocked <em>contacts.</em></h1>
+        <p className="pane-lede">Pre-emptively block anyone from contacting or subscribing. Useful for known bad actors before they sign up.</p>
+      </div>
+
+      {/* Add block form */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderTop: "2px solid var(--accent)", padding: "28px 32px", marginBottom: 2 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 16 }}>Add to block list</p>
+
+        {/* Type selector */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+          {TYPES.map(t => (
+            <button key={t.id} type="button" onClick={() => { setContactType(t.id); setContactValue(""); }}
+              style={{
+                padding: "6px 14px", borderRadius: "var(--r-2)", border: "1px solid",
+                borderColor: contactType === t.id ? "rgba(242,184,75,0.4)" : "var(--border)",
+                background: contactType === t.id ? "rgba(242,184,75,0.08)" : "var(--surface-2)",
+                color: contactType === t.id ? "var(--accent)" : "var(--muted)",
+                fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em",
+                textTransform: "uppercase", cursor: "pointer", transition: "all 0.12s",
+              }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", marginBottom: 12, letterSpacing: "0.04em" }}>
+          {currentType.hint}
+        </p>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <input
+            type="text"
+            value={contactValue}
+            onChange={e => setContactValue(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") addBlock(); }}
+            placeholder={currentType.placeholder}
+            style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", color: "var(--text)", fontSize: 14, outline: "none", fontFamily: "inherit" }}
+          />
+          <button onClick={addBlock} disabled={adding || !contactValue.trim()}
+            className="btn btn--primary" style={{ flexShrink: 0, opacity: adding || !contactValue.trim() ? 0.45 : 1 }}>
+            {adding ? "Adding…" : "Block"}
+          </button>
+        </div>
+
+        <input
+          type="text"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder="Note (optional) — why you're blocking this contact"
+          style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "9px 14px", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit" }}
+        />
+
+        {err && <p style={{ fontSize: 12, color: "var(--red)", marginTop: 10 }}>{err}</p>}
+      </div>
+
+      {/* Block list */}
+      {loading && <p style={{ color: "var(--muted)", fontSize: 13, padding: "20px 0" }}>Loading…</p>}
+
+      {!loading && blocks.length === 0 && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "40px 32px", textAlign: "center" }}>
+          <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontStyle: "italic", color: "#fff", marginBottom: 8 }}>No blocks yet.</p>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>Add email addresses, phone numbers, handles, names, or regions above.</p>
+        </div>
+      )}
+
+      {!loading && blocks.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {blocks.map(b => (
+            <div key={b.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.14em",
+                    textTransform: "uppercase", color: typeColors[b.contact_type] || "var(--muted)",
+                    background: `${typeColors[b.contact_type] || "var(--muted)"}15`,
+                    padding: "2px 8px", borderRadius: "var(--r-1)",
+                  }}>
+                    {b.contact_type}
+                  </span>
+                  <span style={{ fontSize: 14, color: "var(--text)", fontFamily: b.contact_type === "email" || b.contact_type === "phone" ? "var(--font-mono)" : "inherit" }}>
+                    {b.display_hint}
+                  </span>
+                </div>
+                {b.note && (
+                  <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>{b.note}</p>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", letterSpacing: "0.06em" }}>
+                  {new Date(b.created_at).toLocaleDateString()}
+                </span>
+                <button onClick={() => removeBlock(b.id)}
+                  style={{ background: "none", border: "1px solid rgba(248,113,113,0.2)", borderRadius: "var(--r-1)", padding: "4px 10px", color: "rgba(248,113,113,0.6)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DashboardStyles() {
   return (

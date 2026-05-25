@@ -228,9 +228,8 @@ export default function GearPage() {
           <p style={{ fontFamily: "Georgia,serif", fontSize: 28, fontWeight: 300, color: "#fff", marginBottom: 12 }}>
             Got your setup? <em style={{ color: "#F0B429" }}>Your stage is waiting.</em>
           </p>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.45)", marginBottom: 28 }}>Start your 30-day free trial — no card required.</p>
-          <a href="/signup" style={{ display: "inline-block", background: "#F0B429", color: "#09090C", fontWeight: 700, fontSize: 14, padding: "14px 36px", borderRadius: 999, textDecoration: "none" }}>
-            Claim your handle →
+          <a href="/dashboard" style={{ display: "inline-block", background: "#F0B429", color: "#09090C", fontFamily: "var(--font-mono, 'DM Mono', monospace)", fontWeight: 500, fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", padding: "15px 36px", borderRadius: 4, textDecoration: "none" }}>
+            Go to your stage →
           </a>
         </div>
 

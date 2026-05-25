@@ -55,6 +55,12 @@ Reply with ONLY valid JSON: {"honest": true} or {"honest": false, "reason": "one
   }
 }
 
+// Wrap any async call with a timeout — if it takes too long, return the fallback
+async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  const timeout = new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms));
+  return Promise.race([promise, timeout]);
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -73,9 +79,13 @@ export async function POST(req: NextRequest) {
 
   // ── Content moderation gate ─────────────────────────────────────
   if (caption?.trim()) {
-    const mod = await moderateChatMessage(caption.trim(), {
-      creatorType: profile.kind === "backstage" ? "backstage" : "spotlight",
-    });
+    const mod = await withTimeout(
+      moderateChatMessage(caption.trim(), {
+        creatorType: profile.kind === "backstage" ? "backstage" : "spotlight",
+      }),
+      5000,
+      { allowed: true, reason: "" }
+    );
     if (!(mod as any).allowed) {
       await (supabase as any).from("moderation_events").insert({
         creator_id: creatorProfileId,
@@ -92,11 +102,10 @@ export async function POST(req: NextRequest) {
   // Only runs when creator is charging for a specific post.
   // Checks that the description isn't misleading buyers.
   if (lockType === "purchase" && unlockPrice > 0 && caption?.trim()) {
-    const honesty = await verifyLockedPostDescription(
-      caption.trim(),
-      unlockPrice,
-      mediaType ?? null,
-      profile.kind
+    const honesty = await withTimeout(
+      verifyLockedPostDescription(caption.trim(), unlockPrice, mediaType ?? null, profile.kind),
+      5000,
+      { honest: true, reason: "" }
     );
     if (!honesty.honest) {
       return NextResponse.json({

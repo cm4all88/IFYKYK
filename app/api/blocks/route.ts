@@ -6,19 +6,56 @@ function hashContact(value: string) {
   return createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
 }
 
-function makeHint(value: string, type: "email" | "phone"): string {
+function makeHint(value: string, type: string): string {
   if (type === "email") {
     const [local, domain] = value.split("@");
-    if (!domain) return "•••";
+    if (!domain) return value;
     const masked = local.charAt(0) + "•".repeat(Math.min(local.length - 1, 4));
     return `${masked}@${domain}`;
   }
-  // Phone: keep last 4 digits
-  const digits = value.replace(/\D/g, "");
-  return "•••-" + digits.slice(-4);
+  if (type === "phone") {
+    const digits = value.replace(/\D/g, "");
+    return "•••-" + digits.slice(-4);
+  }
+  // name, handle, region — store as-is, no hashing needed
+  return value.trim();
 }
 
-// POST — add a contact to the block list
+const VALID_TYPES = ["email", "phone", "name", "handle", "region"];
+
+async function getProfile(supabase: any, userId: string, creatorProfileId: string) {
+  const { data } = await supabase
+    .from("creator_profiles")
+    .select("id")
+    .eq("id", creatorProfileId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data;
+}
+
+// GET — list all blocks for a creator profile
+export async function GET(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const creatorProfileId = req.nextUrl.searchParams.get("creatorProfileId");
+  if (!creatorProfileId) return NextResponse.json({ error: "Missing creatorProfileId" }, { status: 400 });
+
+  const profile = await getProfile(supabase as any, user.id, creatorProfileId);
+  if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+
+  const { data, error } = await (supabase as any)
+    .from("creator_contact_blocks")
+    .select("*")
+    .eq("creator_profile_id", creatorProfileId)
+    .order("created_at", { ascending: false });
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ blocks: data ?? [] });
+}
+
+// POST — add a block
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -26,24 +63,22 @@ export async function POST(req: NextRequest) {
 
   const { creatorProfileId, contactType, contactValue, note } = await req.json();
 
-  if (!creatorProfileId || !contactType || !contactValue) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  if (!creatorProfileId || !contactType || !contactValue?.trim()) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
-  if (!["email", "phone"].includes(contactType)) {
-    return NextResponse.json({ error: "contactType must be email or phone" }, { status: 400 });
+  if (!VALID_TYPES.includes(contactType)) {
+    return NextResponse.json({ error: `contactType must be one of: ${VALID_TYPES.join(", ")}` }, { status: 400 });
   }
 
-  // Verify this creator profile belongs to the user
-  const { data: profile } = await (supabase as any)
-    .from("creator_profiles")
-    .select("id")
-    .eq("id", creatorProfileId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const profile = await getProfile(supabase as any, user.id, creatorProfileId);
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
-  const hash = hashContact(contactValue);
-  const hint = makeHint(contactValue, contactType as "email" | "phone");
+  // Hash sensitive types, store plain for others
+  const shouldHash = ["email", "phone"].includes(contactType);
+  const hash = shouldHash
+    ? hashContact(contactValue)
+    : hashContact(contactValue); // still hash for dedup
+  const hint = makeHint(contactValue, contactType);
 
   const { data, error } = await (supabase as any)
     .from("creator_contact_blocks")
@@ -61,7 +96,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ block: data });
 }
 
-// DELETE — remove a contact block by id
+// DELETE — remove a block by id
 export async function DELETE(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
