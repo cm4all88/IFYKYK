@@ -175,13 +175,13 @@ export default function CreatorStageClient({
           {bgImage && (
             <img src={bgImage} alt="" style={{
               position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover", opacity: 0.55, filter: "saturate(0.8)",
+              objectFit: "cover", opacity: 0.85, filter: "saturate(1)",
             }} />
           )}
           <div style={{
             position: "absolute", inset: 0,
             background: bgImage
-              ? "linear-gradient(to bottom, rgba(9,9,12,0.3) 0%, rgba(9,9,12,0.15) 40%, rgba(9,9,12,0.5) 80%, rgba(9,9,12,0.85) 100%)"
+              ? "linear-gradient(to bottom, rgba(9,9,12,0.4) 0%, rgba(9,9,12,0.1) 20%, rgba(9,9,12,0.1) 75%, rgba(9,9,12,0.7) 100%)"
               : "radial-gradient(ellipse 70% 70% at 50% 40%, rgba(242,184,75,0.06), transparent 70%)",
           }} />
           {/* Floor glow */}
@@ -207,16 +207,16 @@ export default function CreatorStageClient({
               )}
             </div>
             <div style={{ textAlign: "left" }}>
-              <h1 style={{ fontFamily: serif, fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 300, color: "#fff", lineHeight: 1, letterSpacing: "-0.02em", margin: "0 0 4px" }}>
+              <h1 style={{ fontFamily: serif, fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 300, color: "#ffffff", lineHeight: 1, letterSpacing: "-0.02em", margin: "0 0 4px" }}>
                 {displayName}
               </h1>
-              <p style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.12em", color: "rgba(242,184,75,0.6)", margin: 0 }}>@{handle}</p>
+              <p style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.12em", color: "rgba(242,184,75,0.95)", margin: 0 }}>@{handle}</p>
             </div>
           </div>
 
           {/* Bio + actions ABOVE screen */}
           {bio && (
-            <p style={{ fontSize: 14, color: "rgba(242,242,240,0.55)", lineHeight: 1.7, maxWidth: 560, margin: "0 0 16px" }}>
+            <p style={{ fontSize: 15, color: "rgba(255,255,255,0.9)", lineHeight: 1.7, maxWidth: 560, margin: "0 0 16px", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
               {bio}
             </p>
           )}
@@ -315,7 +315,7 @@ export default function CreatorStageClient({
       {/* Posts section */}
       {visiblePosts.length > 0 && (
         <div style={{ background: "transparent", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "24px 0 8px" }}>
+          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", textAlign: "center", padding: "24px 0 8px" }}>
             {filteredPosts.length} post{filteredPosts.length !== 1 ? "s" : ""}
           </p>
 
@@ -328,7 +328,7 @@ export default function CreatorStageClient({
                     placeholder="Search posts…" style={{
                       width: "100%", background: "rgba(255,255,255,0.05)",
                       border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
-                      padding: "10px 16px 10px 40px", color: "#F2F2F0", fontSize: 14,
+                      padding: "10px 16px 10px 40px", color: "#ffffff", fontSize: 14,
                       outline: "none", fontFamily: "inherit",
                     }} />
                   <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14, opacity: 0.4 }}>🔍</span>
@@ -442,14 +442,14 @@ export default function CreatorStageClient({
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
                           {p.tags.slice(0, 3).map(tag => (
                             <button key={tag} onClick={e => { e.stopPropagation(); setActiveTag(activeTag === tag ? null : tag); setActiveIdx(0); }}
-                              style={{ padding: "2px 8px", borderRadius: 3, background: "rgba(242,184,75,0.06)", border: "1px solid rgba(242,184,75,0.12)", color: "rgba(242,184,75,0.6)", fontFamily: mono, fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
+                              style={{ padding: "2px 8px", borderRadius: 3, background: "rgba(242,184,75,0.06)", border: "1px solid rgba(242,184,75,0.12)", color: "rgba(242,184,75,0.9)", fontFamily: mono, fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", cursor: "pointer" }}>
                               {tag}
                             </button>
                           ))}
                         </div>
                       )}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontFamily: mono, fontSize: 10, color: "rgba(255,255,255,0.25)", letterSpacing: "0.06em" }}>
+                        <span style={{ fontFamily: mono, fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
                           {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </span>
                         {canView && (
