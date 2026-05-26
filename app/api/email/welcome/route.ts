@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendEmail } from "@/lib/email";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
     const { email } = await req.json();
     if (!email) return NextResponse.json({ ok: false });
 
-    await sendEmail({
+    await sendWelcomeEmail({
       to: email,
       subject: "Welcome to Spotlightly — your stage is ready",
       html: `
