@@ -544,13 +544,27 @@ export default async function CreatorPage(props: {
                             )}
                             {p.media_url && p.media_type === "video" && (
                               p.media_url.includes("iframe.mediadelivery.net") ? (
-                                <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: "var(--r-2)", overflow: "hidden", marginBottom: "var(--s-3)" }}>
+                                <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: "var(--r-2)", overflow: "hidden", marginBottom: "var(--s-3)", background: "#0a0a0f" }}>
                                   <iframe
-                                    src={p.media_url}
+                                    src={`${p.media_url}&responsive=true`}
                                     style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
                                     allowFullScreen
+                                    loading="lazy"
                                   />
+                                  {/* Processing overlay — hidden once iframe loads video */}
+                                  <div style={{
+                                    position: "absolute", inset: 0,
+                                    display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 10,
+                                    background: "rgba(10,10,15,0.85)", pointerEvents: "none", zIndex: 1,
+                                  }}
+                                    className="video-processing-overlay"
+                                  >
+                                    <div style={{ fontSize: 28 }}>🎬</div>
+                                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(242,184,75,0.7)", margin: 0 }}>
+                                      Video processing — ready shortly
+                                    </p>
+                                  </div>
                                 </div>
                               ) : (
                                 <video src={p.media_url} className="cp-post-media" controls style={{ width: "100%", borderRadius: "var(--r-2)" }} />
