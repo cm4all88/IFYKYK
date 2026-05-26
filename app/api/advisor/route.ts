@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
 const SYSTEM = `You are the Spotlightly creator advisor — warm, direct, specific. You help new creators understand exactly how Spotlightly works for their situation.
@@ -28,10 +27,6 @@ Starter $29/mo (0-100 subs) · Growth $79/mo (101-500) · Pro $249/mo (501-2500)
 TONE: Warm, smart friend — not a FAQ page. Use their name. Give real numbers. Never say "our platform" or "we offer." Say "Spotlightly" or just talk about the features directly.`;
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const { messages, profile } = await req.json();
 
   const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);
