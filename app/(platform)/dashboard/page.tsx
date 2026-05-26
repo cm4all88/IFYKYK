@@ -1936,6 +1936,14 @@ function BillingPane() {
     else { alert(d.error ?? "Could not open billing portal"); setOpeningPortal(false); }
   }
 
+  async function addPaymentMethod() {
+    setOpeningPortal(true);
+    const res = await fetch("/api/billing/setup", { method: "POST" });
+    const d = await res.json();
+    if (d.url) window.location.href = d.url;
+    else { alert(d.error ?? "Could not open payment setup"); setOpeningPortal(false); }
+  }
+
   const TIER_ORDER = ["starter", "growth", "pro", "scale", "legend"];
   const TIER_INFO: Record<string, { name: string; maxSubs: number; priceUsd: number; label: string }> = {
     starter: { name: "Starter",  maxSubs: 100,      priceUsd: 29,    label: "Up to 100 subscribers" },
@@ -1984,9 +1992,21 @@ function BillingPane() {
             </div>
 
             {/* Trial warning */}
-            {data.billing.status === "trial" && data.trialDaysLeft <= 7 && (
-              <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", marginBottom: "var(--s-5)", fontSize: 13, color: "rgba(248,113,113,0.9)", lineHeight: 1.6 }}>
-                Your trial ends in <strong>{data.trialDaysLeft} days</strong>. Add a payment method now to keep your account active.
+            {data.billing.status === "trial" && (
+              <div style={{
+                background: data.trialDaysLeft <= 7 ? "rgba(248,113,113,0.06)" : "rgba(242,184,75,0.04)",
+                border: `1px solid ${data.trialDaysLeft <= 7 ? "rgba(248,113,113,0.2)" : "rgba(242,184,75,0.15)"}`,
+                borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", marginBottom: "var(--s-5)",
+              }}>
+                <p style={{ fontSize: 13, color: data.trialDaysLeft <= 7 ? "rgba(248,113,113,0.9)" : "var(--text-soft)", lineHeight: 1.6, margin: "0 0 12px" }}>
+                  {data.trialDaysLeft > 0
+                    ? <>Your free trial ends in <strong>{data.trialDaysLeft} day{data.trialDaysLeft !== 1 ? "s" : ""}</strong>. Add a payment method to keep your account active.</>
+                    : <>Your trial has ended. Add a payment method to reactivate your account.</>
+                  }
+                </p>
+                <button onClick={addPaymentMethod} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 12 }}>
+                  {openingPortal ? "Opening…" : "Add payment method →"}
+                </button>
               </div>
             )}
 

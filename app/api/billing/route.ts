@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
-import { tierForCount, getPriceId, TIERS, type TierKey } from "@/lib/billing";
+import { tierForCount, getPriceId, TIERS, type TierKey, getOrCreateStripePrices } from "@/lib/billing";
 
 // GET — return current billing status for the logged-in creator
 export async function GET() {
@@ -76,6 +76,9 @@ export async function POST(req: NextRequest) {
       .select().single();
     return NextResponse.json({ billing });
   }
+
+  // Ensure Stripe prices exist for all tiers (creates them if missing)
+  try { await getOrCreateStripePrices(STRIPE_SECRET_KEY); } catch { /* non-fatal */ }
 
   // Create Stripe customer
   const customerParams = new URLSearchParams({
