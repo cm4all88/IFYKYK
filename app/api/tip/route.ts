@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { createNotification } from "@/lib/notify";
-import { createNotification } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
