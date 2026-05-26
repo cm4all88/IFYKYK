@@ -3174,6 +3174,146 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
 }
 
 // ──────────────────────────────────────────────────────────────────
+// PANE: Social — Posts + Add-backs
+// ──────────────────────────────────────────────────────────────────
+function SocialPane({ profile }: { profile: Profile }) {
+  const supabase = createClient();
+  const [tab, setTab] = React.useState<"posts" | "addbacks">("posts");
+  const [addbacks, setAddbacks] = React.useState<any[]>([]);
+  const [loadingAb, setLoadingAb] = React.useState(true);
+  const [platform, setPlatform] = React.useState("instagram");
+  const [priceUsd, setPriceUsd] = React.useState("9.99");
+  const [description, setDescription] = React.useState("");
+  const [deliveryDays, setDeliveryDays] = React.useState("3");
+  const [saving, setSaving] = React.useState(false);
+
+  const PLATFORMS = [
+    { id: "instagram", label: "Instagram", emoji: "📷" },
+    { id: "tiktok",    label: "TikTok",    emoji: "🎵" },
+    { id: "youtube",   label: "YouTube",   emoji: "▶️" },
+    { id: "twitter",   label: "X / Twitter", emoji: "🐦" },
+    { id: "twitch",    label: "Twitch",    emoji: "💜" },
+    { id: "discord",   label: "Discord",   emoji: "🎮" },
+    { id: "spotify",   label: "Spotify",   emoji: "🎧" },
+  ];
+
+  async function loadAddbacks() {
+    setLoadingAb(true);
+    const res = await fetch(`/api/social-addbacks?profileId=${profile.id}`);
+    const data = await res.json();
+    setAddbacks(data.addbacks ?? []);
+    setLoadingAb(false);
+  }
+
+  React.useEffect(() => { if (tab === "addbacks") loadAddbacks(); }, [tab]);
+
+  async function createAddback() {
+    setSaving(true);
+    await fetch("/api/social-addbacks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileId: profile.id, platform, priceUsd: parseFloat(priceUsd), description, deliveryDays: parseInt(deliveryDays) }),
+    });
+    await loadAddbacks();
+    setDescription("");
+    setSaving(false);
+  }
+
+  async function removeAddback(id: string) {
+    await fetch("/api/social-addbacks", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    await loadAddbacks();
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Social</p>
+        <h1 className="pane-title">Your <em>social presence.</em></h1>
+        <p className="pane-lede">Show your social posts on your page, and sell follow-backs to your audience.</p>
+      </div>
+
+      <div style={{ display: "flex", gap: 2, marginBottom: "var(--s-7)", borderBottom: "1px solid var(--border)" }}>
+        {(["posts", "addbacks"] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
+            fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase",
+            color: tab === t ? "var(--accent)" : "var(--muted)",
+            borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent",
+          }}>
+            {t === "posts" ? "Social Posts" : "Sell Follow-Backs"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "posts" && <SocialPostsManager />}
+
+      {tab === "addbacks" && (
+        <div style={{ maxWidth: 600 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6)", marginBottom: "var(--s-5)" }}>
+            <p className="kicker" style={{ marginBottom: "var(--s-4)" }}>Add a follow-back listing</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: "var(--s-5)", lineHeight: 1.6 }}>
+              Fans pay to get a follow-back from you on any platform. You keep 100% — Spotlightly takes nothing on add-backs.
+            </p>
+
+            <div className="form-row" style={{ marginBottom: "var(--s-4)" }}>
+              <div className="form-field">
+                <label className="label">Platform</label>
+                <select value={platform} onChange={e => setPlatform(e.target.value)}
+                  style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", color: "var(--text)", fontSize: 14, outline: "none" }}>
+                  {PLATFORMS.map(p => <option key={p.id} value={p.id}>{p.emoji} {p.label}</option>)}
+                </select>
+              </div>
+              <div className="form-field">
+                <label className="label">Price (USD)</label>
+                <input className="input" type="number" min="1" step="0.01" value={priceUsd} onChange={e => setPriceUsd(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="form-row" style={{ marginBottom: "var(--s-4)" }}>
+              <div className="form-field">
+                <label className="label">Description (optional)</label>
+                <input className="input" placeholder="e.g. I'll follow you back on Instagram within 3 days" value={description} onChange={e => setDescription(e.target.value)} />
+              </div>
+              <div className="form-field">
+                <label className="label">Delivery (days)</label>
+                <input className="input" type="number" min="1" max="30" value={deliveryDays} onChange={e => setDeliveryDays(e.target.value)} />
+              </div>
+            </div>
+
+            <button onClick={createAddback} disabled={saving} className="btn btn--primary" style={{ fontSize: 12 }}>
+              {saving ? "Adding…" : "Add listing"}
+            </button>
+          </div>
+
+          {loadingAb ? (
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>
+          ) : addbacks.length === 0 ? (
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>No listings yet. Add one above.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {addbacks.map(ab => (
+                <div key={ab.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <div>
+                    <p style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 2px" }}>
+                      {PLATFORMS.find(p => p.id === ab.platform)?.emoji} {PLATFORMS.find(p => p.id === ab.platform)?.label} follow-back
+                    </p>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", margin: "0 0 2px" }}>${ab.price_usd} · {ab.delivery_days} day delivery</p>
+                    {ab.description && <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>{ab.description}</p>}
+                  </div>
+                  <button onClick={() => removeAddback(ab.id)} style={{ background: "none", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "var(--r-1)", padding: "5px 12px", color: "rgba(248,113,113,0.7)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
 // PANE: Settings — account-level (email, dangerous actions later)
 // ──────────────────────────────────────────────────────────────────
 

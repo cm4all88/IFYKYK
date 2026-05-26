@@ -18,6 +18,7 @@ import SuperTipButton from "./SuperTipButton";
 import CommentSection from "./CommentSection";
 import LivePlayer from "./LivePlayer";
 import CreatorStageClient from "./CreatorStageClient";
+import SocialAddbacks from "./SocialAddbacks";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -226,6 +227,7 @@ export default async function CreatorPage(props: {
             </a>
           )}
         </CreatorStageClient>
+        <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
 
         <style>{`
           /* ── Base ── */

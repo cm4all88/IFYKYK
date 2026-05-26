@@ -84,7 +84,8 @@ export default function TermsPage() {
             <p>We may update these Terms from time to time. We will notify you of material changes by email or through the platform. Continued use after changes take effect constitutes acceptance of the updated Terms.</p>
 
             <h2>16. Contact</h2>
-            <p>Questions about these Terms: <a href="mailto:legal@spotlightly.app">legal@spotlightly.app</a></p>
+            <p>Questions about these Terms: <a href="mailto:legal@spotlightly.app">legal@spotlightly.app</a><br />
+            Tahoma Systems LLC · PO Box 4444 · Seattle, WA 98104</p>
             <p>Tahoma Systems LLC · Seattle, Washington, USA</p>
 
           </div>

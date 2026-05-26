@@ -6,7 +6,85 @@ import { createClient } from "@/lib/supabase-client";
 
 const STEPS = ["Identity", "Handle", "Review"] as const;
 
+
+// Coming Soon overlay component
+function ComingSoonOverlay() {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 50,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      flexDirection: "column", gap: 24,
+      background: "rgba(9,9,12,0.92)",
+      backdropFilter: "blur(12px)",
+    }}>
+      <div style={{ position: "relative", textAlign: "center" }}>
+        {/* Stamp */}
+        <div style={{
+          position: "absolute", top: "50%", left: "50%",
+          transform: "translate(-50%, -50%) rotate(-15deg)",
+          border: "6px solid rgba(242,184,75,0.85)",
+          borderRadius: 8,
+          padding: "12px 28px",
+          whiteSpace: "nowrap",
+          zIndex: 2,
+        }}>
+          <p style={{
+            fontFamily: "'Arial Black', 'Impact', sans-serif",
+            fontSize: "clamp(32px, 6vw, 56px)",
+            fontWeight: 900,
+            color: "rgba(242,184,75,0.9)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            margin: 0,
+            textShadow: "0 0 30px rgba(242,184,75,0.4)",
+          }}>
+            Coming June 2025
+          </p>
+        </div>
+
+        {/* Background text */}
+        <p style={{
+          fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)",
+          fontSize: "clamp(48px, 8vw, 80px)",
+          fontWeight: 300,
+          color: "rgba(255,255,255,0.08)",
+          margin: 0,
+          letterSpacing: "-0.02em",
+          padding: "40px 60px",
+        }}>
+          COMING SOON
+        </p>
+      </div>
+
+      <p style={{
+        fontFamily: "var(--font-mono, DM Mono, monospace)",
+        fontSize: 12,
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        color: "rgba(255,255,255,0.35)",
+        margin: 0,
+      }}>
+        Something big is being built.
+      </p>
+
+      <a href="/dashboard" style={{
+        fontFamily: "var(--font-mono, DM Mono, monospace)",
+        fontSize: 11,
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        color: "rgba(242,184,75,0.7)",
+        textDecoration: "none",
+        marginTop: 8,
+      }}>
+        ← Back to dashboard
+      </a>
+    </div>
+  );
+}
+
 export default function BackstageSetupPage() {
+  return <ComingSoonOverlay />;
+  // eslint-disable-next-line no-unreachable
   const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState(0);
