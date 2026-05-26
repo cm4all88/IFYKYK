@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const { email } = await req.json();
     if (!email) return NextResponse.json({ ok: false });
 
-    await sendWelcomeEmail({
+    await sendWelcomeEmail(email, "");
       to: email,
       subject: "Welcome to Spotlightly — your stage is ready",
       html: `
