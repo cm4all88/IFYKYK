@@ -10,9 +10,9 @@
   /* Surfaces */
   --bg:          #17181B;
   --bg-elevated: #1E2024;
-  --surface:     #232428;
-  --surface-2:   #2A2D33;
-  --surface-3:   #2E3035;
+  --surface:     #1E2024;
+  --surface-2:   #252830;
+  --surface-3:   #2C2F38;
 
   /* Borders */
   --border:        rgba(255,255,255,0.07);
@@ -20,10 +20,10 @@
 
   /* Text */
   --text:        #F7F3EC;
-  --text-soft:   rgba(247,243,236,0.72);
-  --text-faint:  rgba(247,243,236,0.44);
-  --muted:       #A7A19A;
-  --muted-faint: #6B6560;
+  --text-soft:   rgba(247,243,236,0.88);
+  --text-faint:  rgba(247,243,236,0.65);
+  --muted:       #C8C4BE;
+  --muted-faint: #98948F;
 
   /* Accent — warm amber gold */
   --accent:        #F2B84B;
