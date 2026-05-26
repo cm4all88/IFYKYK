@@ -671,7 +671,7 @@ img { max-width: 100%; display: block; }
 .cp-post:hover { border-color:var(--border-strong); }
 .cp-post-media { width:100%; max-height:600px; object-fit:cover; border-radius:var(--r-1); margin-bottom:var(--s-4); }
 .cp-post-caption { font-size:15px; line-height:1.7; color:var(--text); margin:0 0 var(--s-3); white-space:pre-wrap; }
-.cp-post-meta { display:flex; gap:var(--s-4); font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.cp-post-meta { display:flex; gap:var(--s-4); font-family:var(--font-sans); font-size:12px; color:var(--muted); }
 .cp-post-lock { color:var(--accent); font-weight:500; }
 .cp-post--locked { border-color:rgba(240,180,41,0.12); }
 .cp-post-gate { position:relative; min-height:260px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:var(--surface-2); border-radius:var(--r-1); }

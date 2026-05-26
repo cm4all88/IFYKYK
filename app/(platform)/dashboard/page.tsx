@@ -223,83 +223,57 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Pane nav */}
+          {/* Pane nav — grouped sections */}
           <nav className="db-nav">
-            <PaneButton current={pane} target="overview" onClick={setPane}>
-              Overview
-            </PaneButton>
-            <PaneButton current={pane} target="profile" onClick={setPane}>
-              Profile
-            </PaneButton>
-            <PaneButton current={pane} target="posts" onClick={setPane}>
-              Posts
-            </PaneButton>
-            <PaneButton current={pane} target="advisor" onClick={setPane}>
-              ✦ Advisor
-            </PaneButton>
-            <PaneButton current={pane} target="channels" onClick={setPane}>
-              Channels
-            </PaneButton>
-            <PaneButton current={pane} target="analytics" onClick={setPane}>
-              Analytics
-            </PaneButton>
-            <PaneButton current={pane} target="fans" onClick={setPane}>
-              Fans
-            </PaneButton>
-            <PaneButton current={pane} target="campaigns" onClick={setPane}>
-              Campaigns
-            </PaneButton>
-            <PaneButton current={pane} target="wishlist" onClick={setPane}>
-              Wishlist
-            </PaneButton>
-            <PaneButton current={pane} target="store" onClick={setPane}>
-              Digital Store
-            </PaneButton>
-            <PaneButton current={pane} target="refer" onClick={setPane}>
-              Refer &amp; Earn
-            </PaneButton>
-            <PaneButton current={pane} target="billing" onClick={setPane}>
-              Billing
-            </PaneButton>
-            <PaneButton current={pane} target="social" onClick={setPane}>
-              Social Posts
-            </PaneButton>
-            {!backstage && (
-              <a href="/backstage-setup" style={{ display:"block", padding:"10px var(--s-4)", fontSize:13, color:"var(--accent-back)", borderRadius:"var(--r-2)", textDecoration:"none" }}>+ Add Backstage</a>
-            )}
-            <PaneButton current={pane} target="settings" onClick={setPane}>
-              Settings
-            </PaneButton>
-            <PaneButton current={pane} target="payments" onClick={setPane}>
-              Payments
-            </PaneButton>
-            <PaneButton current={pane} target="moderation" onClick={setPane}>
-              Moderation
-            </PaneButton>
-            <PaneButton current={pane} target="blocks" onClick={setPane}>
-              Block List
-            </PaneButton>
-            {isAdmin && (
-              <a href="/admin" style={{ display:"block", padding:"10px var(--s-4)", fontSize:13, color:"var(--muted)", borderRadius:"var(--r-2)", textDecoration:"none" }}>⚙ Admin →</a>
-            )}
 
-            <div style={{ margin: "var(--s-4) 0 var(--s-2)", padding: "0 0 var(--s-2)", borderBottom: "1px solid var(--border)" }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)" }}>Pages</span>
+            <div className="db-nav-section">
+              <PaneButton current={pane} target="overview" onClick={setPane}>Overview</PaneButton>
+              <PaneButton current={pane} target="profile" onClick={setPane}>Profile</PaneButton>
+              <PaneButton current={pane} target="posts" onClick={setPane}>Posts</PaneButton>
+              <PaneButton current={pane} target="channels" onClick={setPane}>Channels</PaneButton>
             </div>
-            {[
-              { href: "/messages", label: "Messages" },
-              { href: "/live", label: "Go Live" },
-              { href: "/merch", label: "Merch" },
-              { href: "/archive", label: "Archive" },
-              { href: "/help", label: "Help" },
-            ].map(item => (
-              <Link key={item.href} href={item.href} style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".08em", color: "var(--muted)", padding: "7px var(--s-4)", borderLeft: "2px solid transparent", transition: "all .15s" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--text)"; (e.currentTarget as HTMLAnchorElement).style.borderLeftColor = "var(--border-strong)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.color = "var(--muted)"; (e.currentTarget as HTMLAnchorElement).style.borderLeftColor = "transparent"; }}
-              >
-                {item.label}
-              </Link>
-            ))}
+
+            <div className="db-nav-label">Audience</div>
+            <div className="db-nav-section">
+              <PaneButton current={pane} target="fans" onClick={setPane}>Fans</PaneButton>
+              <Link href="/messages" className="db-nav-link">Messages</Link>
+              <PaneButton current={pane} target="campaigns" onClick={setPane}>Campaigns</PaneButton>
+              <PaneButton current={pane} target="wishlist" onClick={setPane}>Wishlist</PaneButton>
+            </div>
+
+            <div className="db-nav-label">Earn</div>
+            <div className="db-nav-section">
+              <PaneButton current={pane} target="advisor" onClick={setPane}>✦ Advisor</PaneButton>
+              <PaneButton current={pane} target="analytics" onClick={setPane}>Analytics</PaneButton>
+              <PaneButton current={pane} target="tiers" onClick={setPane}>Subscription Tiers</PaneButton>
+              <PaneButton current={pane} target="refer" onClick={setPane}>Refer & Earn</PaneButton>
+            </div>
+
+            <div className="db-nav-label">Publish</div>
+            <div className="db-nav-section">
+              <PaneButton current={pane} target="store" onClick={setPane}>Digital Store</PaneButton>
+              <PaneButton current={pane} target="social" onClick={setPane}>Social Posts</PaneButton>
+              <Link href="/merch" className="db-nav-link">Merch</Link>
+              <Link href="/live" className="db-nav-link">Go Live</Link>
+              <Link href="/archive" className="db-nav-link">Archive</Link>
+            </div>
+
+            <div className="db-nav-label">Account</div>
+            <div className="db-nav-section">
+              <PaneButton current={pane} target="payments" onClick={setPane}>Payments</PaneButton>
+              <PaneButton current={pane} target="billing" onClick={setPane}>Billing</PaneButton>
+              <PaneButton current={pane} target="settings" onClick={setPane}>Settings</PaneButton>
+              <PaneButton current={pane} target="moderation" onClick={setPane}>Moderation</PaneButton>
+              <PaneButton current={pane} target="blocks" onClick={setPane}>Block List</PaneButton>
+              <Link href="/help" className="db-nav-link">Help</Link>
+              {isAdmin && (
+                <a href="/admin" className="db-nav-link">Admin</a>
+              )}
+            </div>
+
+            {!backstage && (
+              <a href="/backstage-setup" style={{ display:"block", margin:"var(--s-4) var(--s-3) 0", padding:"10px var(--s-4)", fontSize:13, color:"var(--accent-back)", borderRadius:"var(--r-2)", textDecoration:"none", border:"1px solid rgba(192,132,252,0.2)", background:"rgba(192,132,252,0.05)", textAlign:"center" }}>+ Add Backstage</a>
+            )}
           </nav>
 
           {/* Backstage upsell — only if they don't have one yet and they're 18+ */}
@@ -484,51 +458,63 @@ function OverviewPane({
         </div>
       )}
 
-      {/* Quick actions */}
+      {/* Quick actions — priority hierarchy */}
+
+      {/* Priority row */}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:2, marginBottom:2 }}>
+        <Link href="/dashboard?pane=posts" style={{
+          background:"var(--surface)", border:"1px solid var(--border)",
+          borderTop:"3px solid var(--accent)", padding:"24px 28px",
+          textDecoration:"none", color:"inherit", display:"block",
+        }}>
+          <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--accent)", marginBottom:8 }}>Start here</p>
+          <h4 style={{ fontFamily:"var(--font-serif)", fontSize:22, fontWeight:400, color:"#fff", marginBottom:6, lineHeight:1.1 }}>New post</h4>
+          <p style={{ fontSize:13, color:"var(--muted)", margin:0, lineHeight:1.5 }}>Free posts build your audience. Paid posts build your income.</p>
+        </Link>
+        <Link href="/dashboard?pane=payments" style={{
+          background:"var(--surface)", border:"1px solid var(--border)",
+          borderTop:"3px solid var(--accent-open)", padding:"24px 28px",
+          textDecoration:"none", color:"inherit", display:"block",
+        }}>
+          <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--accent-open)", marginBottom:8 }}>Required to get paid</p>
+          <h4 style={{ fontFamily:"var(--font-serif)", fontSize:22, fontWeight:400, color:"#fff", marginBottom:6, lineHeight:1.1 }}>Connect Stripe</h4>
+          <p style={{ fontSize:13, color:"var(--muted)", margin:0, lineHeight:1.5 }}>Your audience can't pay you until this is done.</p>
+        </Link>
+      </div>
+
+      {/* Secondary grid */}
       <div className="quick">
         <Link href="/dashboard?pane=profile" className="quick-card">
-          <h4>✦ Edit profile</h4>
+          <h4>Edit profile</h4>
           <p>Avatar, bio, cover. Your first impression.</p>
         </Link>
-        <Link href="/dashboard?pane=posts" className="quick-card">
-          <h4>✦ New post</h4>
-          <p>Free posts build your audience. Paid posts build your income.</p>
-        </Link>
-        <Link href="/dashboard?pane=payments" className="quick-card">
-          <h4>✦ Connect Stripe</h4>
-          <p>Required before your audience can pay you.</p>
-        </Link>
         <Link href="/messages" className="quick-card">
-          <h4>✦ Messages</h4>
+          <h4>Messages</h4>
           <p>Inbox and Front Row messages from your audience.</p>
         </Link>
-        <Link href="/live" className="quick-card">
-          <h4>✦ Go Live</h4>
-          <p>Stream directly to your audience. First hour free.</p>
-        </Link>
         <Link href="/dashboard?pane=social" className="quick-card">
-          <h4>✦ Social posts</h4>
-          <p>Paste your Instagram, TikTok, or YouTube links. They live on your page.</p>
+          <h4>Social posts</h4>
+          <p>Paste your Instagram, TikTok, or YouTube links.</p>
+        </Link>
+        <Link href="/live" className="quick-card">
+          <h4>Go Live</h4>
+          <p>Stream directly to your audience.</p>
         </Link>
         <Link href="/merch" className="quick-card">
-          <h4>✦ Merch</h4>
+          <h4>Merch</h4>
           <p>Design and sell branded products. No upfront cost.</p>
         </Link>
         <Link href="/dashboard?pane=digital" className="quick-card">
-          <h4>✦ Digital store</h4>
+          <h4>Digital store</h4>
           <p>Sell guides, presets, courses. 0% cut.</p>
         </Link>
         <Link href="/dashboard?pane=analytics" className="quick-card">
-          <h4>✦ Analytics</h4>
+          <h4>Analytics</h4>
           <p>Audience growth, earnings, post performance.</p>
         </Link>
-        <Link href="/archive" className="quick-card">
-          <h4>✦ Archive</h4>
-          <p>View and restore archived posts.</p>
-        </Link>
-        <Link href="/gear" className="quick-card">
-          <h4>✦ Creator gear</h4>
-          <p>Equipment guide for every budget.</p>
+        <Link href="/dashboard?pane=advisor" className="quick-card">
+          <h4>✦ Advisor</h4>
+          <p>AI-powered monetization strategy for your niche.</p>
         </Link>
       </div>
     </div>
@@ -3590,26 +3576,66 @@ function DashboardStyles() {
       .db-nav {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 0;
+        padding-bottom: var(--s-4);
+      }
+      .db-nav-label {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: var(--s-4) var(--s-4) var(--s-2);
+        opacity: 0.6;
+      }
+      .db-nav-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin-bottom: var(--s-2);
+      }
+      .db-nav-link {
+        display: block;
+        padding: 8px var(--s-4);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--muted);
+        text-decoration: none;
+        border-radius: var(--r-1);
+        transition: all var(--t-fast);
+        border-left: 2px solid transparent;
+      }
+      .db-nav-link:hover {
+        color: var(--text);
+        background: var(--surface);
+        border-left-color: var(--border-strong);
       }
       .db-pane-btn {
         background: transparent;
         border: none;
-        padding: var(--s-3) var(--s-5);
-        font-family: var(--font-mono);
-        font-size: 12px;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
+        border-left: 2px solid transparent;
+        padding: 8px var(--s-4);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 400;
         color: var(--muted);
         text-align: left;
         cursor: pointer;
-        border-radius: var(--r-2);
+        border-radius: var(--r-1);
         transition: all var(--t-fast);
+        width: 100%;
       }
-      .db-pane-btn:hover { color: var(--text); background: var(--surface); }
+      .db-pane-btn:hover {
+        color: var(--text);
+        background: var(--surface);
+        border-left-color: var(--border-strong);
+      }
       .db-pane-btn--active {
         color: var(--accent);
         background: var(--surface);
+        border-left-color: var(--accent);
+        font-weight: 500;
       }
 
       .db-upsell {
