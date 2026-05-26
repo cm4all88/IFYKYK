@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Spotlightly",
-    images: [{ url: "/og.png", width: 1200, height: 630 }],
+    images: [{ url: "/hero-bg.jpg", width: 1920, height: 1080 }],
   },
   twitter: { card: "summary_large_image" },
 };

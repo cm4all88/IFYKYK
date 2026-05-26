@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import ThemeToggle from "@/components/ThemeToggle";
 import VideoUpload from "@/components/VideoUpload";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import SocialPostsManager from "@/components/dashboard/SocialPostsManager";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
 import ImageUpload from "@/components/ImageUpload";
@@ -401,6 +402,7 @@ function OverviewPane({
 }) {
   const supabase = createClient();
   const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
+  const [checklistDismissed, setChecklistDismissed] = React.useState(false);
 
   React.useEffect(() => {
     async function load() {
@@ -437,6 +439,18 @@ function OverviewPane({
           Welcome back, <em>{profile.display_name ?? profile.handle}</em>.
         </h1>
       </div>
+
+      {/* Onboarding checklist */}
+      {!checklistDismissed && (
+        <OnboardingChecklist
+          hasAvatar={!!profile.avatar_url}
+          hasBio={!!profile.bio}
+          hasStripe={!!(profile as any).stripe_onboarded}
+          hasPost={stats.posts > 0}
+          hasChannel={false}
+          onDismiss={() => setChecklistDismissed(true)}
+        />
+      )}
 
       {/* Stats grid */}
       <div className="stats">

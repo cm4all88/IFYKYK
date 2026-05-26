@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import crypto from "node:crypto";

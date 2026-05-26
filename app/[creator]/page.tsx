@@ -229,7 +229,7 @@ export default async function CreatorPage(props: {
 
         <style>{`
           /* ── Base ── */
-          .cp { min-height: 100vh; background: #09090C; }
+          .cp { min-height: 100vh; background: #09090C; position: relative; }
 
           /* ── Stage hero ── */
           .cp-stage {

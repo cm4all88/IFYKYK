@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { createNotification } from "@/lib/notify";
+import { createNotification } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -72,5 +74,12 @@ export async function POST(req: NextRequest) {
   }
 
   const session = await stripeRes.json();
+  // Notify creator
+  const { data: cp } = await (supabase as any)
+    .from("creator_profiles").select("user_id").eq("id", creatorProfileId).maybeSingle();
+  if (cp?.user_id) {
+    await createNotification({ userId: cp.user_id, type: "tip", title: `New tip — $${amountUsd.toFixed(0)}`, link: "/dashboard" });
+  }
+
   return NextResponse.redirect(session.url, { status: 303 });
 }

@@ -175,13 +175,13 @@ export default function CreatorStageClient({
           {bgImage && (
             <img src={bgImage} alt="" style={{
               position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover", opacity: 0.28, filter: "saturate(0.7) blur(2px)",
+              objectFit: "cover", opacity: 0.55, filter: "saturate(0.8)",
             }} />
           )}
           <div style={{
             position: "absolute", inset: 0,
             background: bgImage
-              ? "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 10%, rgba(9,9,12,0.65) 60%, rgba(9,9,12,0.97) 100%)"
+              ? "linear-gradient(to bottom, rgba(9,9,12,0.3) 0%, rgba(9,9,12,0.15) 40%, rgba(9,9,12,0.5) 80%, rgba(9,9,12,0.85) 100%)"
               : "radial-gradient(ellipse 70% 70% at 50% 40%, rgba(242,184,75,0.06), transparent 70%)",
           }} />
           {/* Floor glow */}
@@ -250,8 +250,8 @@ export default function CreatorStageClient({
               overflow: "hidden",
               cursor: activePost?.media_url ? "pointer" : "default",
               position: "relative",
-              marginBottom: 24,
-              boxShadow: "0 0 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(242,184,75,0.08)",
+              marginBottom: 0,
+              boxShadow: "0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(242,184,75,0.1)",
             }}
           >
             {/* Screen content — active post */}
@@ -259,17 +259,16 @@ export default function CreatorStageClient({
               <img src={activePost.media_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             )}
             {activePost?.media_url && activePost.media_type === "video" && (
-              activePost.media_url.includes("iframe.mediadelivery.net") ? (
-                <iframe
-                  src={`${activePost.media_url}&responsive=true&autoplay=false`}
-                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  onClick={e => { e.stopPropagation(); }}
-                />
-              ) : (
-                <video src={activePost.media_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} controls onClick={e => e.stopPropagation()} />
-              )
+              <iframe
+                src={activePost.media_url.includes("iframe.mediadelivery.net")
+                  ? `${activePost.media_url}&responsive=true&autoplay=false`
+                  : `https://iframe.mediadelivery.net/embed/placeholder?src=${encodeURIComponent(activePost.media_url)}`
+                }
+                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                allowFullScreen
+                onClick={e => { e.stopPropagation(); }}
+              />
             )}
             {(!activePost?.media_url) && (
               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
@@ -315,7 +314,7 @@ export default function CreatorStageClient({
 
       {/* Posts section */}
       {visiblePosts.length > 0 && (
-        <div style={{ background: "rgba(0,0,0,0.3)", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ background: "transparent", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.25)", textAlign: "center", padding: "24px 0 8px" }}>
             {filteredPosts.length} post{filteredPosts.length !== 1 ? "s" : ""}
           </p>
