@@ -16,6 +16,12 @@ export default function LivePage() {
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [endedStreamId, setEndedStreamId] = useState<string | null>(null);
+  const [vodCaption, setVodCaption] = useState("");
+  const [vodLockType, setVodLockType] = useState("free");
+  const [vodPrice, setVodPrice] = useState("");
+  const [savingVod, setSavingVod] = useState(false);
+  const [vodSaved, setVodSaved] = useState(false);
 
   const supabase = createClient();
 
@@ -227,11 +233,64 @@ export default function LivePage() {
                 </div>
 
                 <div style={{ marginTop: 20 }}>
-                  <button onClick={() => setStream(null)} className="btn btn--ghost" style={{ marginRight: 10 }}>← New stream</button>
+                  <button onClick={() => {
+                if (stream?.streamId) setEndedStreamId(stream.streamId);
+                setStream(null);
+              }} className="btn btn--ghost" style={{ marginRight: 10 }}>End & save replay</button>
+              <button onClick={() => setStream(null)} className="btn btn--ghost" style={{ marginRight: 10 }}>← Discard</button>
                   <Link href="/dashboard" className="btn btn--ghost">← Dashboard</Link>
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* VOD save panel */}
+        {endedStreamId && !vodSaved && (
+          <div style={{ maxWidth: 460, margin: "32px auto 0", background: "var(--surface)", border: "1px solid rgba(242,184,75,0.2)", borderTop: "2px solid var(--accent)", borderRadius: "var(--r-3)", padding: "28px 32px" }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 12 }}>Save stream as replay</p>
+            <p style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 20, lineHeight: 1.6 }}>
+              Your stream just ended. Save it as a post so your audience can watch the replay — free or paid.
+            </p>
+            <input type="text" value={vodCaption} onChange={e => setVodCaption(e.target.value)}
+              placeholder="Give it a title…" className="input" style={{ width: "100%", marginBottom: 12 }} />
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              {[["free","Free"],["subscription","Subscribers only"],["purchase","Paid unlock"]].map(([val, label]) => (
+                <button key={val} type="button" onClick={() => setVodLockType(val)} style={{
+                  flex: 1, padding: "8px 0", borderRadius: 4, border: "1px solid",
+                  borderColor: vodLockType === val ? "rgba(242,184,75,0.4)" : "var(--border)",
+                  background: vodLockType === val ? "rgba(242,184,75,0.08)" : "transparent",
+                  color: vodLockType === val ? "var(--accent)" : "var(--muted)",
+                  fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em",
+                  textTransform: "uppercase", cursor: "pointer",
+                }}>{label}</button>
+              ))}
+            </div>
+            {vodLockType === "purchase" && (
+              <input type="number" value={vodPrice} onChange={e => setVodPrice(e.target.value)}
+                placeholder="Price (USD)" className="input" style={{ width: "100%", marginBottom: 12 }} />
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={async () => {
+                setSavingVod(true);
+                const res = await fetch("/api/posts/vod", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ streamId: endedStreamId, caption: vodCaption, lockType: vodLockType, unlockPrice: vodLockType === "purchase" ? Number(vodPrice) : null }),
+                });
+                if (res.ok) { setVodSaved(true); setEndedStreamId(null); }
+                setSavingVod(false);
+              }} disabled={savingVod} className="btn btn--primary" style={{ flex: 1 }}>
+                {savingVod ? "Saving…" : "Save replay as post"}
+              </button>
+              <button onClick={() => setEndedStreamId(null)} className="btn btn--ghost">Skip</button>
+            </div>
+          </div>
+        )}
+
+        {vodSaved && (
+          <div style={{ maxWidth: 460, margin: "32px auto 0", textAlign: "center", padding: "24px" }}>
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontStyle: "italic", color: "rgba(242,184,75,0.8)", margin: "0 0 8px" }}>Replay saved.</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Your audience can now watch it on your page.</p>
           </div>
         )}
       </div>

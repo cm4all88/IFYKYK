@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt } = await req.json();
+  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt, tags, postType, expiresAt, scheduledAt, isPinned, campaignId } = await req.json();
 
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
@@ -149,7 +149,13 @@ export async function POST(req: NextRequest) {
       lock_type: resolvedLockType,
       unlock_price: lockType === "purchase" ? (unlockPrice ?? null) : null,
       early_access_at: earlyAccessAt ?? null,
-      status: "live",
+      tags: Array.isArray(tags) ? tags : [],
+      post_type: postType ?? "post",
+      expires_at: expiresAt ?? null,
+      is_pinned: isPinned ?? false,
+      campaign_id: campaignId ?? null,
+      status: scheduledAt ? "scheduled" : "live",
+      scheduled_at: scheduledAt ?? null,
       moderation_status: "approved",
     })
     .select()

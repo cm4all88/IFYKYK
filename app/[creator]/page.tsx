@@ -17,6 +17,7 @@ import UnlockButton from "./UnlockButton";
 import SuperTipButton from "./SuperTipButton";
 import CommentSection from "./CommentSection";
 import LivePlayer from "./LivePlayer";
+import PostCarousel from "./PostCarousel";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -56,7 +57,7 @@ async function fetchEverything(handle: string) {
       .from("posts")
       .select("*")
       .eq("creator_profile_id", spotlight.id)
-      .eq("status", "live")
+      .eq("status", "live").or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
@@ -198,64 +199,62 @@ export default async function CreatorPage(props: {
       <SiteHeader />
       <SuccessBanner />
       <main className="cp">
-        <section className="cp-cover">
-          {spotlight.cover_url ? (
-            <img src={spotlight.cover_url} alt="" className="cp-cover-img" />
-          ) : (
-            <div className="cp-cover-fallback" aria-hidden />
-          )}
-          <div className="cp-cover-fade" aria-hidden />
-        </section>
+        {/* Stage hero */}
+        <section className="cp-stage">
+          {/* Background — cover image or spotlight beam */}
+          <div className="cp-stage-bg" aria-hidden>
+            {spotlight.cover_url && (
+              <img src={spotlight.cover_url} alt="" className="cp-stage-cover-img" />
+            )}
+            <div className="cp-stage-vignette" />
+            {/* Spotlight beam */}
+            <div className="cp-stage-beam" />
+            <div className="cp-stage-beam-wide" />
+            {/* Stage floor glow */}
+            <div className="cp-stage-floor" />
+          </div>
 
-        <header className="cp-header">
-          <div className="cp-header-inner">
-            <div className="cp-avatar-wrap">
+          {/* Stage content — centered */}
+          <div className="cp-stage-inner">
+            {/* Avatar */}
+            <div className="cp-stage-avatar-wrap">
               {spotlight.avatar_url ? (
-                <img src={spotlight.avatar_url} alt="" className="cp-avatar" />
+                <img src={spotlight.avatar_url} alt="" className="cp-stage-avatar" />
               ) : (
-                <div className="cp-avatar cp-avatar-fallback">
+                <div className="cp-stage-avatar cp-stage-avatar-fallback">
                   {String(displayName).charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
 
-            <div className="cp-identity">
-              <div className="cp-name-row">
-                <h1 className="cp-name">{displayName}</h1>
-              </div>
-              <p className="cp-handle">@{spotlight.handle}</p>
-              {spotlight.bio && <p className="cp-bio">{spotlight.bio}</p>}
+            {/* Name */}
+            <h1 className="cp-stage-name">{displayName}</h1>
+            <p className="cp-stage-handle">@{spotlight.handle}</p>
 
-              {/* Social links */}
-              {(() => {
-                const links = (spotlight as any).social_links as Record<string,string> | null;
-                if (!links) return null;
-                const labels: Record<string,string> = { social_tiktok:"TikTok", social_instagram:"Instagram", social_youtube:"YouTube", social_twitter:"X", social_twitch:"Twitch", social_discord:"Discord", social_substack:"Substack", social_website:"Website" };
-                const active = Object.entries(links).filter(([,v]) => v && (v as string).length > 0);
-                if (!active.length) return null;
-                return (
-                  <div className="cp-social-links">
-                    {active.map(([key, url]) => (
-                      <a key={key} href={url as string} target="_blank" rel="noopener noreferrer" className="cp-social-link">
-                        {labels[key] ?? key.replace("social_","")}
-                      </a>
-                    ))}
-                  </div>
-                );
-              })()}
+            {spotlight.bio && (
+              <p className="cp-stage-bio">{spotlight.bio}</p>
+            )}
 
-              {backstageHandle && (
-                <Link href={`/${backstageHandle}`} className="cp-backstage">
-                  <span className="cp-bs-tag">Backstage</span>
-                  <span className="cp-bs-text">
-                    Exclusive content at <strong>@{backstageHandle}</strong>
-                  </span>
-                  <span className="cp-bs-arrow">→</span>
-                </Link>
-              )}
-            </div>
+            {/* Social links */}
+            {(() => {
+              const links = (spotlight as any).social_links as Record<string,string> | null;
+              if (!links) return null;
+              const labels: Record<string,string> = { social_tiktok:"TikTok", social_instagram:"Instagram", social_youtube:"YouTube", social_twitter:"X", social_twitch:"Twitch", social_discord:"Discord", social_substack:"Substack", social_website:"Website" };
+              const active = Object.entries(links).filter(([,v]) => v && (v as string).length > 0);
+              if (!active.length) return null;
+              return (
+                <div className="cp-social-links">
+                  {active.map(([key, url]) => (
+                    <a key={key} href={url as string} target="_blank" rel="noopener noreferrer" className="cp-social-link">
+                      {labels[key] ?? key.replace("social_","")}
+                    </a>
+                  ))}
+                </div>
+              );
+            })()}
 
-            <div className="cp-actions">
+            {/* Actions */}
+            <div className="cp-stage-actions">
               <SubscribeButton creatorProfileId={spotlight.id} />
               <TipButton creatorProfileId={spotlight.id} />
               <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
@@ -264,15 +263,22 @@ export default async function CreatorPage(props: {
                   href={(spotlight as any).booking_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn--secondary cp-book-btn"
-                  style={{ display:"inline-flex", alignItems:"center", gap:8 }}
+                  className="btn btn--secondary"
                 >
-                  📅 {(spotlight as any).booking_label || "Book an appointment"}
+                  📅 {(spotlight as any).booking_label || "Book"}
                 </a>
               )}
             </div>
+
+            {backstageHandle && (
+              <Link href={`/${backstageHandle}`} className="cp-backstage">
+                <span className="cp-bs-tag">Backstage</span>
+                <span className="cp-bs-text">Exclusive content at <strong>@{backstageHandle}</strong></span>
+                <span className="cp-bs-arrow">→</span>
+              </Link>
+            )}
           </div>
-        </header>
+        </section>
 
         <ReferralTracker creatorHandle={spotlight.handle} />
 
@@ -445,7 +451,12 @@ export default async function CreatorPage(props: {
             <div className="cp-posts">
               <p className="kicker">Latest</p>
 
-              {posts.length === 0 ? (
+              {posts.length > 0 && (
+              <div className="cp-posts-label">
+                {posts.length} post{posts.length !== 1 ? "s" : ""}
+              </div>
+            )}
+          {posts.length === 0 ? (
                 <div className="cp-empty">
                   <div className="cp-empty-mark" aria-hidden>
                     ◌
@@ -456,8 +467,23 @@ export default async function CreatorPage(props: {
                   </p>
                 </div>
               ) : (
-                <ul className="cp-post-list">
-                  {posts.map((p) => {
+                <PostCarousel
+                  posts={posts}
+                  isSubscribed={isSubscribed}
+                  hasEarlyAccess={data.hasEarlyAccess}
+                  unlockedPostIds={data.unlockedPostIds ?? []}
+                  viewerUserId={data.viewerUserId}
+                  displayName={displayName}
+                  creatorProfileId={spotlight.id}
+                  subscriptionPrice={spotlight.subscription_price ? Number(spotlight.subscription_price) : null}
+                />
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* LEGACY POSTS SECTION - REPLACED BY CAROUSEL */}
+        {false && posts.map((p) => {
                     const unlockedPostIds = data.unlockedPostIds ?? [];
                     const now = new Date();
                     const earlyAccessAt = p.early_access_at ? new Date(p.early_access_at) : null;
@@ -552,19 +578,6 @@ export default async function CreatorPage(props: {
                                     allowFullScreen
                                     loading="lazy"
                                   />
-                                  {/* Processing overlay — hidden once iframe loads video */}
-                                  <div style={{
-                                    position: "absolute", inset: 0,
-                                    display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 10,
-                                    background: "rgba(10,10,15,0.85)", pointerEvents: "none", zIndex: 1,
-                                  }}
-                                    className="video-processing-overlay"
-                                  >
-                                    <div style={{ fontSize: 28 }}>🎬</div>
-                                    <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(242,184,75,0.7)", margin: 0 }}>
-                                      Video processing — ready shortly
-                                    </p>
-                                  </div>
                                 </div>
                               ) : (
                                 <video src={p.media_url} className="cp-post-media" controls style={{ width: "100%", borderRadius: "var(--r-2)" }} />
@@ -592,307 +605,212 @@ export default async function CreatorPage(props: {
         </section>
 
         <style>{`
-          .cp { min-height: 100vh; }
-          .cp-cover {
+          /* ── Base ── */
+          .cp { min-height: 100vh; background: #09090C; }
+
+          /* ── Stage hero ── */
+          .cp-stage {
             position: relative;
-            width: 100%;
-            height: clamp(220px, 32vw, 360px);
-            overflow: hidden;
-            background: var(--surface-2);
-          }
-          .cp-cover-img { width: 100%; height: 100%; object-fit: cover; }
-          .cp-cover-fallback {
-            width: 100%; height: 100%;
-            background:
-              radial-gradient(ellipse 60% 50% at 30% 40%, rgba(245, 200, 66, 0.12), transparent 70%),
-              radial-gradient(ellipse 50% 40% at 70% 60%, rgba(192, 132, 252, 0.08), transparent 70%),
-              var(--surface-2);
-          }
-          .cp-cover-fade {
-            position: absolute; inset: 0;
-            background: linear-gradient(to bottom, transparent 50%, rgba(10,10,15,0.6) 80%, var(--bg) 100%);
-            pointer-events: none;
-          }
-          .cp-header {
-            max-width: var(--container);
-            margin: -90px auto 0;
-            padding: 0 var(--s-6);
-            position: relative;
-            z-index: 2;
-          }
-          .cp-header-inner {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: var(--s-8);
-            align-items: end;
-          }
-          .cp-avatar {
-            width: 144px; height: 144px;
-            border-radius: 50%;
-            border: 4px solid var(--bg);
-            object-fit: cover;
-            background: var(--surface-2);
-          }
-          .cp-avatar-fallback {
-            display: flex; align-items: center; justify-content: center;
-            font-family: var(--font-serif);
-            font-size: 56px;
-            color: var(--accent);
-          }
-          .cp-identity { padding-bottom: var(--s-3); min-width: 0; }
-          .cp-name-row {
-            display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap;
-          }
-          .cp-name {
-            font-family: var(--font-serif);
-            font-size: clamp(32px, 5vw, 44px);
-            font-weight: 400;
-            color: #fff;
-            margin: 0;
-            line-height: 1.05;
-            letter-spacing: -0.01em;
-          }
-          .cp-handle {
-            font-family: var(--font-mono);
-            font-size: 13px;
-            color: var(--muted);
-            margin: var(--s-2) 0 0;
-          }
-          .cp-bio {
-            font-size: 15px;
-            line-height: 1.7;
-            color: var(--text-soft);
-            margin: var(--s-4) 0 0;
-            max-width: 580px;
-          }
-          .cp-backstage {
-            display: inline-flex;
-            align-items: center;
-            gap: var(--s-3);
-            margin-top: var(--s-5);
-            padding: 10px 16px;
-            background: rgba(192,132,252,0.06);
-            border: 1px solid rgba(192,132,252,0.2);
-            border-radius: var(--r-2);
-            transition: all var(--t-fast);
-          }
-          .cp-backstage:hover {
-            background: rgba(192,132,252,0.1);
-            border-color: rgba(192,132,252,0.35);
-          }
-          .cp-bs-tag {
-            font-family: var(--font-mono);
-            font-size: 9px;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--accent-back);
-          }
-          .cp-bs-text { font-size: 13px; color: var(--text-soft); }
-          .cp-bs-text strong {
-            font-family: var(--font-mono);
-            color: var(--accent-back);
-            font-weight: 500;
-          }
-          .cp-bs-arrow { color: var(--accent-back); font-size: 14px; }
-
-          .cp-actions { display: flex; gap: var(--s-2); padding-bottom: var(--s-3); }
-
-          .cp-content {
-            max-width: var(--container);
-            margin: var(--s-16) auto 0;
-            padding: 0 var(--s-6) var(--s-20);
-          }
-
-          .cp-channels { margin-bottom: var(--s-12); }
-          .cp-campaigns { margin-bottom: var(--s-12); }
-          .cp-campaign-list { display: flex; flex-direction: column; gap: var(--s-4); }
-          .cp-campaign {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--r-3);
-            padding: var(--s-6);
-          }
-          .cp-campaign-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); margin-bottom: var(--s-2); }
-          .cp-campaign-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; margin: 0; }
-          .cp-campaign-deadline { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
-          .cp-campaign-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; margin-bottom: var(--s-4); }
-          .cp-campaign-progress { margin-bottom: var(--s-3); }
-          .cp-campaign-bar { height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; margin-bottom: var(--s-2); }
-          .cp-campaign-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; }
-          .cp-campaign-stats { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; }
-          .cp-campaign-raised { color: var(--accent); font-weight: 500; }
-          .cp-campaign-goal { color: var(--muted); }
-          .cp-campaign-reward { font-size: 12px; color: var(--text-soft); background: rgba(240,180,41,.06); border: 1px solid rgba(240,180,41,.12); border-radius: var(--r-1); padding: var(--s-2) var(--s-3); margin-top: var(--s-3); }
-          .cp-wishlist { margin-bottom: var(--s-12); }
-          .cp-wishlist-sub { font-size: 13px; color: var(--muted); margin-bottom: var(--s-5); }
-          .cp-wishlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--s-4); }
-          .cp-channel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 2px;
-            margin-top: var(--s-4);
-          }
-          .cp-channel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: var(--s-5);
-            transition: border-color var(--t-fast);
-          }
-          .cp-channel:hover { border-color: var(--border-strong); }
-          .cp-channel-name {
-            font-family: var(--font-serif);
-            font-size: 22px;
-            font-weight: 400;
-            color: #fff;
-            margin: 0 0 var(--s-2);
-          }
-          .cp-channel-desc {
-            font-size: 13px;
-            color: var(--text-soft);
-            line-height: 1.6;
-            margin: 0 0 var(--s-3);
-          }
-          .cp-channel-meta {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin: 0;
-          }
-
-          .cp-posts { }
-          .cp-post-list {
-            list-style: none;
-            padding: 0;
-            margin: var(--s-4) 0 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 2px;
-          }
-          .cp-post {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: var(--s-6);
-          }
-          .cp-post-media {
-            width: 100%;
-            max-height: 600px;
-            object-fit: cover;
-            border-radius: var(--r-2);
-            margin-bottom: var(--s-4);
-          }
-          .cp-post-caption {
-            font-size: 15px;
-            line-height: 1.7;
-            color: var(--text);
-            margin: 0 0 var(--s-3);
-            white-space: pre-wrap;
-          }
-          .cp-post-meta {
-            display: flex;
-            gap: var(--s-4);
-            font-family: var(--font-mono);
-            font-size: 10px;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--muted);
-          }
-          .cp-post-lock { color: var(--accent); }
-          .cp-social-links { display:flex; flex-wrap:wrap; gap:var(--s-2); margin-top:var(--s-4); }
-          .cp-social-link { font-family:var(--font-display); font-size:11px; font-weight:600; letter-spacing:.04em; color:var(--muted); padding:6px 14px; border:1px solid var(--border); border-radius:var(--r-pill); background:var(--surface); transition:all var(--t-fast); text-decoration:none; }
-          .cp-social-link:hover { color:var(--text); border-color:var(--border-strong); }
-          .cp-social-links {
-            display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-4);
-          }
-          .cp-social-link {
-            font-family: var(--font-display); font-size: 11px; font-weight: 600;
-            letter-spacing: 0.04em; color: var(--muted);
-            padding: 6px 14px; border: 1px solid var(--border);
-            border-radius: var(--r-pill); background: var(--surface);
-            transition: all var(--t-fast); text-decoration: none;
-          }
-          .cp-social-link:hover {
-            color: var(--text); border-color: var(--border-strong);
-            background: var(--surface-2);
-          }
-
-          .cp-post--locked { border-color: rgba(245,200,66,0.12); }
-          .cp-post-gate {
-            position: relative;
-            min-height: 260px;
-            display: flex;
             align-items: center;
             justify-content: center;
+            padding: 80px 24px 48px;
             overflow: hidden;
-            background: var(--surface-2);
           }
-          .cp-gate-blur {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, var(--surface-2), var(--surface-3));
-            filter: blur(0);
+          .cp-stage-bg {
+            position: absolute; inset: 0;
+            pointer-events: none;
           }
-          .cp-gate-overlay {
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            padding: var(--s-8) var(--s-6);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: var(--s-3);
+          .cp-stage-cover-img {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0.12;
+            filter: saturate(0.6);
           }
-          .cp-gate-icon { font-size: 32px; }
-          .cp-gate-label {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--accent);
+          .cp-stage-vignette {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 20%, rgba(9,9,12,0.7) 70%, rgba(9,9,12,0.97) 100%);
           }
-          .cp-gate-desc {
-            font-size: 14px;
-            color: var(--text-soft);
-            max-width: 360px;
-            line-height: 1.65;
-            margin: 0;
+          .cp-stage-beam {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 2px; height: 60%;
+            background: linear-gradient(to bottom, rgba(242,184,75,0.9), transparent);
           }
-          .cp-gate-form { margin-top: var(--s-2); }
-          .cp-gate-btn { padding: 12px 24px; }
+          .cp-stage-beam-wide {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: min(600px, 70vw); height: 65%;
+            background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(242,184,75,0.1) 0%, transparent 65%);
+          }
+          .cp-stage-floor {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 60%; height: 200px;
+            background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(242,184,75,0.06), transparent);
+          }
 
-          .cp-empty {
-            text-align: center;
-            padding: var(--s-16) var(--s-5);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            margin-top: var(--s-4);
+          /* ── Stage inner content ── */
+          .cp-stage-inner {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column;
+            align-items: center; text-align: center;
+            max-width: 600px;
           }
-          .cp-empty-mark {
-            font-size: 48px;
-            color: var(--muted);
-            opacity: 0.4;
-            margin-bottom: var(--s-5);
-            font-family: var(--font-serif);
+          .cp-stage-avatar-wrap {
+            margin-bottom: 24px;
+            position: relative;
           }
-          .cp-empty-title {
+          .cp-stage-avatar-wrap::after {
+            content: '';
+            position: absolute; inset: -3px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(242,184,75,0.5), transparent 60%);
+            pointer-events: none;
+          }
+          .cp-stage-avatar {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(242,184,75,0.2);
+            display: block;
+          }
+          .cp-stage-avatar-fallback {
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(242,184,75,0.1);
+            border: 2px solid rgba(242,184,75,0.2);
+            display: flex; align-items: center; justify-content: center;
             font-family: var(--font-serif);
-            font-size: 24px;
-            font-style: italic;
+            font-size: 48px; font-weight: 300; color: rgba(242,184,75,0.7);
+          }
+          .cp-stage-name {
+            font-family: var(--font-serif);
+            font-size: clamp(40px, 8vw, 72px);
             font-weight: 300;
             color: #fff;
-            margin: 0 0 var(--s-2);
+            line-height: 1;
+            letter-spacing: -0.02em;
+            margin: 0 0 8px;
           }
-          .cp-empty-text { font-size: 13px; color: var(--muted); margin: 0; }
+          .cp-stage-handle {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            color: rgba(242,184,75,0.6);
+            margin: 0 0 20px;
+          }
+          .cp-stage-bio {
+            font-size: 15px;
+            color: rgba(242,242,240,0.6);
+            line-height: 1.7;
+            max-width: 480px;
+            margin: 0 0 28px;
+          }
+          .cp-stage-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+          }
 
+          /* ── Posts section label ── */
+          .cp-posts-label {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.25);
+            text-align: center;
+            padding: 32px 0 8px;
+          }
+
+          /* ── Social links ── */
+          .cp-social-links { display:flex; gap:var(--s-3); flex-wrap:wrap; margin-bottom:20px; justify-content:center; }
+          .cp-social-link {
+            font-family:var(--font-mono); font-size:10px; letter-spacing:.12em;
+            text-transform:uppercase; color:rgba(242,242,240,0.4);
+            text-decoration:none; padding:6px 12px;
+            border:1px solid rgba(255,255,255,0.08); border-radius:4px;
+            transition:all 0.15s;
+          }
+          .cp-social-link:hover { color:rgba(242,242,240,0.8); border-color:rgba(255,255,255,0.2); }
+
+          /* ── Backstage link ── */
+          .cp-backstage {
+            display:flex; align-items:center; gap:var(--s-3);
+            padding:var(--s-3) var(--s-5);
+            background:rgba(168,85,247,0.06);
+            border:1px solid rgba(168,85,247,0.2);
+            border-radius:var(--r-2); text-decoration:none;
+            margin-top:16px;
+            transition:all 0.15s;
+          }
+          .cp-backstage:hover { background:rgba(168,85,247,0.1); }
+          .cp-bs-tag { font-family:var(--font-mono); font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-back); }
+          .cp-bs-text { font-size:13px; color:rgba(242,242,240,0.7); }
+          .cp-bs-arrow { color:var(--accent-back); font-size:16px; margin-left:auto; }
+
+          /* ── Live player ── */
+          .cp-live-banner { margin:0 auto; max-width:900px; padding:0 var(--s-6) var(--s-6); }
+
+          /* ── Content area ── */
+          .cp-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 0 80px;
+          }
+          .cp-channels { padding:0 var(--s-6) var(--s-8); }
+          .cp-channel-label { font-family:var(--font-mono); font-size:9px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); margin:0 0 var(--s-4); }
+          .cp-channel-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:var(--s-3); }
+          .cp-channel-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-3); padding:var(--s-5); }
+          .cp-channel-name { font-family:var(--font-serif); font-size:20px; font-weight:400; color:#fff; margin:0 0 var(--s-2); }
+          .cp-channel-meta { font-family:var(--font-mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin:0; font-weight:500; }
+          .cp-channel-desc { font-size:13px; color:var(--muted); line-height:1.6; margin:var(--s-3) 0 0; }
+
+          /* ── Top supporters ── */
+          .cp-supporters { padding:0 var(--s-6) var(--s-8); }
+
+          /* ── Campaigns ── */
+          .cp-campaigns { padding:0 var(--s-6) var(--s-8); }
+
+          /* ── Digital products ── */
+          .cp-digital { padding:0 var(--s-6) var(--s-8); }
+
+          /* ── Wishlist ── */
+          .cp-wishlist { padding:0 var(--s-6) var(--s-8); }
+
+          /* ── Tiers ── */
+          .cp-tiers { padding:0 var(--s-6) var(--s-8); }
+
+          /* ── Section heading ── */
+          .cp-section-heading {
+            font-family:var(--font-serif); font-size:24px; font-weight:300;
+            color:#fff; margin:0 0 var(--s-5);
+          }
+          .cp-section-kicker {
+            font-family:var(--font-mono); font-size:9px; letter-spacing:.2em;
+            text-transform:uppercase; color:var(--muted); margin:0 0 var(--s-3); display:block;
+          }
+
+          /* ── Post gate ── */
+          .cp-gate-blur { position:absolute; inset:0; backdrop-filter:blur(12px); background:rgba(10,10,15,0.5); }
+          .cp-gate-overlay { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--s-3); padding:var(--s-6); }
+          .cp-gate-icon { font-size:32px; }
+          .cp-gate-label { font-family:var(--font-display); font-size:14px; font-weight:700; letter-spacing:.08em; color:var(--accent); margin:0; }
+          .cp-gate-desc { font-size:13px; color:var(--muted); margin:0; max-width:260px; line-height:1.6; }
+          .cp-gate-form { display:flex; flex-direction:column; align-items:center; gap:var(--s-2); }
+          .cp-gate-btn { min-width:180px; }
+          .cp-post-gate { position:relative; min-height:200px; display:flex; flex-direction:column; }
+
+          /* ── Mobile ── */
           @media (max-width: 720px) {
-            .cp-header { margin-top: -64px; padding: 0 var(--s-5); }
-            .cp-header-inner { grid-template-columns: 1fr; gap: var(--s-5); }
-            .cp-avatar { width: 104px; height: 104px; }
-            .cp-avatar-fallback { font-size: 40px; }
-            .cp-actions { padding-bottom: 0; }
-            .btn { flex: 1; }
-            .cp-content { margin-top: var(--s-12); padding: 0 var(--s-5) var(--s-16); }
+            .cp-stage-name { font-size: clamp(32px, 10vw, 56px); }
+            .cp-stage-avatar { width: 88px; height: 88px; }
+            .cp-stage-avatar-fallback { width: 88px; height: 88px; font-size: 36px; }
+            .cp-stage-actions { gap: 8px; }
+            .cp-stage-actions .btn { flex: 1; min-width: 0; font-size: 11px; padding: 10px 12px; }
           }
         `}</style>
       </main>

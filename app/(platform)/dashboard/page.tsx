@@ -460,62 +460,64 @@ function OverviewPane({
 
       {/* Quick actions — priority hierarchy */}
 
-      {/* Priority row */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:2, marginBottom:2 }}>
+      {/* Next action — single most important thing */}
+      <div style={{ marginBottom: "var(--s-8)" }}>
         <Link href="/dashboard?pane=posts" style={{
-          background:"var(--surface)", border:"1px solid var(--border)",
-          borderTop:"3px solid var(--accent)", padding:"24px 28px",
-          textDecoration:"none", color:"inherit", display:"block",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderLeft: "3px solid var(--accent)",
+          padding: "20px 28px", textDecoration: "none", color: "inherit",
+          borderRadius: "var(--r-2)", transition: "background var(--t-fast)",
+          gap: 16,
         }}>
-          <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--accent)", marginBottom:8 }}>Start here</p>
-          <h4 style={{ fontFamily:"var(--font-serif)", fontSize:22, fontWeight:400, color:"#fff", marginBottom:6, lineHeight:1.1 }}>New post</h4>
-          <p style={{ fontSize:13, color:"var(--muted)", margin:0, lineHeight:1.5 }}>Free posts build your audience. Paid posts build your income.</p>
-        </Link>
-        <Link href="/dashboard?pane=payments" style={{
-          background:"var(--surface)", border:"1px solid var(--border)",
-          borderTop:"3px solid var(--accent-open)", padding:"24px 28px",
-          textDecoration:"none", color:"inherit", display:"block",
-        }}>
-          <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--accent-open)", marginBottom:8 }}>Required to get paid</p>
-          <h4 style={{ fontFamily:"var(--font-serif)", fontSize:22, fontWeight:400, color:"#fff", marginBottom:6, lineHeight:1.1 }}>Connect Stripe</h4>
-          <p style={{ fontSize:13, color:"var(--muted)", margin:0, lineHeight:1.5 }}>Your audience can't pay you until this is done.</p>
+          <div>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>
+              Your next move
+            </p>
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontWeight: 400, color: "#fff", margin: 0 }}>
+              Create your first post
+            </p>
+          </div>
+          <span style={{ color: "var(--accent)", fontSize: 20, flexShrink: 0 }}>→</span>
         </Link>
       </div>
 
-      {/* Secondary grid */}
-      <div className="quick">
-        <Link href="/dashboard?pane=profile" className="quick-card">
-          <h4>Edit profile</h4>
-          <p>Avatar, bio, cover. Your first impression.</p>
-        </Link>
-        <Link href="/messages" className="quick-card">
-          <h4>Messages</h4>
-          <p>Inbox and Front Row messages from your audience.</p>
-        </Link>
-        <Link href="/dashboard?pane=social" className="quick-card">
-          <h4>Social posts</h4>
-          <p>Paste your Instagram, TikTok, or YouTube links.</p>
-        </Link>
-        <Link href="/live" className="quick-card">
-          <h4>Go Live</h4>
-          <p>Stream directly to your audience.</p>
-        </Link>
-        <Link href="/merch" className="quick-card">
-          <h4>Merch</h4>
-          <p>Design and sell branded products. No upfront cost.</p>
-        </Link>
-        <Link href="/dashboard?pane=digital" className="quick-card">
-          <h4>Digital store</h4>
-          <p>Sell guides, presets, courses. 0% cut.</p>
-        </Link>
-        <Link href="/dashboard?pane=analytics" className="quick-card">
-          <h4>Analytics</h4>
-          <p>Audience growth, earnings, post performance.</p>
-        </Link>
-        <Link href="/dashboard?pane=advisor" className="quick-card">
-          <h4>✦ Advisor</h4>
-          <p>AI-powered monetization strategy for your niche.</p>
-        </Link>
+      {/* Tools — calm list, not a grid */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {[
+          { href: "/dashboard?pane=payments", label: "Connect Stripe", desc: "Required before your audience can pay you.", accent: true },
+          { href: "/dashboard?pane=profile", label: "Edit profile", desc: "Avatar, bio, cover. Your first impression." },
+          { href: "/messages", label: "Messages", desc: "Inbox and Front Row messages." },
+          { href: "/dashboard?pane=channels", label: "Channels", desc: "Subscription tiers your audience can join." },
+          { href: "/dashboard?pane=social", label: "Social posts", desc: "Paste your Instagram, TikTok, or YouTube links." },
+          { href: "/live", label: "Go Live", desc: "Stream directly to your audience." },
+          { href: "/merch", label: "Merch", desc: "Design and sell branded products. No upfront cost." },
+          { href: "/dashboard?pane=digital", label: "Digital store", desc: "Sell guides, presets, courses. 0% cut." },
+          { href: "/dashboard?pane=analytics", label: "Analytics", desc: "Audience growth and earnings." },
+          { href: "/dashboard?pane=advisor", label: "✦ Advisor", desc: "AI-powered monetization strategy." },
+        ].map(item => (
+          <Link key={item.href} href={item.href} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "16px 20px", textDecoration: "none", color: "inherit",
+            borderBottom: "1px solid var(--border)", gap: 16,
+            transition: "background var(--t-fast)",
+          }}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
+            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+          >
+            <div>
+              <p style={{
+                fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500,
+                color: (item as any).accent ? "var(--accent-open)" : "var(--text)",
+                margin: "0 0 3px",
+              }}>
+                {item.label}
+              </p>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{item.desc}</p>
+            </div>
+            <span style={{ color: "var(--muted)", fontSize: 16, flexShrink: 0, opacity: 0.4 }}>›</span>
+          </Link>
+        ))}
       </div>
     </div>
   );
@@ -2832,6 +2834,14 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
   const [body, setBody] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState("");
+  const [postTags, setPostTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [suggestingTags, setSuggestingTags] = useState(false);
+  const [postType, setPostType] = useState("post");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [isPinned, setIsPinned] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
 
@@ -2936,6 +2946,85 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                 style={{ position:"absolute", top:4, right:4, background:"rgba(0,0,0,.7)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</button>
             </div>
           )}
+          {/* Tags */}
+          <div style={{ padding:"0 var(--s-4) var(--s-3)" }}>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+              {postTags.map(tag => (
+                <span key={tag} style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:3, background:"rgba(242,184,75,0.08)", border:"1px solid rgba(242,184,75,0.15)", fontFamily:"var(--font-mono)", fontSize:10, color:"rgba(242,184,75,0.8)", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                  {tag}
+                  <button type="button" onClick={() => setPostTags(t => t.filter(x => x !== tag))} style={{ background:"none", border:"none", color:"rgba(242,184,75,0.5)", cursor:"pointer", padding:0, fontSize:12, lineHeight:1 }}>×</button>
+                </span>
+              ))}
+            </div>
+            <div style={{ display:"flex", gap:6 }}>
+              <input
+                type="text" placeholder="Add tag…" value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={e => {
+                  if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
+                    e.preventDefault();
+                    const t = tagInput.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+                    if (t && !postTags.includes(t) && postTags.length < 8) setPostTags(prev => [...prev, t]);
+                    setTagInput("");
+                  }
+                }}
+                style={{ flex:1, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", padding:"6px 10px", color:"var(--text)", fontSize:12, outline:"none", fontFamily:"inherit" }}
+              />
+              <button type="button" disabled={suggestingTags || !body.trim()} onClick={async () => {
+                setSuggestingTags(true);
+                const res = await fetch("/api/posts/tags", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ caption:body, mediaType }) });
+                const data = await res.json();
+                if (data.tags) setPostTags(prev => [...new Set([...prev, ...data.tags])].slice(0, 8));
+                setSuggestingTags(false);
+              }} style={{ padding:"6px 12px", background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer", opacity:suggestingTags||!body.trim()?0.45:1 }}>
+                {suggestingTags ? "…" : "✦ AI"}
+              </button>
+            </div>
+          </div>
+
+          {/* Advanced options toggle */}
+          <div style={{ padding:"0 var(--s-4) var(--s-3)" }}>
+            <button type="button" onClick={() => setShowAdvanced(a => !a)} style={{ background:"none", border:"none", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer", padding:0 }}>
+              {showAdvanced ? "▾" : "▸"} More options
+            </button>
+
+            {showAdvanced && (
+              <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:10 }}>
+                {/* Post type */}
+                <div>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Post type</p>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {[["post","Post"],["campaign_update","Campaign Update"],["vod","Live Replay"]].map(([val, label]) => (
+                      <button key={val} type="button" onClick={() => setPostType(val)} style={{ padding:"5px 12px", borderRadius:3, border:"1px solid", borderColor:postType===val?"rgba(242,184,75,0.4)":"var(--border)", background:postType===val?"rgba(242,184,75,0.08)":"transparent", color:postType===val?"var(--accent)":"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Expiry */}
+                <div>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Expires (leave blank = never)</p>
+                  <input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
+                    style={{ background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", padding:"7px 10px", color:"var(--text)", fontSize:12, outline:"none", colorScheme:"dark" }} />
+                </div>
+
+                {/* Schedule */}
+                <div>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Schedule for later (leave blank = publish now)</p>
+                  <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)}
+                    style={{ background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", padding:"7px 10px", color:"var(--text)", fontSize:12, outline:"none", colorScheme:"dark" }} />
+                </div>
+
+                {/* Pin */}
+                <label style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}>
+                  <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} style={{ accentColor:"var(--accent)", width:14, height:14 }} />
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted)" }}>📌 Pin to top of page</span>
+                </label>
+              </div>
+            )}
+          </div>
+
           <div className="composer-actions">
             <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:11, fontWeight:600, color:"var(--muted)", padding:"7px 12px", border:"1px solid var(--border)", borderRadius:"var(--r-1)" }}>
               {uploading ? "Uploading…" : "🖼️ Image"}
@@ -2961,7 +3050,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
             </div>
             <p className="hint">{body.length} chars</p>
             <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
-              {posting ? "Publishing..." : "Publish"}
+              {posting ? (scheduledAt ? "Scheduling..." : "Publishing...") : (scheduledAt ? `Schedule for ${new Date(scheduledAt).toLocaleDateString()}` : "Publish")}
             </button>
           </div>
         </form>
@@ -2982,7 +3071,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
               <p className="post-body">{p.caption}</p>
               <p className="post-meta">
                 {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
-                {p.status && p.status !== "published" ? `   ${p.status}` : ""}
+                {p.status && p.status !== "live" ? `   ${p.status}` : ""}
               </p>
             </li>
           ))}
@@ -3807,11 +3896,7 @@ function DashboardStyles() {
       .link-toggle--on .link-toggle-dot { transform: translateX(24px); }
 
       /* QUICK ACTIONS */
-      .quick {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2px;
-      }
+/* quick grid removed */
       .quick-card {
         background: var(--surface);
         border: 1px solid var(--border);
