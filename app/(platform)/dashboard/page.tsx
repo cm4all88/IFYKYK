@@ -3106,11 +3106,39 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
         <ul className="post-list">
           {posts.map((p) => (
             <li key={p.id} className="post-item">
-              <p className="post-body">{p.caption}</p>
-              <p className="post-meta">
-                {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
-                {p.status && p.status !== "live" ? `   ${p.status}` : ""}
-              </p>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p className="post-body">{p.caption || <em style={{ color:"var(--muted)" }}>No caption</em>}</p>
+                  <p className="post-meta">
+                    {p.created_at ? new Date(p.created_at).toLocaleString() : "-"}
+                    {p.status && p.status !== "live" ? `  · ${p.status}` : ""}
+                    {(p as any).is_pinned ? "  · 📌 Pinned" : ""}
+                    {(p as any).media_type ? `  · ${(p as any).media_type}` : ""}
+                  </p>
+                </div>
+                <div style={{ display:"flex", gap:4, flexShrink:0, marginTop:2 }}>
+                  <button type="button" onClick={async () => {
+                    await fetch("/api/posts/pin", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ postId:p.id, pinned:!(p as any).is_pinned }) });
+                    refresh();
+                  }} style={{ padding:"4px 10px", background:"none", border:"1px solid var(--border)", borderRadius:4, color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    {(p as any).is_pinned ? "Unpin" : "Pin"}
+                  </button>
+                  <button type="button" onClick={async () => {
+                    const isArchived = p.status === "archive";
+                    await fetch("/api/posts/archive", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ postId:p.id, restore: isArchived }) });
+                    refresh();
+                  }} style={{ padding:"4px 10px", background:"none", border:"1px solid var(--border)", borderRadius:4, color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    {p.status === "archive" ? "Restore" : "Archive"}
+                  </button>
+                  <button type="button" onClick={async () => {
+                    if (!confirm("Delete this post permanently?")) return;
+                    await fetch("/api/posts/delete", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ postId:p.id }) });
+                    refresh();
+                  }} style={{ padding:"4px 10px", background:"none", border:"1px solid rgba(248,113,113,0.25)", borderRadius:4, color:"rgba(248,113,113,0.7)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                    Delete
+                  </button>
+                </div>
+              </div>
             </li>
           ))}
         </ul>
