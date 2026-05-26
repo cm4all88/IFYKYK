@@ -606,9 +606,9 @@ function ProfilePane({
       .update({
         display_name: displayName.trim() || undefined,
         bio: bio.trim() || undefined,
-        avatar_url: avatarUrl.trim() || undefined,
-        cover_url: coverUrl.trim() || undefined,
-        bg_url: bgUrl.trim() || undefined,
+        avatar_url: avatarUrl.trim() || null,
+        cover_url: coverUrl.trim() || null,
+        bg_url: bgUrl.trim() || null,
       } as any)
       .eq("user_id", profile.user_id)
       .eq("kind", profile.kind);
