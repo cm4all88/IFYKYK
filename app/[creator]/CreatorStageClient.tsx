@@ -310,9 +310,7 @@ export default function CreatorStageClient({
               </div>
             )}
           </div>
-
-
-
+        </div>
       </section>
 
       {/* Posts section */}
