@@ -447,7 +447,7 @@ function OverviewPane({
         </div>
         <div className="stat">
           <p className="stat-label">This month</p>
-          <p className="stat-num">${stats.thisMonth.toFixed(0)}
+          <p className="stat-num">${stats.thisMonth.toFixed(0)}</p>
           <p className="stat-meta">Tips + subs combined</p>
         </div>
         <div className="stat">
