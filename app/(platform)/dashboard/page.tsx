@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import ThemeToggle from "@/components/ThemeToggle";
+import VideoUpload from "@/components/VideoUpload";
 import SocialPostsManager from "@/components/dashboard/SocialPostsManager";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
 import ImageUpload from "@/components/ImageUpload";
@@ -2945,18 +2946,27 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
           )}
           <div className="composer-actions">
             <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:11, fontWeight:600, color:"var(--muted)", padding:"7px 12px", border:"1px solid var(--border)", borderRadius:"var(--r-1)" }}>
-              {uploading ? "Uploading…" : "📎 Media"}
-              <input type="file" accept="image/*,video/*" style={{ display:"none" }} disabled={uploading}
+              {uploading ? "Uploading…" : "🖼️ Image"}
+              <input type="file" accept="image/*" style={{ display:"none" }} disabled={uploading}
                 onChange={async (e) => {
                   const file = e.target.files?.[0]; if (!file) return;
                   setUploading(true);
                   const fd = new FormData(); fd.append("file", file);
                   const res = await fetch("/api/upload", { method:"POST", body:fd });
                   const data = await res.json();
-                  if (data.url) { setMediaUrl(data.url); setMediaType(file.type); }
+                  if (data.url) { setMediaUrl(data.url); setMediaType("image"); }
                   setUploading(false); e.target.value = "";
                 }} />
             </label>
+            <div style={{ display:"inline-block" }}>
+              <VideoUpload
+                label="🎬 Video"
+                onUpload={({ cdnUrl }) => {
+                  setMediaUrl(cdnUrl);
+                  setMediaType("video");
+                }}
+              />
+            </div>
             <p className="hint">{body.length} chars</p>
             <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
               {posting ? "Publishing..." : "Publish"}
