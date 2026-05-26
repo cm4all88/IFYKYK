@@ -644,42 +644,62 @@ function ProfilePane({
       </div>
 
       <form className="form" onSubmit={save}>
-        <div className="form-row">
-          <div className="form-field">
-            <label className="label">Handle</label>
-            <input className="input" type="text" value={profile.handle} disabled />
-            <p className="hint">spotlightly.app/c/{profile.handle}</p>
-          </div>
-          <div className="form-field">
-            <label className="label">Display name</label>
-            <input
-              className="input"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="The name your fans will see"
-              maxLength={60}
-            />
+
+        {/* ── 1. VISUALS ── */}
+        <div style={{ borderBottom:"1px solid var(--border)", paddingBottom:"var(--s-7)", marginBottom:"var(--s-7)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-5)" }}>Your look</p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"var(--s-5)" }}>
+            <div className="form-field" style={{ margin:0 }}>
+              <label className="label" style={{ marginBottom:"var(--s-3)" }}>Profile photo</label>
+              <ImageUpload value={avatarUrl} onChange={setAvatarUrl} shape="circle" label="Upload photo" hint="Square · JPG or PNG" />
+            </div>
+            <div className="form-field" style={{ margin:0 }}>
+              <label className="label" style={{ marginBottom:"var(--s-3)" }}>Cover image</label>
+              <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="1500×500px" minWidth={1200} minHeight={400} previewWidth={160} previewHeight={54} />
+            </div>
+            <div className="form-field" style={{ margin:0 }}>
+              <label className="label" style={{ marginBottom:"var(--s-3)" }}>Page background</label>
+              <ImageUpload value={bgUrl} onChange={setBgUrl} shape="rect" label="Upload background" hint="1920×1080px or larger" minWidth={1400} minHeight={800} previewWidth={160} previewHeight={90} />
+            </div>
           </div>
         </div>
 
-        <div className="form-field">
-          <label className="label">Bio</label>
-          <textarea
-            className="textarea"
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="A line or two about what you do."
-            maxLength={500}
-            rows={4}
-          />
-          <p className="hint">{bio.length}/500</p>
+        {/* ── 2. IDENTITY ── */}
+        <div style={{ borderBottom:"1px solid var(--border)", paddingBottom:"var(--s-7)", marginBottom:"var(--s-7)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-5)" }}>Identity</p>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="label">Display name</label>
+              <input className="input" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="The name your fans will see" maxLength={60} />
+            </div>
+            <div className="form-field">
+              <label className="label">Handle</label>
+              <input className="input" type="text" value={profile.handle} disabled />
+              <p className="hint">spotlightly.app/{profile.handle}</p>
+            </div>
+          </div>
+          <div className="form-field">
+            <label className="label">Bio</label>
+            <textarea className="textarea" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A line or two about what you do." maxLength={500} rows={3} />
+            <p className="hint">{bio.length}/500</p>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label className="label">City <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+              <input className="input" type="text" placeholder="Seattle" value={locationCity} onChange={e => setLocationCity(e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label className="label">Country <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+              <input className="input" type="text" placeholder="USA" value={locationCountry} onChange={e => setLocationCountry(e.target.value)} />
+            </div>
+          </div>
         </div>
 
-        {/* Tags */}
-        <div className="form-field">
-          <label className="label">Categories <span style={{ color:"var(--muted)", fontWeight:300 }}>(pick up to 5 — helps fans find you)</span></label>
-          <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginTop:"var(--s-2)" }}>
+        {/* ── 3. CATEGORIES ── */}
+        <div style={{ borderBottom:"1px solid var(--border)", paddingBottom:"var(--s-7)", marginBottom:"var(--s-7)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Categories</p>
+          <p style={{ fontSize:13, color:"var(--muted)", marginBottom:"var(--s-4)" }}>Pick up to 5 — helps fans find you on Explore.</p>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
             {(CREATOR_CATEGORIES as readonly { id: string; label: string; emoji: string }[])
               .filter(c => profile.kind === "backstage" || c.id !== "adult")
               .map(cat => {
@@ -689,8 +709,8 @@ function ProfilePane({
                   if (active) setTags(prev => prev.filter((t: string) => t !== cat.id));
                   else if (tags.length < 5) setTags(prev => [...prev, cat.id]);
                 }} style={{
-                  display:"flex", alignItems:"center", gap:6,
-                  padding:"6px 12px", borderRadius:"var(--r-pill)", border:"1px solid", cursor:"pointer", fontSize:12,
+                  display:"flex", alignItems:"center", gap:5,
+                  padding:"5px 11px", borderRadius:"var(--r-1)", border:"1px solid", cursor:"pointer", fontSize:12,
                   background: active ? "rgba(240,180,41,0.1)" : "var(--surface-2)",
                   color: active ? "var(--accent)" : "var(--muted)",
                   borderColor: active ? "rgba(240,180,41,0.25)" : "var(--border)",
@@ -702,78 +722,50 @@ function ProfilePane({
           </div>
         </div>
 
-        {/* Location */}
-        <div className="form-row">
-          <div className="form-field">
-            <label className="label">City <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
-            <input className="input" type="text" placeholder="Seattle" value={locationCity} onChange={e => setLocationCity(e.target.value)} />
-          </div>
-          <div className="form-field">
-            <label className="label">Country <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
-            <input className="input" type="text" placeholder="USA" value={locationCountry} onChange={e => setLocationCountry(e.target.value)} />
+        {/* ── 4. SOCIAL LINKS ── */}
+        <div style={{ borderBottom:"1px solid var(--border)", paddingBottom:"var(--s-7)", marginBottom:"var(--s-7)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Social links</p>
+          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-5)" }}>
+            Use <strong style={{color:"var(--text)"}}>spotlightly.app/{profile.handle}</strong> in your bios instead of Linktree.
+          </p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-3)" }}>
+            {([
+              { key:"social_tiktok",    label:"TikTok",     ph:"https://tiktok.com/@you" },
+              { key:"social_instagram", label:"Instagram",   ph:"https://instagram.com/you" },
+              { key:"social_youtube",   label:"YouTube",     ph:"https://youtube.com/@you" },
+              { key:"social_twitter",   label:"X / Twitter", ph:"https://x.com/you" },
+              { key:"social_twitch",    label:"Twitch",      ph:"https://twitch.tv/you" },
+              { key:"social_discord",   label:"Discord",     ph:"https://discord.gg/server" },
+              { key:"social_substack",  label:"Substack",    ph:"https://you.substack.com" },
+              { key:"social_website",   label:"Website",     ph:"https://yoursite.com" },
+            ] as const).map(s => (
+              <div key={s.key} style={{ display:"grid", gridTemplateColumns:"88px 1fr", gap:"var(--s-2)", alignItems:"center" }}>
+                <label className="label" style={{ margin:0, fontSize:11 }}>{s.label}</label>
+                <input className="input" type="url" placeholder={s.ph}
+                  value={(socialLinks as any)[s.key] ?? ""}
+                  onChange={e => setSocialLinks((prev:any) => ({ ...prev, [s.key]: e.target.value }))}
+                />
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Booking */}
-        <div style={{ borderTop:"1px solid var(--border)", paddingTop:"var(--s-6)", marginTop:"var(--s-2)" }}>
-          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>📅 Appointments & Bookings</p>
+        {/* ── 5. BOOKINGS ── */}
+        <div style={{ marginBottom:"var(--s-7)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Bookings <span style={{ color:"var(--muted)", fontFamily:"var(--font-sans)", fontSize:12, letterSpacing:0, textTransform:"none", fontWeight:300 }}>— optional</span></p>
           <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-5)" }}>
-            Hairdressers, trainers, coaches, photographers — add your booking link and fans can book directly from your page.
-            Works with Calendly, Acuity, Square, Booksy, Vagaro, and any other booking platform.
+            Works with Calendly, Acuity, Booksy, Vagaro, and any booking platform.
           </p>
-          <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
-            <label className="label">Booking URL</label>
-            <input className="input" type="url" placeholder="https://calendly.com/you or https://booksy.com/en-us/..." value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} />
-            <p className="hint">Paste your booking link from any platform. Calendly links will embed directly on your page.</p>
-          </div>
-          <div className="form-field">
-            <label className="label">Button label <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
-            <input className="input" type="text" placeholder='e.g. "Book a haircut" · "Schedule a session" · "Book now"' value={bookingLabel} onChange={e => setBookingLabel(e.target.value)} />
-            <p className="hint">Defaults to "Book an appointment" if left blank.</p>
-          </div>
-        </div>
-
-        <div style={{ borderTop:"1px solid var(--border)", paddingTop:"var(--s-6)" }}>
-          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Social links & link-in-bio</p>
-          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-5)" }}>
-            These appear on your public page. Put <strong style={{color:"var(--text)"}}>spotlightly.app/{profile.handle}</strong> in your bios instead of Linktree.
-          </p>
-          {([
-            { key:"social_tiktok",    label:"TikTok",     ph:"https://tiktok.com/@you" },
-            { key:"social_instagram", label:"Instagram",   ph:"https://instagram.com/you" },
-            { key:"social_youtube",   label:"YouTube",     ph:"https://youtube.com/@you" },
-            { key:"social_twitter",   label:"X / Twitter", ph:"https://x.com/you" },
-            { key:"social_twitch",    label:"Twitch",      ph:"https://twitch.tv/you" },
-            { key:"social_discord",   label:"Discord",     ph:"https://discord.gg/server" },
-            { key:"social_substack",  label:"Substack",    ph:"https://you.substack.com" },
-            { key:"social_website",   label:"Website",     ph:"https://yoursite.com" },
-          ] as const).map(s => (
-            <div key={s.key} style={{ display:"grid", gridTemplateColumns:"100px 1fr", gap:"var(--s-3)", alignItems:"center", marginBottom:"var(--s-3)" }}>
-              <label className="label" style={{ margin:0 }}>{s.label}</label>
-              <input className="input" type="url" placeholder={s.ph}
-                value={(socialLinks as any)[s.key] ?? ""}
-                onChange={e => setSocialLinks((prev:any) => ({ ...prev, [s.key]: e.target.value }))}
-              />
+          <div className="form-row">
+            <div className="form-field">
+              <label className="label">Booking URL</label>
+              <input className="input" type="url" placeholder="https://calendly.com/you" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)} />
             </div>
-          ))}
-        </div>
-
-        <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
-          <label className="label" style={{ marginBottom:"var(--s-3)" }}>Profile photo</label>
-          <ImageUpload value={avatarUrl} onChange={setAvatarUrl} shape="circle" label="Upload photo" hint="JPG, PNG or WebP · Square images work best" />
-        </div>
-
-        <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
-          <label className="label" style={{ marginBottom:"var(--s-3)" }}>Cover image</label>
-          <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="JPG, PNG or WebP · 1500×500px recommended" minWidth={1200} minHeight={400} previewWidth={180} previewHeight={60} />
-        </div>
-
-        <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
-          <label className="label" style={{ marginBottom:"var(--s-3)" }}>Page background image</label>
-          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-3)" }}>
-            This appears as a full-page background behind your public profile. High resolution recommended — it fills the entire viewport.
-          </p>
-          <ImageUpload value={bgUrl} onChange={setBgUrl} shape="rect" label="Upload background" hint="JPG or WebP · 1920×1080px or larger recommended" minWidth={1400} minHeight={800} previewWidth={180} previewHeight={100} />
+            <div className="form-field">
+              <label className="label">Button label</label>
+              <input className="input" type="text" placeholder="Book a session" value={bookingLabel} onChange={e => setBookingLabel(e.target.value)} />
+            </div>
+          </div>
         </div>
 
         <div className="form-actions">
