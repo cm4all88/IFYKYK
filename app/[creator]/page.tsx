@@ -234,7 +234,6 @@ export default async function CreatorPage(props: {
           /* ── Stage hero ── */
           .cp-stage {
             position: relative;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;

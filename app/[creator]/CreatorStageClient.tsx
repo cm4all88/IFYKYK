@@ -165,7 +165,7 @@ export default function CreatorStageClient({
 
       {/* Stage hero */}
       <section style={{
-        position: "relative", minHeight: "100vh",
+        position: "relative",
         display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         padding: "80px 24px 48px", overflow: "hidden",
@@ -193,57 +193,103 @@ export default function CreatorStageClient({
         </div>
 
         {/* Content */}
-        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: 600 }}>
+        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", width: "100%", maxWidth: 900 }}>
 
-          {/* Avatar circle — shows active post thumbnail */}
+          {/* Creator identity — top */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", border: "2px solid rgba(242,184,75,0.3)", flexShrink: 0 }}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <div style={{ width: "100%", height: "100%", background: "rgba(242,184,75,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 22, color: "rgba(242,184,75,0.7)" }}>
+                  {String(displayName).charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign: "left" }}>
+              <h1 style={{ fontFamily: serif, fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 300, color: "#fff", lineHeight: 1, letterSpacing: "-0.02em", margin: "0 0 4px" }}>
+                {displayName}
+              </h1>
+              <p style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.12em", color: "rgba(242,184,75,0.6)", margin: 0 }}>@{handle}</p>
+            </div>
+          </div>
+
+          {/* THE SCREEN — active post displayed large */}
           <div
             onClick={() => activePost && setLightbox(activePost)}
             style={{
-              width: 130, height: 130, borderRadius: "50%",
-              overflow: "hidden", marginBottom: 24,
-              border: "2px solid rgba(242,184,75,0.3)",
+              width: "100%",
+              aspectRatio: "16/9",
+              background: "#0a0a0f",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12,
+              overflow: "hidden",
               cursor: activePost?.media_url ? "pointer" : "default",
               position: "relative",
-              boxShadow: "0 0 40px rgba(242,184,75,0.12)",
-              transition: "box-shadow 0.3s ease",
+              marginBottom: 24,
+              boxShadow: "0 0 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(242,184,75,0.08)",
             }}
           >
-            {circleContent ? (
-              <img src={circleContent} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : avatarUrl ? (
-              <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-            ) : (
-              <div style={{
-                width: "100%", height: "100%",
-                background: "rgba(242,184,75,0.1)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: serif, fontSize: 52, fontWeight: 300, color: "rgba(242,184,75,0.7)",
-              }}>
-                {String(displayName).charAt(0).toUpperCase()}
+            {/* Screen content — active post */}
+            {activePost?.media_url && activePost.media_type === "image" && (
+              <img src={activePost.media_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            )}
+            {activePost?.media_url && activePost.media_type === "video" && (
+              activePost.media_url.includes("iframe.mediadelivery.net") ? (
+                <iframe
+                  src={`${activePost.media_url}&responsive=true&autoplay=false`}
+                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  onClick={e => { e.stopPropagation(); }}
+                />
+              ) : (
+                <video src={activePost.media_url} style={{ width: "100%", height: "100%", objectFit: "cover" }} controls onClick={e => e.stopPropagation()} />
+              )
+            )}
+            {(!activePost?.media_url) && (
+              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
+                <div style={{ fontFamily: serif, fontSize: 48, fontWeight: 300, color: "rgba(242,184,75,0.15)", lineHeight: 1 }}>✦</div>
+                {activePost?.caption && (
+                  <p style={{ fontFamily: serif, fontSize: 22, fontStyle: "italic", fontWeight: 300, color: "rgba(242,242,240,0.6)", maxWidth: 560, lineHeight: 1.6, padding: "0 32px" }}>
+                    &ldquo;{activePost.caption}&rdquo;
+                  </p>
+                )}
               </div>
             )}
-            {/* Play indicator for videos */}
-            {activePost?.media_type === "video" && activePost.media_url && (
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                background: "rgba(0,0,0,0.3)",
-              }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(242,184,75,0.9)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 14, marginLeft: 3 }}>▶</span>
+
+            {/* Locked overlay */}
+            {activePost && (() => {
+              const subLocked = activePost.lock_type === "subscription" && !isSubscribed;
+              const purchaseLocked = activePost.lock_type === "purchase" && !unlockedPostIds.includes(activePost.id);
+              const locked = subLocked || (activePost.tier === "premium" && activePost.lock_type !== "purchase" && !isSubscribed);
+              if (!locked && !purchaseLocked) return null;
+              return (
+                <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", background: "rgba(9,9,12,0.7)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+                  <div style={{ fontSize: 40 }}>{purchaseLocked ? "🔓" : "🔒"}</div>
+                  <p style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(242,184,75,0.8)", margin: 0 }}>
+                    {purchaseLocked ? "Unlock to view" : "Subscribers only"}
+                  </p>
+                  {activePost.caption && (
+                    <p style={{ fontFamily: serif, fontSize: 18, fontStyle: "italic", color: "rgba(255,255,255,0.5)", maxWidth: 400, lineHeight: 1.6, margin: 0 }}>
+                      &ldquo;{activePost.caption.slice(0, 120)}&rdquo;
+                    </p>
+                  )}
                 </div>
+              );
+            })()}
+
+            {/* Fullscreen hint */}
+            {activePost?.media_url && (
+              <div style={{ position: "absolute", bottom: 12, right: 12, background: "rgba(0,0,0,0.6)", borderRadius: 4, padding: "4px 8px", fontFamily: mono, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>
+                ⤢ Fullscreen
               </div>
             )}
           </div>
 
-          <h1 style={{ fontFamily: serif, fontSize: "clamp(40px, 8vw, 72px)", fontWeight: 300, color: "#fff", lineHeight: 1, letterSpacing: "-0.02em", margin: "0 0 8px" }}>
-            {displayName}
-          </h1>
-          <p style={{ fontFamily: mono, fontSize: 12, letterSpacing: "0.12em", color: "rgba(242,184,75,0.6)", margin: "0 0 20px" }}>
-            @{handle}
-          </p>
+          {/* Bio + actions below screen */}
           {bio && (
-            <p style={{ fontSize: 15, color: "rgba(242,242,240,0.6)", lineHeight: 1.7, maxWidth: 480, margin: "0 0 28px" }}>
+            <p style={{ fontSize: 14, color: "rgba(242,242,240,0.55)", lineHeight: 1.7, maxWidth: 560, margin: "0 0 20px" }}>
               {bio}
             </p>
           )}
@@ -254,13 +300,13 @@ export default function CreatorStageClient({
 
           {backstageHandle && (
             <a href={`/${backstageHandle}`} style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "10px 20px", background: "rgba(168,85,247,0.06)",
+              display: "inline-flex", alignItems: "center", gap: 12,
+              padding: "8px 16px", background: "rgba(168,85,247,0.06)",
               border: "1px solid rgba(168,85,247,0.2)", borderRadius: 6,
-              textDecoration: "none", marginTop: 8,
+              textDecoration: "none", marginBottom: 8,
             }}>
               <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "#A855F7" }}>Backstage</span>
-              <span style={{ fontSize: 13, color: "rgba(242,242,240,0.7)" }}>Exclusive content at <strong>@{backstageHandle}</strong></span>
+              <span style={{ fontSize: 13, color: "rgba(242,242,240,0.7)" }}>@{backstageHandle}</span>
               <span style={{ color: "#A855F7" }}>→</span>
             </a>
           )}
