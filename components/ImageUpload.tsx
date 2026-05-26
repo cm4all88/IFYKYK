@@ -9,6 +9,8 @@ interface Props {
   hint?: string;
   previewWidth?: number;
   previewHeight?: number;
+  minWidth?: number;
+  minHeight?: number;
 }
 
 export default function ImageUpload({
@@ -19,18 +21,44 @@ export default function ImageUpload({
   hint = "JPG, PNG or WebP · Max 10MB",
   previewWidth = 80,
   previewHeight = 80,
+  minWidth,
+  minHeight,
 }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resWarning, setResWarning] = useState<string | null>(null);
 
   const radius = shape === "circle" ? "50%" : "10px";
+
+  async function checkResolution(file: File): Promise<string | null> {
+    if (!minWidth && !minHeight) return null;
+    return new Promise(resolve => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        if (minWidth && img.width < minWidth) {
+          resolve(`Image is ${img.width}px wide — minimum ${minWidth}px recommended for best quality.`);
+        } else if (minHeight && img.height < minHeight) {
+          resolve(`Image is ${img.height}px tall — minimum ${minHeight}px recommended for best quality.`);
+        } else {
+          resolve(null);
+        }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     setError(null);
+    setResWarning(null);
+    const warn = await checkResolution(file);
+    if (warn) setResWarning(warn);
 
     const fd = new FormData();
     fd.append("file", file);

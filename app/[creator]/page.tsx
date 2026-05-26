@@ -17,7 +17,7 @@ import UnlockButton from "./UnlockButton";
 import SuperTipButton from "./SuperTipButton";
 import CommentSection from "./CommentSection";
 import LivePlayer from "./LivePlayer";
-import PostCarousel from "./PostCarousel";
+import CreatorStageClient from "./CreatorStageClient";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -199,289 +199,33 @@ export default async function CreatorPage(props: {
       <SiteHeader />
       <SuccessBanner />
       <main className="cp">
-        {/* Stage hero */}
-        <section className="cp-stage">
-          {/* Background — cover image or spotlight beam */}
-          <div className="cp-stage-bg" aria-hidden>
-            {spotlight.cover_url && (
-              <img src={spotlight.cover_url} alt="" className="cp-stage-cover-img" />
-            )}
-            <div className="cp-stage-vignette" />
-            {/* Spotlight beam */}
-            <div className="cp-stage-beam" />
-            <div className="cp-stage-beam-wide" />
-            {/* Stage floor glow */}
-            <div className="cp-stage-floor" />
-          </div>
-
-          {/* Stage content — centered */}
-          <div className="cp-stage-inner">
-            {/* Avatar */}
-            <div className="cp-stage-avatar-wrap">
-              {spotlight.avatar_url ? (
-                <img src={spotlight.avatar_url} alt="" className="cp-stage-avatar" />
-              ) : (
-                <div className="cp-stage-avatar cp-stage-avatar-fallback">
-                  {String(displayName).charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-
-            {/* Name */}
-            <h1 className="cp-stage-name">{displayName}</h1>
-            <p className="cp-stage-handle">@{spotlight.handle}</p>
-
-            {spotlight.bio && (
-              <p className="cp-stage-bio">{spotlight.bio}</p>
-            )}
-
-            {/* Social links */}
-            {(() => {
-              const links = (spotlight as any).social_links as Record<string,string> | null;
-              if (!links) return null;
-              const labels: Record<string,string> = { social_tiktok:"TikTok", social_instagram:"Instagram", social_youtube:"YouTube", social_twitter:"X", social_twitch:"Twitch", social_discord:"Discord", social_substack:"Substack", social_website:"Website" };
-              const active = Object.entries(links).filter(([,v]) => v && (v as string).length > 0);
-              if (!active.length) return null;
-              return (
-                <div className="cp-social-links">
-                  {active.map(([key, url]) => (
-                    <a key={key} href={url as string} target="_blank" rel="noopener noreferrer" className="cp-social-link">
-                      {labels[key] ?? key.replace("social_","")}
-                    </a>
-                  ))}
-                </div>
-              );
-            })()}
-
-            {/* Actions */}
-            <div className="cp-stage-actions">
-              <SubscribeButton creatorProfileId={spotlight.id} />
-              <TipButton creatorProfileId={spotlight.id} />
-              <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
-              {(spotlight as any).booking_url && (
-                <a
-                  href={(spotlight as any).booking_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn--secondary"
-                >
-                  📅 {(spotlight as any).booking_label || "Book"}
-                </a>
-              )}
-            </div>
-
-            {backstageHandle && (
-              <Link href={`/${backstageHandle}`} className="cp-backstage">
-                <span className="cp-bs-tag">Backstage</span>
-                <span className="cp-bs-text">Exclusive content at <strong>@{backstageHandle}</strong></span>
-                <span className="cp-bs-arrow">→</span>
-              </Link>
-            )}
-          </div>
-        </section>
-
-        <ReferralTracker creatorHandle={spotlight.handle} />
-
-        {/* Calendly embed — shows when booking URL is a Calendly link */}
-        {(spotlight as any).booking_url?.includes("calendly.com") && (
-          <div style={{ maxWidth:"var(--container)", margin:"0 auto var(--s-6)", padding:"0 var(--s-6)" }}>
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", overflow:"hidden" }}>
-              <div style={{ padding:"var(--s-4) var(--s-6)", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:10 }}>
-                <span style={{ fontSize:18 }}>📅</span>
-                <div>
-                  <p style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>{(spotlight as any).booking_label || "Book an appointment"}</p>
-                  <p style={{ fontSize:12, color:"var(--muted)" }}>Powered by Calendly</p>
-                </div>
-              </div>
-              <iframe
-                src={`${(spotlight as any).booking_url}?embed_domain=${typeof window !== "undefined" ? window.location.hostname : "spotlightly.app"}&embed_type=Inline`}
-                width="100%"
-                height="700"
-                style={{ border:"none", display:"block" }}
-                title="Book an appointment"
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Live stream banner — shows when creator is live */}
-        {data.liveStream && (
-          <div style={{ maxWidth: "var(--container)", margin: "0 auto var(--s-4)", padding: "0 var(--s-6)" }}>
-            <LivePlayer playbackUrl={data.liveStream.playback_url} title={data.liveStream.title} />
-          </div>
-        )}
-
-        {/* Top Supporters */}
-        {data.superTips.length > 0 && (
-          <div style={{ maxWidth: "var(--container)", margin: "0 auto var(--s-4)", padding: "0 var(--s-6)" }}>
-            <div style={{ background: "rgba(240,180,41,0.04)", border: "1px solid rgba(240,180,41,0.15)", borderRadius: "var(--r-3)", padding: "var(--s-4) var(--s-5)" }}>
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent-spot)", marginBottom: "var(--s-3)" }}>⭐ Top Supporters</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {data.superTips.map((t: any, i: number) => (
-                  <div key={i} style={{ background: "rgba(240,180,41,0.08)", border: "1px solid rgba(240,180,41,0.2)", borderRadius: "var(--r-pill)", padding: "4px 12px", fontSize: 12, color: "var(--text-soft)" }}>
-                    <span style={{ color: "var(--accent-spot)", fontWeight: 700 }}>{t.fan_display_name}</span>
-                    {t.message && <span style={{ marginLeft: 6, fontStyle: "italic" }}>"{t.message.slice(0, 40)}"</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <section className="cp-content">
-          <div className="cp-content-inner">
-            {channels.length > 0 && (
-              <div className="cp-channels">
-                <p className="kicker">Channels</p>
-                <div className="cp-channel-grid">
-                  {channels.map((ch) => (
-                    <Link
-                      key={ch.id}
-                      href={`/${spotlight.handle}/${ch.slug}`}
-                      className="cp-channel"
-                    >
-                      <h3 className="cp-channel-name">{ch.name}</h3>
-                      {ch.description && (
-                        <p className="cp-channel-desc">{ch.description}</p>
-                      )}
-                      <p className="cp-channel-meta">
-                        {ch.subscription_price
-                          ? `$${Number(ch.subscription_price).toFixed(2)}/mo`
-                          : "Free"}{" "}
-                        · {ch.content_rating}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── CAMPAIGNS ── */}
-            {campaigns && campaigns.length > 0 && (
-              <div className="cp-campaigns">
-                <p className="kicker">Campaigns</p>
-                <div className="cp-campaign-list">
-                  {campaigns.map((c: any) => {
-                    const pct = Math.min(100, Math.round((c.raised / c.goal_amount) * 100));
-                    const daysLeft = c.deadline
-                      ? Math.max(0, Math.ceil((new Date(c.deadline).getTime() - Date.now()) / 86400000))
-                      : null;
-                    return (
-                      <div key={c.id} className="cp-campaign">
-                        <div className="cp-campaign-head">
-                          <h3 className="cp-campaign-title">{c.title}</h3>
-                          {daysLeft !== null && (
-                            <span className="cp-campaign-deadline">
-                              {daysLeft > 0 ? `${daysLeft}d left` : "Ended"}
-                            </span>
-                          )}
-                        </div>
-                        {c.description && (
-                          <p className="cp-campaign-desc">{c.description}</p>
-                        )}
-                        <div className="cp-campaign-progress">
-                          <div className="cp-campaign-bar">
-                            <div className="cp-campaign-fill" style={{ width: `${pct}%` }} />
-                          </div>
-                          <div className="cp-campaign-stats">
-                            <span className="cp-campaign-raised">
-                              ${Number(c.raised).toFixed(0)} raised
-                            </span>
-                            <span className="cp-campaign-goal">
-                              of ${Number(c.goal_amount).toFixed(0)} goal · {pct}%
-                            </span>
-                          </div>
-                        </div>
-                        {c.reward_description && (
-                          <p className="cp-campaign-reward">
-                            🎟 Supporters get: {c.reward_description}
-                          </p>
-                        )}
-                        {c.status === "active" && (
-                          <div style={{ marginTop: "var(--s-4)" }}>
-                            <CampaignDonateButton campaignId={c.id} campaignTitle={c.title} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ── WISHLIST ── */}
-            {/* Subscription Tiers */}
-            {subscriptionTiers && subscriptionTiers.length > 0 && (
-              <TiersSection
-                tiers={subscriptionTiers as any}
-                creatorHandle={spotlight.handle}
-                creatorName={spotlight.display_name ?? spotlight.handle}
-              />
-            )}
-
-            {/* Digital Store */}
-            {digitalProducts && digitalProducts.length > 0 && (
-              <div style={{ marginBottom:"var(--s-12)" }}>
-                <p className="kicker">Digital Store</p>
-                <p style={{ fontSize:13, color:"var(--muted)", marginBottom:"var(--s-5)" }}>
-                  Download instantly after purchase.
-                </p>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:"var(--s-4)" }}>
-                  {(digitalProducts as any[]).map((product: any) => (
-                    <DigitalProductCard key={product.id} product={product} creatorProfileId={spotlight.id} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-                        {wishlistItems && wishlistItems.length > 0 && (
-              <div className="cp-wishlist">
-                <p className="kicker">Wishlist</p>
-                <p className="cp-wishlist-sub">
-                  Send {displayName} something from their wishlist.
-                </p>
-                <div className="cp-wishlist-grid">
-                  {(wishlistItems as any[]).map((item: any) => (
-                    <WishlistItemCard key={item.id} item={item} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="cp-posts">
-              <p className="kicker">Latest</p>
-
-              {posts.length > 0 && (
-              <div className="cp-posts-label">
-                {posts.length} post{posts.length !== 1 ? "s" : ""}
-              </div>
-            )}
-          {posts.length === 0 ? (
-                <div className="cp-empty">
-                  <div className="cp-empty-mark" aria-hidden>
-                    ◌
-                  </div>
-                  <h2 className="cp-empty-title">The stage is set.</h2>
-                  <p className="cp-empty-text">
-                    {displayName} hasn&apos;t posted yet. Check back soon.
-                  </p>
-                </div>
-              ) : (
-                <PostCarousel
-                  posts={posts as any}
-                  isSubscribed={isSubscribed}
-                  hasEarlyAccess={data.hasEarlyAccess}
-                  unlockedPostIds={data.unlockedPostIds ?? []}
-                  viewerUserId={data.viewerUserId}
-                  displayName={displayName}
-                  creatorProfileId={spotlight.id}
-                  subscriptionPrice={spotlight.subscription_price ? Number(spotlight.subscription_price) : null}
-                />
-              )}
-            </div>
-          </div>
-        </section>
-
+        <CreatorStageClient
+          posts={posts as any}
+          isSubscribed={isSubscribed}
+          hasEarlyAccess={data.hasEarlyAccess}
+          unlockedPostIds={data.unlockedPostIds ?? []}
+          viewerUserId={data.viewerUserId}
+          displayName={displayName}
+          handle={spotlight.handle}
+          bio={spotlight.bio ?? null}
+          avatarUrl={spotlight.avatar_url ?? null}
+          coverUrl={spotlight.cover_url ?? null}
+          bgUrl={(spotlight as any).bg_url ?? null}
+          creatorProfileId={spotlight.id}
+          subscriptionPrice={spotlight.subscription_price ? Number(spotlight.subscription_price) : null}
+          backstageHandle={backstageHandle}
+          bookingUrl={(spotlight as any).booking_url ?? null}
+          bookingLabel={(spotlight as any).booking_label ?? null}
+        >
+          <SubscribeButton creatorProfileId={spotlight.id} />
+          <TipButton creatorProfileId={spotlight.id} />
+          <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
+          {(spotlight as any).booking_url && (
+            <a href={(spotlight as any).booking_url} target="_blank" rel="noopener noreferrer" className="btn btn--secondary">
+              📅 {(spotlight as any).booking_label || "Book"}
+            </a>
+          )}
+        </CreatorStageClient>
 
         <style>{`
           /* ── Base ── */
@@ -513,15 +257,11 @@ export default async function CreatorPage(props: {
             position: absolute; inset: 0;
             background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 20%, rgba(9,9,12,0.7) 70%, rgba(9,9,12,0.97) 100%);
           }
-          .cp-stage-beam {
-            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-            width: 2px; height: 60%;
-            background: linear-gradient(to bottom, rgba(242,184,75,0.9), transparent);
-          }
+          /* Spotlight beam — wide cone only, no vertical line */
           .cp-stage-beam-wide {
             position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-            width: min(600px, 70vw); height: 65%;
-            background: radial-gradient(ellipse 70% 100% at 50% 0%, rgba(242,184,75,0.1) 0%, transparent 65%);
+            width: min(700px, 80vw); height: 70%;
+            background: radial-gradient(ellipse 60% 100% at 50% 0%, rgba(242,184,75,0.08) 0%, transparent 65%);
           }
           .cp-stage-floor {
             position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);

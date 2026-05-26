@@ -28,3 +28,6 @@ create index if not exists posts_tags_idx on public.posts using gin(tags);
 create index if not exists posts_scheduled_at_idx on public.posts(scheduled_at) where scheduled_at is not null;
 create index if not exists posts_expires_at_idx on public.posts(expires_at) where expires_at is not null;
 create index if not exists posts_is_pinned_idx on public.posts(creator_profile_id, is_pinned) where is_pinned = true;
+
+-- Background image for creator public page (separate from cover image)
+alter table public.creator_profiles add column if not exists bg_url text;

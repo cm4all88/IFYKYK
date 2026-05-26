@@ -399,6 +399,36 @@ function OverviewPane({
   onToggleLink: (next: boolean) => void;
   savingLink: boolean;
 }) {
+  const supabase = createClient();
+  const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
+
+  React.useEffect(() => {
+    async function load() {
+      const [{ count: audience }, { count: posts }, { data: tips }] = await Promise.all([
+        (supabase as any).from("subscriptions").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "active"),
+        (supabase as any).from("posts").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "live"),
+        (supabase as any).from("tips").select("amount_usd, created_at").eq("creator_profile_id", profile.id),
+      ]);
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const allTips = tips ?? [];
+      const thisMonth = allTips.filter((t: any) => t.created_at >= monthStart).reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
+      const lifetime = allTips.reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
+      setStats({ audience: audience ?? 0, posts: posts ?? 0, thisMonth, lifetime });
+    }
+    load();
+  }, [profile.id]);
+
+  // Determine the most important next action
+  const stripeConnected = !!(profile as any).stripe_onboarded;
+  const nextMove = !stripeConnected
+    ? { href: "/dashboard?pane=payments", label: "Connect Stripe", desc: "Required before your audience can pay you.", color: "var(--accent-open)" }
+    : stats.posts === 0
+    ? { href: "/dashboard?pane=posts", label: "Create your first post", desc: "Free posts build your audience. Paid posts build your income.", color: "var(--accent)" }
+    : stats.audience === 0
+    ? { href: "/dashboard?pane=channels", label: "Set up a subscription", desc: "Give your audience a reason to join.", color: "var(--accent)" }
+    : { href: "/dashboard?pane=posts", label: "New post", desc: "Keep your audience engaged.", color: "var(--accent)" };
+
   return (
     <div className="pane">
       <div className="pane-head">
@@ -412,23 +442,23 @@ function OverviewPane({
       <div className="stats">
         <div className="stat">
           <p className="stat-label">Audience</p>
-          <p className="stat-num">0</p>
-          <p className="stat-meta">Build your audience</p>
+          <p className="stat-num">{stats.audience.toLocaleString()}</p>
+          <p className="stat-meta">Active subscribers</p>
         </div>
         <div className="stat">
           <p className="stat-label">This month</p>
-          <p className="stat-num">$0</p>
+          <p className="stat-num">${stats.thisMonth.toFixed(0)}
           <p className="stat-meta">Tips + subs combined</p>
         </div>
         <div className="stat">
           <p className="stat-label">Lifetime</p>
-          <p className="stat-num">$0</p>
-          <p className="stat-meta">Across all channels</p>
+          <p className="stat-num">${stats.lifetime.toFixed(0)}</p>
+          <p className="stat-meta">Total earned</p>
         </div>
         <div className="stat">
           <p className="stat-label">Posts</p>
-          <p className="stat-num">0</p>
-          <p className="stat-meta">Get something out there</p>
+          <p className="stat-num">{stats.posts.toLocaleString()}</p>
+          <p className="stat-meta">{stats.posts === 0 ? "Get something out there" : "Live on your page"}</p>
         </div>
       </div>
 
@@ -460,25 +490,26 @@ function OverviewPane({
 
       {/* Quick actions — priority hierarchy */}
 
-      {/* Next action — single most important thing */}
+      {/* Next action — dynamic based on actual state */}
       <div style={{ marginBottom: "var(--s-8)" }}>
-        <Link href="/dashboard?pane=posts" style={{
+        <Link href={nextMove.href} style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           background: "var(--surface)", border: "1px solid var(--border)",
-          borderLeft: "3px solid var(--accent)",
+          borderLeft: `3px solid ${nextMove.color}`,
           padding: "20px 28px", textDecoration: "none", color: "inherit",
           borderRadius: "var(--r-2)", transition: "background var(--t-fast)",
           gap: 16,
         }}>
           <div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: nextMove.color, marginBottom: 6 }}>
               Your next move
             </p>
-            <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontWeight: 400, color: "#fff", margin: 0 }}>
-              Create your first post
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontWeight: 400, color: "#fff", margin: "0 0 4px" }}>
+              {nextMove.label}
             </p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{nextMove.desc}</p>
           </div>
-          <span style={{ color: "var(--accent)", fontSize: 20, flexShrink: 0 }}>→</span>
+          <span style={{ color: nextMove.color, fontSize: 20, flexShrink: 0 }}>→</span>
         </Link>
       </div>
 
@@ -542,6 +573,7 @@ function ProfilePane({
   const [socialLinks, setSocialLinks] = useState<Record<string,string>>((profile as any).social_links ?? {});
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? "");
   const [coverUrl, setCoverUrl] = useState(profile.cover_url ?? "");
+  const [bgUrl, setBgUrl] = useState((profile as any).bg_url ?? "");
   const [tags, setTags] = useState<string[]>((profile as any).tags ?? []);
   const [locationCity, setLocationCity] = useState((profile as any).location_city ?? "");
   const [locationCountry, setLocationCountry] = useState((profile as any).location_country ?? "");
@@ -562,6 +594,7 @@ function ProfilePane({
         bio: bio.trim() || undefined,
         avatar_url: avatarUrl.trim() || undefined,
         cover_url: coverUrl.trim() || undefined,
+        bg_url: bgUrl.trim() || undefined,
       } as any)
       .eq("user_id", profile.user_id)
       .eq("kind", profile.kind);
@@ -718,10 +751,15 @@ function ProfilePane({
 
         <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
           <label className="label" style={{ marginBottom:"var(--s-3)" }}>Cover image</label>
-          <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="JPG, PNG or WebP · 1500×500px recommended" previewWidth={180} previewHeight={60} />
-          <p style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", marginTop:"var(--s-2)", letterSpacing:"0.06em" }}>
-            ✦ Your cover image also appears as a muted background behind your dashboard.
+          <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="JPG, PNG or WebP · 1500×500px recommended" minWidth={1200} minHeight={400} previewWidth={180} previewHeight={60} />
+        </div>
+
+        <div className="form-field" style={{ marginBottom:"var(--s-5)" }}>
+          <label className="label" style={{ marginBottom:"var(--s-3)" }}>Page background image</label>
+          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-3)" }}>
+            This appears as a full-page background behind your public profile. High resolution recommended — it fills the entire viewport.
           </p>
+          <ImageUpload value={bgUrl} onChange={setBgUrl} shape="rect" label="Upload background" hint="JPG or WebP · 1920×1080px or larger recommended" minWidth={1400} minHeight={800} previewWidth={180} previewHeight={100} />
         </div>
 
         <div className="form-actions">
