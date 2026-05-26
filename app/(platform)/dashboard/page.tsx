@@ -30,7 +30,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "social" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "marketplace" | "social" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
