@@ -2974,7 +2974,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                 setSuggestingTags(true);
                 const res = await fetch("/api/posts/tags", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ caption:body, mediaType }) });
                 const data = await res.json();
-                if (data.tags) setPostTags(prev => [...new Set([...prev, ...data.tags])].slice(0, 8));
+                if (data.tags) setPostTags(prev => Array.from(new Set([...prev, ...data.tags])).slice(0, 8));
                 setSuggestingTags(false);
               }} style={{ padding:"6px 12px", background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer", opacity:suggestingTags||!body.trim()?0.45:1 }}>
                 {suggestingTags ? "…" : "✦ AI"}
