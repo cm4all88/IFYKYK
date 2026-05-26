@@ -468,7 +468,7 @@ export default async function CreatorPage(props: {
                 </div>
               ) : (
                 <PostCarousel
-                  posts={posts}
+                  posts={posts as any}
                   isSubscribed={isSubscribed}
                   hasEarlyAccess={data.hasEarlyAccess}
                   unlockedPostIds={data.unlockedPostIds ?? []}
