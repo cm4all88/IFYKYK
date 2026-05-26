@@ -214,6 +214,30 @@ export default function CreatorStageClient({
             </div>
           </div>
 
+          {/* Bio + actions ABOVE screen */}
+          {bio && (
+            <p style={{ fontSize: 14, color: "rgba(242,242,240,0.55)", lineHeight: 1.7, maxWidth: 560, margin: "0 0 16px" }}>
+              {bio}
+            </p>
+          )}
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
+            {children}
+          </div>
+
+          {backstageHandle && (
+            <a href={`/${backstageHandle}`} style={{
+              display: "inline-flex", alignItems: "center", gap: 12,
+              padding: "8px 16px", background: "rgba(168,85,247,0.06)",
+              border: "1px solid rgba(168,85,247,0.2)", borderRadius: 6,
+              textDecoration: "none", marginBottom: 20,
+            }}>
+              <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "#A855F7" }}>Backstage</span>
+              <span style={{ fontSize: 13, color: "rgba(242,242,240,0.7)" }}>@{backstageHandle}</span>
+              <span style={{ color: "#A855F7" }}>→</span>
+            </a>
+          )}
+
           {/* THE SCREEN — active post displayed large */}
           <div
             onClick={() => activePost && setLightbox(activePost)}
@@ -287,31 +311,7 @@ export default function CreatorStageClient({
             )}
           </div>
 
-          {/* Bio + actions below screen */}
-          {bio && (
-            <p style={{ fontSize: 14, color: "rgba(242,242,240,0.55)", lineHeight: 1.7, maxWidth: 560, margin: "0 0 20px" }}>
-              {bio}
-            </p>
-          )}
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 20 }}>
-            {children}
-          </div>
-
-          {backstageHandle && (
-            <a href={`/${backstageHandle}`} style={{
-              display: "inline-flex", alignItems: "center", gap: 12,
-              padding: "8px 16px", background: "rgba(168,85,247,0.06)",
-              border: "1px solid rgba(168,85,247,0.2)", borderRadius: 6,
-              textDecoration: "none", marginBottom: 8,
-            }}>
-              <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "#A855F7" }}>Backstage</span>
-              <span style={{ fontSize: 13, color: "rgba(242,242,240,0.7)" }}>@{backstageHandle}</span>
-              <span style={{ color: "#A855F7" }}>→</span>
-            </a>
-          )}
-        </div>
-      </section>
 
       {/* Posts section */}
       {visiblePosts.length > 0 && (
