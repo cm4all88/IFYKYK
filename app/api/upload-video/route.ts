@@ -37,11 +37,13 @@ export async function POST(req: NextRequest) {
 
   const video = await res.json();
 
+  const embedUrl = `https://iframe.mediadelivery.net/embed/${BUNNY.STREAM_LIBRARY_ID}/${video.guid}?autoplay=false`;
+
   return NextResponse.json({
     videoId: video.guid,
     uploadUrl: `https://video.bunnycdn.com/library/${BUNNY.STREAM_LIBRARY_ID}/videos/${video.guid}`,
     accessKey: BUNNY.STREAM_KEY,
-    playbackUrl: `https://iframe.mediadelivery.net/embed/${BUNNY.STREAM_LIBRARY_ID}/${video.guid}`,
-    cdnUrl: `https://vz-${BUNNY.STREAM_LIBRARY_ID}.b-cdn.net/${video.guid}/play_720p.mp4`,
+    playbackUrl: embedUrl,
+    cdnUrl: embedUrl, // embed URL is safe — direct MP4 only available after encoding
   });
 }

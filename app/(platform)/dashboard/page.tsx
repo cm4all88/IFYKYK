@@ -2935,8 +2935,14 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
           />
           {mediaUrl && (
             <div style={{ padding:"0 var(--s-4) var(--s-3)", position:"relative", display:"inline-block" }}>
-              {mediaType?.startsWith("video") ? (
-                <video src={mediaUrl} style={{ maxHeight:180, borderRadius:"var(--r-1)" }} controls />
+              {mediaType === "video" ? (
+                mediaUrl.includes("iframe.mediadelivery.net") ? (
+                  <div style={{ position:"relative", paddingTop:"56.25%", borderRadius:"var(--r-1)", overflow:"hidden", maxWidth:320 }}>
+                    <iframe src={mediaUrl} style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }} allow="autoplay" />
+                  </div>
+                ) : (
+                  <video src={mediaUrl} style={{ maxHeight:180, borderRadius:"var(--r-1)" }} controls />
+                )
               ) : (
                 <img src={mediaUrl} alt="" style={{ maxHeight:180, borderRadius:"var(--r-1)", display:"block" }} />
               )}

@@ -542,6 +542,20 @@ export default async function CreatorPage(props: {
                             {p.media_url && p.media_type === "image" && (
                               <img src={p.media_url} alt="" className="cp-post-media" />
                             )}
+                            {p.media_url && p.media_type === "video" && (
+                              p.media_url.includes("iframe.mediadelivery.net") ? (
+                                <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: "var(--r-2)", overflow: "hidden", marginBottom: "var(--s-3)" }}>
+                                  <iframe
+                                    src={p.media_url}
+                                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              ) : (
+                                <video src={p.media_url} className="cp-post-media" controls style={{ width: "100%", borderRadius: "var(--r-2)" }} />
+                              )
+                            )}
                             {p.caption && <p className="cp-post-caption">{p.caption}</p>}
                             <div className="cp-post-meta">
                               <span>{new Date(p.created_at).toLocaleDateString()}</span>
