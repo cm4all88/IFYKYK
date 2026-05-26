@@ -16,166 +16,6 @@ interface AIResponse {
   followUpAnswer?: string;
 }
 
-// ── Live page preview (desktop only, step 3) ──────────────────────
-function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
-  handle: string; displayName: string; bio: string;
-  avatarUrl: string; tags: string[];
-}) {
-  const cats = (CREATOR_CATEGORIES as readonly { id: string; label: string; emoji: string }[]);
-  return (
-    <div style={{
-      background: "#17181B",
-      border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: 8,
-      overflow: "hidden",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-    }}>
-      {/* Mini browser bar */}
-      <div style={{
-        background: "#111115",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        padding: "10px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexShrink: 0,
-      }}>
-        <div style={{ display: "flex", gap: 5 }}>
-          {["#EF4444","#F0B429","#34D399"].map(c => (
-            <div key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c, opacity: 0.5 }} />
-          ))}
-        </div>
-        <div style={{
-          flex: 1, background: "#17181B", borderRadius: 3,
-          padding: "4px 10px", fontFamily: "DM Mono, monospace",
-          fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em",
-        }}>
-          spotlightly.app/{handle || "your-handle"}
-        </div>
-      </div>
-
-      {/* Page content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 0 24px" }}>
-        {/* Cover */}
-        <div style={{
-          height: 100,
-          background: "linear-gradient(135deg, #1c1c22 0%, #232428 100%)",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 80% 120% at 50% -20%, rgba(242,184,75,0.12), transparent 60%)",
-          }} />
-        </div>
-
-        {/* Avatar + name */}
-        <div style={{ padding: "0 20px", marginTop: -28 }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: avatarUrl ? "transparent" : "rgba(242,184,75,0.15)",
-            border: "2px solid #17181B",
-            overflow: "hidden",
-            marginBottom: 10,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            {avatarUrl
-              ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <span style={{ fontSize: 20, opacity: 0.4 }}>✦</span>
-            }
-          </div>
-
-          <div style={{
-            fontFamily: "Cormorant Garamond, Georgia, serif",
-            fontSize: 20, fontWeight: 400, color: "#fff",
-            marginBottom: 4, lineHeight: 1.1,
-            minHeight: 24,
-            transition: "all 0.2s",
-          }}>
-            {displayName || <span style={{ color: "rgba(255,255,255,0.15)" }}>Your name</span>}
-          </div>
-
-          <div style={{
-            fontFamily: "DM Mono, monospace",
-            fontSize: 10, color: "rgba(242,184,75,0.6)",
-            letterSpacing: "0.08em", marginBottom: 10,
-          }}>
-            @{handle || "your-handle"}
-          </div>
-
-          {bio ? (
-            <p style={{
-              fontSize: 12, color: "rgba(242,242,240,0.55)",
-              lineHeight: 1.65, marginBottom: 12,
-              maxHeight: 60, overflow: "hidden",
-            }}>
-              {bio}
-            </p>
-          ) : (
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.1)", marginBottom: 12, fontStyle: "italic" }}>
-              Your bio will appear here
-            </p>
-          )}
-
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
-              {tags.slice(0, 4).map(t => {
-                const cat = cats.find(c => c.id === t);
-                return cat ? (
-                  <span key={t} style={{
-                    fontFamily: "DM Mono, monospace", fontSize: 9,
-                    letterSpacing: "0.08em", textTransform: "uppercase",
-                    padding: "3px 8px", borderRadius: 3,
-                    background: "rgba(242,184,75,0.08)",
-                    border: "1px solid rgba(242,184,75,0.15)",
-                    color: "rgba(242,184,75,0.7)",
-                  }}>
-                    {cat.emoji} {cat.label}
-                  </span>
-                ) : null;
-              })}
-            </div>
-          )}
-
-          {/* Subscribe button placeholder */}
-          <div style={{
-            background: "rgba(242,184,75,0.12)",
-            border: "1px solid rgba(242,184,75,0.2)",
-            borderRadius: 4,
-            padding: "10px 0",
-            textAlign: "center",
-            fontFamily: "DM Mono, monospace",
-            fontSize: 10, letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "rgba(242,184,75,0.7)",
-            marginBottom: 16,
-          }}>
-            Subscribe
-          </div>
-
-          {/* Placeholder posts */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {[1,2,3].map(i => (
-              <div key={i} style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                borderRadius: 4, padding: "10px 12px",
-                opacity: 1 - (i * 0.2),
-              }}>
-                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 2, marginBottom: 6, width: `${80 - i * 15}%` }} />
-                <div style={{ height: 6, background: "rgba(255,255,255,0.04)", borderRadius: 2, width: "60%" }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main page ─────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
@@ -193,6 +33,7 @@ export default function OnboardingPage() {
   const [description, setDescription] = useState("");
   const [aiResponse, setAiResponse] = useState<AIResponse | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [autoFired, setAutoFired] = useState(false);
   const [followUp, setFollowUp] = useState("");
   const [followUpAnswer, setFollowUpAnswer] = useState("");
   const [followUpLoading, setFollowUpLoading] = useState(false);
@@ -234,22 +75,34 @@ export default function OnboardingPage() {
     if (step === "stage" && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 600);
     }
+    // Auto-fire AI on about step using saved signup context
+    if (step === "about" && !autoFired && !aiResponse) {
+      setAutoFired(true);
+      const saved = localStorage.getItem("spotlightly_creator_context");
+      if (saved) {
+        setDescription(saved);
+        void askAI(saved);
+      }
+      // If no saved context, fall through — show the fallback input
+    }
   }, [step]);
 
-  async function askAI() {
-    if (!description.trim()) return;
+  async function askAI(desc?: string) {
+    const text = (desc ?? description).trim();
+    if (!text) return;
     setAiLoading(true);
     setErr(null);
     const res = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ description }),
+      body: JSON.stringify({ description: text }),
     });
     const data = await res.json();
     if (data.error) { setErr(data.error); setAiLoading(false); return; }
     setAiResponse(data);
     if (data.suggestedBio && !bio) setBio(data.suggestedBio);
     if (data.suggestedTags?.length) setSelectedTags(data.suggestedTags.slice(0, 5));
+    localStorage.removeItem("spotlightly_creator_context");
     setAiLoading(false);
   }
 
@@ -364,7 +217,7 @@ export default function OnboardingPage() {
         position: "relative",
         overflow: "hidden",
       }}>
-        {/* Hero background — muted stage texture */}
+        {/* Hero background */}
         <div style={{
           position: "fixed", inset: 0,
           backgroundImage: "url('/hero-bg.jpg')",
@@ -374,14 +227,7 @@ export default function OnboardingPage() {
           pointerEvents: "none",
           zIndex: 0,
         }} />
-        {/* Spotlight beam from top */}
-        <div style={{
-          position: "absolute", top: 0, left: "50%",
-          transform: "translateX(-50%)",
-          width: 2, height: "60%",
-          background: "linear-gradient(to bottom, rgba(242,184,75,0.9), transparent)",
-          pointerEvents: "none",
-        }} />
+        {/* Spotlight glow — radial only, no line */}
         <div style={{
           position: "absolute", top: 0, left: "50%",
           transform: "translateX(-50%)",
@@ -415,7 +261,6 @@ export default function OnboardingPage() {
           padding: "0 24px",
           width: "100%", maxWidth: 560,
         }}>
-          {/* The stage name display */}
           <div style={{
             fontFamily: "Cormorant Garamond, Georgia, serif",
             fontSize: "clamp(48px, 8vw, 80px)",
@@ -432,7 +277,7 @@ export default function OnboardingPage() {
             )}
           </div>
 
-          {/* Spotlight line under name */}
+          {/* Spotlight line under name — horizontal only, decorative */}
           <div style={{
             width: stageName ? "80%" : "40%",
             height: 1,
@@ -499,29 +344,19 @@ export default function OnboardingPage() {
     );
   }
 
-  // ── STEP: ABOUT (conversational) ─────────────────────────────────
+  // ── STEP: ABOUT ──────────────────────────────────────────────────
   if (step === "about") {
     return (
       <main style={{
-        minHeight: "100vh",
-        background: "#17181B",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "80px 24px",
-        position: "relative",
-        overflow: "hidden",
+        minHeight: "100vh", background: "#17181B",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "80px 24px", position: "relative", overflow: "hidden",
       }}>
-        {/* Hero background — muted stage texture */}
         <div style={{
-          position: "fixed", inset: 0,
-          backgroundImage: "url('/hero-bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center top",
-          opacity: 0.05,
-          pointerEvents: "none",
-          zIndex: 0,
+          position: "fixed", inset: 0, backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover", backgroundPosition: "center top",
+          opacity: 0.05, pointerEvents: "none", zIndex: 0,
         }} />
         <div style={{
           position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
@@ -541,79 +376,87 @@ export default function OnboardingPage() {
 
         <div style={{ width: "100%", maxWidth: aiResponse ? 580 : 480, position: "relative", zIndex: 1 }}>
 
-          {!aiResponse ? (
-            <div>
-              <p style={{
+          {/* Loading state */}
+          {aiLoading && !aiResponse && (
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <div style={{
                 fontFamily: "Cormorant Garamond, Georgia, serif",
-                fontSize: 20, fontStyle: "italic",
-                color: "rgba(242,184,75,0.7)",
-                marginBottom: 16, textAlign: "center",
+                fontSize: 22, fontStyle: "italic",
+                color: "rgba(242,184,75,0.6)", marginBottom: 16,
               }}>
-                Hey{stageName ? `, ${stageName}` : ""}. 👋
-              </p>
+                Reading your stage…
+              </div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                {[0,1,2].map(i => (
+                  <div key={i} style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: "rgba(242,184,75,0.4)",
+                    animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                  }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fallback — only shown if no saved context from signup */}
+          {!aiLoading && !aiResponse && (
+            <div>
               <h2 style={{
                 fontFamily: "Cormorant Garamond, Georgia, serif",
-                fontSize: "clamp(32px, 5vw, 52px)",
+                fontSize: "clamp(32px, 5vw, 48px)",
                 fontWeight: 300, color: "#fff",
-                lineHeight: 1.05, marginBottom: 16,
-                textAlign: "center", letterSpacing: "-0.01em",
+                lineHeight: 1.05, marginBottom: 16, textAlign: "center",
               }}>
-                What do you do?
+                What do you create?
               </h2>
               <p style={{
                 fontSize: 15, color: "rgba(247,243,236,0.45)",
-                lineHeight: 1.8, marginBottom: 40,
-                textAlign: "center", maxWidth: 400, margin: "0 auto 40px",
+                lineHeight: 1.8, marginBottom: 32, textAlign: "center",
               }}>
-                Tell us in your own words. We&apos;ll show you exactly how to make money on Spotlightly.
+                One line is enough. We&apos;ll show you exactly how to make money on Spotlightly.
               </p>
-
-              <textarea
+              <input
+                type="text"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAI(); }}}
-                placeholder={"e.g. I'm a hairdresser and I post styling tips on Instagram\n\ne.g. I make electronic music and want to release exclusive tracks"}
-                rows={4}
+                onKeyDown={e => { if (e.key === "Enter" && description.trim()) askAI(); }}
+                placeholder="e.g. I'm a graphic artist"
                 autoFocus
                 style={{
-                  ...inputBase,
-                  fontSize: 15, marginBottom: 16,
-                  background: "#232428",
+                  width: "100%", background: "#232428",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderBottom: "2px solid rgba(242,184,75,0.3)",
                   borderRadius: "6px 6px 0 0",
+                  padding: "16px 20px", color: "#F7F3EC",
+                  fontSize: 16, outline: "none", fontFamily: "inherit",
+                  marginBottom: 16,
                 }}
               />
-
-              {err && <p style={{ fontSize: 13, color: "#EF4444", marginBottom: 16 }}>{err}</p>}
-
-              <button onClick={askAI} disabled={aiLoading || !description.trim()}
-                style={primaryBtn(aiLoading || !description.trim())}>
-                {aiLoading ? "Reading between the lines…" : "Show me what's possible →"}
+              {err && <p style={{ fontSize: 13, color: "#EF4444", marginBottom: 12 }}>{err}</p>}
+              <button onClick={() => askAI()} disabled={!description.trim()} style={primaryBtn(!description.trim())}>
+                Show me what&apos;s possible →
               </button>
             </div>
+          )}
 
-          ) : (
+          {/* Recommendations */}
+          {aiResponse && (
             <div>
-              {/* Greeting */}
               <div style={{
                 borderLeft: "2px solid rgba(242,184,75,0.5)",
                 background: "rgba(242,184,75,0.06)",
-                padding: "20px 24px", borderRadius: "0 6px 6px 0",
-                marginBottom: 24,
+                padding: "20px 24px", borderRadius: "0 6px 6px 0", marginBottom: 24,
               }}>
                 <p style={{ fontSize: 15, color: "rgba(247,243,236,0.85)", lineHeight: 1.8, margin: 0 }}>
                   {aiResponse.greeting}
                 </p>
               </div>
 
-              {/* Recommendations */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 28 }}>
                 {aiResponse.recommendations.map((rec, i) => (
                   <div key={i} style={{
                     display: "flex", alignItems: "flex-start", gap: 16,
-                    background: "#232428",
-                    border: "1px solid rgba(255,255,255,0.07)",
+                    background: "#232428", border: "1px solid rgba(255,255,255,0.07)",
                     borderRadius: 6, padding: "16px 20px",
                     animation: `fadeUp 0.3s ease ${i * 0.08}s both`,
                   }}>
@@ -663,10 +506,7 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          <button onClick={() => {
-            if (aiResponse) { setAiResponse(null); setDescription(""); }
-            else setStep("stage");
-          }} style={{
+          <button onClick={() => setStep("stage")} style={{
             marginTop: 20, background: "none", border: "none",
             color: "rgba(255,255,255,0.2)", cursor: "pointer",
             fontFamily: "DM Mono, monospace", fontSize: 10,
@@ -677,30 +517,36 @@ export default function OnboardingPage() {
           </button>
         </div>
 
-        <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+        <style>{`
+          @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+          @keyframes pulse { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+        `}</style>
       </main>
     );
   }
 
-  // ── STEP: PROFILE (split screen on desktop) ──────────────────────
+  // ── STEP: PROFILE ────────────────────────────────────────────────
   if (step === "profile") {
     return (
-      <main style={{
+      <main className="onb-grid" style={{
         minHeight: "100vh",
         background: "#17181B",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
         position: "relative",
       }}>
         <style>{`
+          .onb-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+          }
           @media (max-width: 768px) {
-            .onb-split { grid-template-columns: 1fr !important; }
+            .onb-grid { grid-template-columns: 1fr !important; }
             .onb-preview { display: none !important; }
+            .onb-form { border-right: none !important; padding: 32px 24px 60px !important; }
           }
           @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         `}</style>
 
-        {/* Hero background — muted */}
+        {/* Hero background */}
         <div style={{
           position: "fixed", inset: 0,
           backgroundImage: "url('/hero-bg.jpg')",
@@ -712,15 +558,16 @@ export default function OnboardingPage() {
         }} />
 
         {/* Left — form */}
-        <div style={{
-          padding: "48px 48px 80px",
-          overflowY: "auto",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
-          maxHeight: "100vh",
-          position: "relative",
-          zIndex: 1,
-        }}
-          className="onb-split"
+        <div
+          className="onb-form"
+          style={{
+            padding: "48px 48px 80px",
+            overflowY: "auto",
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            maxHeight: "100vh",
+            position: "relative",
+            zIndex: 1,
+          }}
         >
           <Link href="/" style={{
             fontFamily: "Cormorant Garamond, Georgia, serif",
@@ -745,7 +592,7 @@ export default function OnboardingPage() {
             Make it yours.
           </h2>
           <p style={{ fontSize: 14, color: "rgba(247,243,236,0.4)", marginBottom: 36, lineHeight: 1.7 }}>
-            Your audience sees this the moment they arrive. Watch it come together on the right.
+            Your audience sees this the moment they arrive.
           </p>
 
           {/* Avatar */}
@@ -768,11 +615,6 @@ export default function OnboardingPage() {
             <textarea value={bio} onChange={e => setBio(e.target.value)}
               placeholder="Tell your audience who you are..." rows={3} maxLength={300}
               style={{ ...inputBase, resize: "none" }} />
-            {aiResponse?.suggestedBio && (
-              <p style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "rgba(242,184,75,0.5)", marginTop: 6, letterSpacing: "0.04em" }}>
-                ✦ Pre-filled from your description
-              </p>
-            )}
           </div>
 
           {/* Tags */}
@@ -824,7 +666,7 @@ export default function OnboardingPage() {
               placeholder="https://calendly.com/you"
               style={{ ...inputBase, fontFamily: "DM Mono, monospace", fontSize: 12 }} />
             <p style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 6, letterSpacing: "0.04em" }}>
-              Hairdressers, trainers, coaches — audience members book directly from your page.
+              Hairdressers, trainers, coaches — fans book directly from your page.
             </p>
           </div>
 
@@ -835,7 +677,7 @@ export default function OnboardingPage() {
             {saving ? "Saving…" : "Save and continue →"}
           </button>
 
-          <button onClick={() => setStep("about")} style={{ ...ghostBtn, marginTop: 10 }}>
+          <button onClick={() => setStep("stage")} style={{ ...ghostBtn, marginTop: 10 }}>
             ← Back
           </button>
         </div>
@@ -878,7 +720,6 @@ export default function OnboardingPage() {
         alignItems: "center", justifyContent: "center",
         padding: "80px 24px", position: "relative", overflow: "hidden",
       }}>
-        {/* Hero background — muted */}
         <div style={{
           position: "fixed", inset: 0,
           backgroundImage: "url('/hero-bg.jpg')",
@@ -971,7 +812,6 @@ export default function OnboardingPage() {
         overflow: "hidden",
         padding: "24px",
       }}>
-        {/* Hero background — muted stage texture */}
         <div style={{
           position: "fixed", inset: 0,
           backgroundImage: "url('/hero-bg.jpg')",
@@ -981,13 +821,7 @@ export default function OnboardingPage() {
           pointerEvents: "none",
           zIndex: 0,
         }} />
-        {/* Full spotlight on the creator */}
-        <div style={{
-          position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
-          width: 2, height: "55%",
-          background: "linear-gradient(to bottom, rgba(242,184,75,0.95), transparent)",
-          pointerEvents: "none",
-        }} />
+        {/* Glow only — no line */}
         <div style={{
           position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
           width: "min(700px, 90vw)", height: "65%",
@@ -1095,4 +929,158 @@ export default function OnboardingPage() {
   }
 
   return null;
+}
+
+// ── Live page preview (desktop only, profile step) ─────────────────
+function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
+  handle: string; displayName: string; bio: string;
+  avatarUrl: string; tags: string[];
+}) {
+  const cats = (CREATOR_CATEGORIES as readonly { id: string; label: string; emoji: string }[]);
+  return (
+    <div style={{
+      background: "#17181B",
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: 8,
+      overflow: "hidden",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {/* Mini browser bar */}
+      <div style={{
+        background: "#111115",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        padding: "10px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", gap: 5 }}>
+          {["#EF4444","#F0B429","#34D399"].map(c => (
+            <div key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c, opacity: 0.5 }} />
+          ))}
+        </div>
+        <div style={{
+          flex: 1, background: "#17181B", borderRadius: 3,
+          padding: "4px 10px", fontFamily: "DM Mono, monospace",
+          fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em",
+        }}>
+          spotlightly.app/{handle || "your-handle"}
+        </div>
+      </div>
+
+      {/* Page content */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 0 24px" }}>
+        <div style={{
+          height: 100,
+          background: "linear-gradient(135deg, #1c1c22 0%, #232428 100%)",
+          position: "relative",
+          overflow: "hidden",
+        }}>
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(ellipse 80% 120% at 50% -20%, rgba(242,184,75,0.12), transparent 60%)",
+          }} />
+        </div>
+
+        <div style={{ padding: "0 20px", marginTop: -28 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: "50%",
+            background: avatarUrl ? "transparent" : "rgba(242,184,75,0.15)",
+            border: "2px solid #17181B",
+            overflow: "hidden",
+            marginBottom: 10,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <span style={{ fontSize: 20, opacity: 0.4 }}>✦</span>
+            }
+          </div>
+
+          <div style={{
+            fontFamily: "Cormorant Garamond, Georgia, serif",
+            fontSize: 20, fontWeight: 400, color: "#fff",
+            marginBottom: 4, lineHeight: 1.1,
+            minHeight: 24,
+          }}>
+            {displayName || <span style={{ color: "rgba(255,255,255,0.15)" }}>Your name</span>}
+          </div>
+
+          <div style={{
+            fontFamily: "DM Mono, monospace",
+            fontSize: 10, color: "rgba(242,184,75,0.6)",
+            letterSpacing: "0.08em", marginBottom: 10,
+          }}>
+            @{handle || "your-handle"}
+          </div>
+
+          {bio ? (
+            <p style={{
+              fontSize: 12, color: "rgba(242,242,240,0.55)",
+              lineHeight: 1.65, marginBottom: 12,
+              maxHeight: 60, overflow: "hidden",
+            }}>
+              {bio}
+            </p>
+          ) : (
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.1)", marginBottom: 12, fontStyle: "italic" }}>
+              Your bio will appear here
+            </p>
+          )}
+
+          {tags.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
+              {tags.slice(0, 4).map(t => {
+                const cat = cats.find(c => c.id === t);
+                return cat ? (
+                  <span key={t} style={{
+                    fontFamily: "DM Mono, monospace", fontSize: 9,
+                    letterSpacing: "0.08em", textTransform: "uppercase",
+                    padding: "3px 8px", borderRadius: 3,
+                    background: "rgba(242,184,75,0.08)",
+                    border: "1px solid rgba(242,184,75,0.15)",
+                    color: "rgba(242,184,75,0.7)",
+                  }}>
+                    {cat.emoji} {cat.label}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          )}
+
+          <div style={{
+            background: "rgba(242,184,75,0.12)",
+            border: "1px solid rgba(242,184,75,0.2)",
+            borderRadius: 4,
+            padding: "10px 0",
+            textAlign: "center",
+            fontFamily: "DM Mono, monospace",
+            fontSize: 10, letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "rgba(242,184,75,0.7)",
+            marginBottom: 16,
+          }}>
+            Subscribe
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {[1,2,3].map(i => (
+              <div key={i} style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                borderRadius: 4, padding: "10px 12px",
+                opacity: 1 - (i * 0.2),
+              }}>
+                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 2, marginBottom: 6, width: `${80 - i * 15}%` }} />
+                <div style={{ height: 6, background: "rgba(255,255,255,0.04)", borderRadius: 2, width: "60%" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
