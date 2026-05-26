@@ -252,6 +252,7 @@ export default function DashboardPage() {
 
             <div className="db-nav-label">Publish</div>
             <div className="db-nav-section">
+              <PaneButton current={pane} target="marketplace" onClick={setPane}>Marketplace</PaneButton>
               <PaneButton current={pane} target="store" onClick={setPane}>Digital Store</PaneButton>
               <PaneButton current={pane} target="social" onClick={setPane}>Social Posts</PaneButton>
               <Link href="/merch" className="db-nav-link">Merch</Link>
@@ -324,6 +325,9 @@ export default function DashboardPage() {
             <PostsPane profile={active} setErr={setErrMsg} />
           )}
 
+          {pane === "marketplace" && active && (
+            <MarketplacePane profile={active} />
+          )}
           {pane === "store" && active && (
             <DigitalStorePane profile={active} setErr={setErrMsg} />
           )}
@@ -2336,63 +2340,34 @@ function LivePane({ profile }: { profile: Profile }) {
 
 
 function AnalyticsPane({ profile }: { profile: Profile }) {
-  const supabase = createClient();
-  const [stats, setStats] = React.useState({
-    totalSubs: 0, activeSubs: 0, totalTips: 0, totalPosts: 0,
-    recentTips: [] as any[], subsByMonth: [] as any[], newSubsThisMonth: 0,
-  });
+  const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [view, setView] = React.useState<"subs" | "revenue" | "posts">("subs");
 
   React.useEffect(() => {
-    async function load() {
-      const [
-        { count: activeSubs },
-        { data: tips },
-        { count: totalPosts },
-        { data: allSubs },
-      ] = await Promise.all([
-        (supabase as any).from("subscriptions").select("id", { count:"exact", head:true })
-          .eq("creator_profile_id", profile.id).eq("status", "active"),
-        (supabase as any).from("tips").select("amount, created_at")
-          .eq("creator_profile_id", profile.id).order("created_at", { ascending:false }).limit(50),
-        (supabase as any).from("posts").select("id", { count:"exact", head:true })
-          .eq("creator_profile_id", profile.id).eq("status", "live"),
-        (supabase as any).from("subscriptions").select("created_at")
-          .eq("creator_profile_id", profile.id),
-      ]);
-
-      const totalTips = (tips ?? []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-      const now = new Date();
-      const thisMonth = allSubs?.filter((s: any) => new Date(s.created_at).getMonth() === now.getMonth() && new Date(s.created_at).getFullYear() === now.getFullYear()) ?? [];
-
-      // Subs by month (last 6)
-      const monthMap: Record<string, number> = {};
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = d.toLocaleString("default", { month:"short", year:"numeric" });
-        monthMap[key] = 0;
-      }
-      (allSubs ?? []).forEach((s: any) => {
-        const d = new Date(s.created_at);
-        const key = d.toLocaleString("default", { month:"short", year:"numeric" });
-        if (key in monthMap) monthMap[key]++;
-      });
-
-      setStats({
-        activeSubs: activeSubs ?? 0,
-        totalSubs: allSubs?.length ?? 0,
-        totalTips,
-        totalPosts: totalPosts ?? 0,
-        recentTips: (tips ?? []).slice(0, 10),
-        subsByMonth: Object.entries(monthMap).map(([month, count]) => ({ month, count })),
-        newSubsThisMonth: thisMonth.length,
-      });
-      setLoading(false);
-    }
-    load();
+    fetch("/api/analytics")
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false); });
   }, []);
 
-  const maxCount = Math.max(...stats.subsByMonth.map(m => m.count), 1);
+  const mono = "var(--font-mono)";
+  const serif = "var(--font-serif)";
+
+  if (loading) return (
+    <div className="pane">
+      <div className="pane-head"><p className="kicker">Analytics</p><h1 className="pane-title">Your <em>numbers.</em></h1></div>
+      <p style={{ color: "var(--muted)", fontSize: 14 }}>Loading…</p>
+    </div>
+  );
+
+  const chart = data?.chart ?? [];
+  const totalSubs = data?.totalSubs ?? 0;
+  const totalRevenue = data?.totalRevenue ?? 0;
+
+  const maxVal = Math.max(...chart.map((d: any) => view === "subs" ? d.subs : view === "revenue" ? d.revenue : d.posts), 1);
+
+  // Show last 14 days for readability
+  const visible = chart.slice(-14);
 
   return (
     <div className="pane">
@@ -2401,83 +2376,88 @@ function AnalyticsPane({ profile }: { profile: Profile }) {
         <h1 className="pane-title">Your <em>numbers.</em></h1>
       </div>
 
-      {loading ? <p style={{ color:"var(--muted)", fontSize:14 }}>Loading…</p> : (
-        <>
-          {/* Top stats */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:2, marginBottom:"var(--s-6)" }}>
-            {[
-              { label:"Active subscribers", val: stats.activeSubs.toLocaleString(), accent:true },
-              { label:"New this month", val: stats.newSubsThisMonth.toLocaleString() },
-              { label:"Total tips earned", val: `$${stats.totalTips.toFixed(2)}` },
-              { label:"Posts live", val: stats.totalPosts.toLocaleString() },
-            ].map(s => (
-              <div key={s.label} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-5) var(--s-4)" }}>
-                <div style={{ fontFamily:"var(--font-display)", fontSize:28, fontWeight:800, letterSpacing:"-0.03em", color: s.accent ? "var(--accent-bright)" : "#fff", lineHeight:1, marginBottom:"var(--s-2)" }}>
-                  {s.val}
-                </div>
-                <div style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)" }}>{s.label}</div>
-              </div>
-            ))}
+      {/* Top stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, marginBottom: "var(--s-7)" }}>
+        {[
+          { label: "Active subscribers", val: totalSubs.toLocaleString() },
+          { label: "Tips earned (30d)", val: `$${totalRevenue.toFixed(2)}` },
+          { label: "Posts (30d)", val: chart.reduce((s: number, d: any) => s + d.posts, 0).toLocaleString() },
+        ].map(s => (
+          <div key={s.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-5) var(--s-5)" }}>
+            <p style={{ fontFamily: serif, fontSize: 32, fontWeight: 300, color: "#fff", margin: "0 0 4px", lineHeight: 1 }}>{s.val}</p>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--muted)", margin: 0 }}>{s.label}</p>
           </div>
+        ))}
+      </div>
 
-          {/* Subscriber growth chart */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)", marginBottom:"var(--s-4)" }}>
-            <p className="kicker" style={{ marginBottom:"var(--s-5)" }}>New subscribers — last 6 months</p>
-            <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:120 }}>
-              {stats.subsByMonth.map(m => (
-                <div key={m.month} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:"var(--s-2)" }}>
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:9, color:"var(--accent-bright)", fontWeight:600 }}>
-                    {m.count > 0 ? m.count : ""}
-                  </div>
+      {/* Chart toggle */}
+      <div style={{ display: "flex", gap: 2, marginBottom: "var(--s-4)" }}>
+        {([["subs", "Subscribers"], ["revenue", "Revenue ($)"], ["posts", "Posts"]] as const).map(([v, l]) => (
+          <button key={v} onClick={() => setView(v)} style={{
+            padding: "7px 16px", background: view === v ? "var(--surface)" : "none",
+            border: "1px solid", borderColor: view === v ? "var(--accent)" : "var(--border)",
+            borderRadius: "var(--r-1)", color: view === v ? "var(--accent)" : "var(--muted)",
+            fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer",
+          }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Bar chart */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6)" }}>
+        <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--muted)", marginBottom: "var(--s-5)" }}>
+          Last 14 days
+        </p>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 140 }}>
+          {visible.map((d: any) => {
+            const val = view === "subs" ? d.subs : view === "revenue" ? d.revenue : d.posts;
+            const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+            const date = new Date(d.date);
+            return (
+              <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%" }}>
+                <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end" }}>
                   <div style={{
-                    width:"100%", borderRadius:"var(--r-1) var(--r-1) 0 0",
-                    background: m.count > 0 ? "linear-gradient(to top, var(--accent), var(--accent-bright))" : "var(--surface-3)",
-                    height: `${Math.max(4, Math.round((m.count / maxCount) * 80))}px`,
-                    transition:"height 0.8s var(--ease)",
-                  }} />
-                  <div style={{ fontFamily:"var(--font-mono)", fontSize:8, letterSpacing:".06em", color:"var(--muted)", textAlign:"center", lineHeight:1.3 }}>
-                    {m.month.split(" ").map((w: string, i: number) => <div key={i}>{w}</div>)}
+                    width: "100%", height: `${Math.max(pct, 2)}%`,
+                    background: val > 0 ? "rgba(242,184,75,0.7)" : "rgba(255,255,255,0.05)",
+                    borderRadius: "2px 2px 0 0",
+                    transition: "height 0.3s ease",
+                    position: "relative",
+                  }}>
+                    {val > 0 && (
+                      <div style={{ position: "absolute", top: -18, left: "50%", transform: "translateX(-50%)", fontFamily: mono, fontSize: 9, color: "var(--accent)", whiteSpace: "nowrap" }}>
+                        {view === "revenue" ? `$${val.toFixed(0)}` : val}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent tips */}
-          {stats.recentTips.length > 0 && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
-              <p className="kicker" style={{ marginBottom:"var(--s-4)" }}>Recent tips</p>
-              <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-                {stats.recentTips.map((t: any, i: number) => (
-                  <div key={i} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"var(--s-3) var(--s-4)", background:"var(--surface-2)", borderRadius:"var(--r-1)" }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
-                      {new Date(t.created_at).toLocaleDateString()}
-                    </span>
-                    <span style={{ fontFamily:"var(--font-display)", fontSize:14, fontWeight:700, color:"var(--accent-bright)" }}>
-                      ${Number(t.amount).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                <p style={{ fontFamily: mono, fontSize: 8, color: "var(--muted)", margin: 0, whiteSpace: "nowrap" }}>
+                  {date.toLocaleDateString("en-US", { month: "numeric", day: "numeric" })}
+                </p>
               </div>
-            </div>
-          )}
+            );
+          })}
+        </div>
+      </div>
 
-          {stats.activeSubs === 0 && stats.totalTips === 0 && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-10)", textAlign:"center" }}>
-              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-3)" }}>Your stage is set.</p>
-              <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.7 }}>Connect Stripe, create a channel, and share your Spotlightly link in your bios.<br />Your first subscriber changes everything.</p>
+      {/* Recent activity */}
+      <div style={{ marginTop: "var(--s-4)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6)" }}>
+        <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--muted)", marginBottom: "var(--s-4)" }}>Daily breakdown</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {visible.slice().reverse().slice(0, 7).map((d: any) => (
+            <div key={d.date} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", fontSize: 13 }}>
+              <span style={{ color: "var(--muted)", fontFamily: mono, fontSize: 11 }}>{new Date(d.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</span>
+              <span style={{ color: "var(--text-soft)", display: "flex", gap: 20 }}>
+                <span>{d.subs > 0 ? `+${d.subs} sub${d.subs !== 1 ? "s" : ""}` : ""}</span>
+                <span style={{ color: "var(--accent)" }}>{d.revenue > 0 ? `$${d.revenue.toFixed(0)}` : ""}</span>
+                <span>{d.posts > 0 ? `${d.posts} post${d.posts !== 1 ? "s" : ""}` : ""}</span>
+              </span>
             </div>
-          )}
-        </>
-      )}
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-
-// ──────────────────────────────────────────────────────────────────
-// PANE: Wishlist — fund-my-purchase model
-// ──────────────────────────────────────────────────────────────────
 
 function WishlistPane({ profile }: { profile: Profile }) {
   const supabase = createClient();
@@ -3307,6 +3287,170 @@ function SocialPane({ profile }: { profile: Profile }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────────
+// PANE: Marketplace
+// ──────────────────────────────────────────────────────────────────
+const CONDITION_LABELS: Record<string, string> = { new: "New with tags", like_new: "Like new", good: "Good", fair: "Fair" };
+const CATEGORY_LABELS: Record<string, string> = {
+  clothing: "👗 Clothing", accessories: "👜 Accessories", prints: "🖼️ Prints & Art",
+  gear: "🎥 Gear & Equipment", signed: "✍️ Signed Items", personal: "💛 Personal Items", other: "📦 Other"
+};
+
+function MarketplacePane({ profile }: { profile: Profile }) {
+  const [listings, setListings] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [creating, setCreating] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [priceUsd, setPriceUsd] = React.useState("25");
+  const [condition, setCondition] = React.useState("good");
+  const [category, setCategory] = React.useState("clothing");
+  const [quantity, setQuantity] = React.useState("1");
+  const [subscriberOnly, setSubscriberOnly] = React.useState(false);
+  const [personalNote, setPersonalNote] = React.useState("");
+  const [autograph, setAutograph] = React.useState(false);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch("/api/marketplace?mine=1");
+    const data = await res.json();
+    setListings(data.listings ?? []);
+    setLoading(false);
+  }
+
+  React.useEffect(() => { load(); }, []);
+
+  async function createListing() {
+    setSaving(true);
+    await fetch("/api/marketplace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, description, priceUsd, condition, category, quantity, subscriberOnly, personalNote, autograph }),
+    });
+    setTitle(""); setDescription(""); setPriceUsd("25"); setPersonalNote("");
+    setSubscriberOnly(false); setAutograph(false); setCreating(false);
+    await load();
+    setSaving(false);
+  }
+
+  async function markSold(id: string) {
+    await fetch("/api/marketplace", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: "sold" }) });
+    await load();
+  }
+
+  async function archiveListing(id: string) {
+    await fetch("/api/marketplace", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: "archived" }) });
+    await load();
+  }
+
+  return (
+    <div className="pane">
+      <div className="pane-head">
+        <p className="kicker">Marketplace</p>
+        <h1 className="pane-title">Sell what&apos;s <em>yours.</em></h1>
+        <p className="pane-lede">List your own items — worn clothing, signed prints, personal gear. Fans buy directly from you. You keep 95%, Spotlightly takes 5%.</p>
+      </div>
+
+      <button onClick={() => setCreating(c => !c)} className="btn btn--primary" style={{ marginBottom: "var(--s-6)", fontSize: 12 }}>
+        {creating ? "Cancel" : "+ List an item"}
+      </button>
+
+      {creating && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid var(--accent)", borderRadius: "var(--r-3)", padding: "var(--s-6)", marginBottom: "var(--s-6)" }}>
+          <p className="kicker" style={{ marginBottom: "var(--s-5)" }}>New listing</p>
+          <div className="form-row" style={{ marginBottom: "var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Title</label>
+              <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Signed tour hoodie — worn once" />
+            </div>
+            <div className="form-field">
+              <label className="label">Price (USD)</label>
+              <input className="input" type="number" min="1" value={priceUsd} onChange={e => setPriceUsd(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-field" style={{ marginBottom: "var(--s-4)" }}>
+            <label className="label">Description</label>
+            <textarea className="textarea" rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell fans about the item — size, story, condition details..." />
+          </div>
+          <div className="form-row" style={{ marginBottom: "var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Category</label>
+              <select className="input" value={category} onChange={e => setCategory(e.target.value)} style={{ cursor: "pointer" }}>
+                {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="label">Condition</label>
+              <select className="input" value={condition} onChange={e => setCondition(e.target.value)} style={{ cursor: "pointer" }}>
+                {Object.entries(CONDITION_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="label">Quantity</label>
+              <input className="input" type="number" min="1" value={quantity} onChange={e => setQuantity(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-field" style={{ marginBottom: "var(--s-4)" }}>
+            <label className="label">Personal note to buyer (optional)</label>
+            <input className="input" value={personalNote} onChange={e => setPersonalNote(e.target.value)} placeholder="A handwritten note goes in the package..." />
+          </div>
+          <div style={{ display: "flex", gap: 24, marginBottom: "var(--s-5)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--text-soft)" }}>
+              <input type="checkbox" checked={autograph} onChange={e => setAutograph(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+              ✍️ Includes autograph
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--text-soft)" }}>
+              <input type="checkbox" checked={subscriberOnly} onChange={e => setSubscriberOnly(e.target.checked)} style={{ accentColor: "var(--accent)" }} />
+              🔒 Subscribers only
+            </label>
+          </div>
+          <button onClick={createListing} disabled={saving || !title.trim()} className="btn btn--primary" style={{ fontSize: 12 }}>
+            {saving ? "Listing…" : "List item"}
+          </button>
+        </div>
+      )}
+
+      {loading ? <p style={{ color: "var(--muted)", fontSize: 14 }}>Loading…</p> : listings.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "48px 0", color: "var(--muted)" }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>🛍️</p>
+          <p style={{ fontSize: 14 }}>No listings yet. Add something fans can buy.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {listings.map(l => (
+            <div key={l.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", margin: 0 }}>{l.title}</p>
+                  {l.autograph && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)", background: "rgba(242,184,75,0.08)", padding: "2px 6px", borderRadius: 3 }}>✍️ Signed</span>}
+                  {l.subscriber_only && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", background: "rgba(255,255,255,0.05)", padding: "2px 6px", borderRadius: 3 }}>🔒 Subs only</span>}
+                </div>
+                <div style={{ display: "flex", gap: 16, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em" }}>
+                  <span style={{ color: "var(--accent)" }}>${l.price_usd}</span>
+                  <span style={{ color: "var(--muted)" }}>{CATEGORY_LABELS[l.category] ?? l.category}</span>
+                  <span style={{ color: "var(--muted)" }}>{CONDITION_LABELS[l.condition] ?? l.condition}</span>
+                  <span style={{ color: l.status === "sold" ? "rgba(248,113,113,0.7)" : "rgba(52,211,153,0.7)" }}>{l.status === "sold" ? "Sold" : `${l.quantity} available`}</span>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                {l.status === "active" && (
+                  <button onClick={() => markSold(l.id)} style={{ padding: "4px 10px", background: "none", border: "1px solid var(--border)", borderRadius: 4, color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
+                    Mark sold
+                  </button>
+                )}
+                <button onClick={() => archiveListing(l.id)} style={{ padding: "4px 10px", background: "none", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 4, color: "rgba(248,113,113,0.7)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

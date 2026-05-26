@@ -19,6 +19,7 @@ import CommentSection from "./CommentSection";
 import LivePlayer from "./LivePlayer";
 import CreatorStageClient from "./CreatorStageClient";
 import SocialAddbacks from "./SocialAddbacks";
+import CreatorMarketplace from "./CreatorMarketplace";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -228,6 +229,7 @@ export default async function CreatorPage(props: {
           )}
         </CreatorStageClient>
         <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
+        <CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} />
 
         <style>{`
           /* ── Base ── */

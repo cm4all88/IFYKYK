@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { createNotification } from "@/lib/notify";
+import { sendTipEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -78,6 +79,11 @@ export async function POST(req: NextRequest) {
     .from("creator_profiles").select("user_id").eq("id", creatorProfileId).maybeSingle();
   if (cp?.user_id) {
     await createNotification({ userId: cp.user_id, type: "tip", title: `New tip — $${amountUsd.toFixed(0)}`, link: "/dashboard" });
+    // Get creator email and send notification
+    const { data: { user: creatorUser } } = await (supabase as any).auth.admin.getUserById(cp.user_id).catch(() => ({ data: { user: null } }));
+    if (creatorUser?.email) {
+      await sendTipEmail(creatorUser.email, "A fan", `$${amountUsd.toFixed(2)}`).catch(() => {});
+    }
   }
 
   return NextResponse.redirect(session.url, { status: 303 });

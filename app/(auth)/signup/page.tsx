@@ -264,17 +264,6 @@ export default function SignupPage() {
         localStorage.removeItem("spotlightly_creator_ref");
       }
 
-      // Save advisor chat context so onboarding can use it without asking again
-      if (messages.length > 0) {
-        const userSaid = messages
-          .filter((m) => m.role === "user")
-          .map((m) => m.content)
-          .join(". ");
-        if (userSaid.trim()) {
-          localStorage.setItem("spotlightly_creator_context", userSaid.trim());
-        }
-      }
-
       router.push("/onboarding");
     } catch (e: any) {
       setFormErr(e?.message ?? "Something went wrong creating your account.");
