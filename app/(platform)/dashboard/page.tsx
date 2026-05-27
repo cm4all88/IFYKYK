@@ -30,7 +30,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "social" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "marketplace" | "social" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -49,10 +49,34 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<Tab>("spotlight");
   const [pane, setPane] = useState<Pane>("overview");
 
+  // Collapsible sidebar sections
+  const PANE_SECTION: Partial<Record<Pane, string>> = {
+    fans:"audience", campaigns:"audience", wishlist:"audience",
+    advisor:"earn", analytics:"earn", tiers:"earn", refer:"earn",
+    marketplace:"publish", store:"publish", social:"publish",
+    payments:"account", billing:"account", settings:"account",
+    moderation:"account", blocks:"account",
+  };
+  const [openSections, setOpenSections] = React.useState<Set<string>>(
+    () => new Set([PANE_SECTION["overview"] ?? "none"])
+  );
+  function toggleSection(s: string) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s); else next.add(s);
+      return next;
+    });
+  }
+  // Auto-open the section containing the active pane
+  React.useEffect(() => {
+    const s = PANE_SECTION[pane];
+    if (s) setOpenSections(prev => new Set([...prev, s]));
+  }, [pane]);
+
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "digital", "tiers", "store", "refer", "social", "settings"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "digital", "tiers", "store", "refer", "marketplace", "social", "settings"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -224,52 +248,85 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Pane nav — grouped sections */}
+          {/* Pane nav — collapsible grouped sections */}
           <nav className="db-nav">
 
-            <div className="db-nav-section">
+            {/* Top items — always visible */}
+            <div className="db-nav-top">
               <PaneButton current={pane} target="overview" onClick={setPane}>Overview</PaneButton>
               <PaneButton current={pane} target="profile" onClick={setPane}>Profile</PaneButton>
-              <PaneButton current={pane} target="posts" onClick={setPane}>Posts</PaneButton>
-              <PaneButton current={pane} target="channels" onClick={setPane}>Channels</PaneButton>
             </div>
 
-            <div className="db-nav-label">Audience</div>
-            <div className="db-nav-section">
-              <PaneButton current={pane} target="fans" onClick={setPane}>Fans</PaneButton>
-              <Link href="/messages" className="db-nav-link">Messages</Link>
-              <PaneButton current={pane} target="campaigns" onClick={setPane}>Campaigns</PaneButton>
-              <PaneButton current={pane} target="wishlist" onClick={setPane}>Wishlist</PaneButton>
+            {/* Publish — collapsible */}
+            <div className="db-nav-group">
+              <button className={`db-nav-label ${openSections.has("publish") ? "db-nav-label--open" : ""}`} onClick={() => toggleSection("publish")}>
+                <span>Publish</span>
+                <span className="db-nav-caret">›</span>
+              </button>
+              {openSections.has("publish") && (
+                <div className="db-nav-section">
+                  <PaneButton current={pane} target="posts" onClick={setPane}>Posts</PaneButton>
+                  <PaneButton current={pane} target="channels" onClick={setPane}>Channels</PaneButton>
+                  <PaneButton current={pane} target="marketplace" onClick={setPane}>Marketplace</PaneButton>
+                  <PaneButton current={pane} target="store" onClick={setPane}>Digital Store</PaneButton>
+                  <PaneButton current={pane} target="social" onClick={setPane}>Social Posts</PaneButton>
+                  <Link href="/merch" className="db-nav-link">Merch</Link>
+                  <Link href="/live" className="db-nav-link">Go Live</Link>
+                  <Link href="/archive" className="db-nav-link">Archive</Link>
+                </div>
+              )}
             </div>
 
-            <div className="db-nav-label">Earn</div>
-            <div className="db-nav-section">
-              <PaneButton current={pane} target="advisor" onClick={setPane}>✦ Advisor</PaneButton>
-              <PaneButton current={pane} target="analytics" onClick={setPane}>Analytics</PaneButton>
-              <PaneButton current={pane} target="tiers" onClick={setPane}>Subscription Tiers</PaneButton>
-              <PaneButton current={pane} target="refer" onClick={setPane}>Refer & Earn</PaneButton>
+            {/* Audience — collapsible */}
+            <div className="db-nav-group">
+              <button className={`db-nav-label ${openSections.has("audience") ? "db-nav-label--open" : ""}`} onClick={() => toggleSection("audience")}>
+                <span>Audience</span>
+                <span className="db-nav-caret">›</span>
+              </button>
+              {openSections.has("audience") && (
+                <div className="db-nav-section">
+                  <PaneButton current={pane} target="fans" onClick={setPane}>Fans</PaneButton>
+                  <Link href="/messages" className="db-nav-link">Messages</Link>
+                  <PaneButton current={pane} target="campaigns" onClick={setPane}>Campaigns</PaneButton>
+                  <PaneButton current={pane} target="wishlist" onClick={setPane}>Wishlist</PaneButton>
+                </div>
+              )}
             </div>
 
-            <div className="db-nav-label">Publish</div>
-            <div className="db-nav-section">
-              <PaneButton current={pane} target="marketplace" onClick={setPane}>Marketplace</PaneButton>
-              <PaneButton current={pane} target="store" onClick={setPane}>Digital Store</PaneButton>
-              <PaneButton current={pane} target="social" onClick={setPane}>Social Posts</PaneButton>
-              <Link href="/merch" className="db-nav-link">Merch</Link>
-              <Link href="/live" className="db-nav-link">Go Live</Link>
-              <Link href="/archive" className="db-nav-link">Archive</Link>
+            {/* Earn — collapsible */}
+            <div className="db-nav-group">
+              <button className={`db-nav-label ${openSections.has("earn") ? "db-nav-label--open" : ""}`} onClick={() => toggleSection("earn")}>
+                <span>Earn</span>
+                <span className="db-nav-caret">›</span>
+              </button>
+              {openSections.has("earn") && (
+                <div className="db-nav-section">
+                  <PaneButton current={pane} target="advisor" onClick={setPane}>✦ Advisor</PaneButton>
+                  <PaneButton current={pane} target="analytics" onClick={setPane}>Analytics</PaneButton>
+                  <PaneButton current={pane} target="tiers" onClick={setPane}>Subscription Tiers</PaneButton>
+                  <PaneButton current={pane} target="refer" onClick={setPane}>Refer & Earn</PaneButton>
+                </div>
+              )}
             </div>
 
-            <div className="db-nav-label">Account</div>
-            <div className="db-nav-section">
-              <PaneButton current={pane} target="payments" onClick={setPane}>Payments</PaneButton>
-              <PaneButton current={pane} target="billing" onClick={setPane}>Billing</PaneButton>
-              <PaneButton current={pane} target="settings" onClick={setPane}>Settings</PaneButton>
-              <PaneButton current={pane} target="moderation" onClick={setPane}>Moderation</PaneButton>
-              <PaneButton current={pane} target="blocks" onClick={setPane}>Block List</PaneButton>
-              <Link href="/help" className="db-nav-link">Help</Link>
-              {isAdmin && (
-                <a href="/admin" className="db-nav-link">Admin</a>
+            {/* Account — collapsible */}
+            <div className="db-nav-group">
+              <button className={`db-nav-label ${openSections.has("account") ? "db-nav-label--open" : ""}`} onClick={() => toggleSection("account")}>
+                <span>Account</span>
+                <span className="db-nav-caret">›</span>
+              </button>
+              {openSections.has("account") && (
+                <div className="db-nav-section">
+                  <PaneButton current={pane} target="payments" onClick={setPane}>Payments</PaneButton>
+                  <PaneButton current={pane} target="billing" onClick={setPane}>Billing</PaneButton>
+                  <PaneButton current={pane} target="settings" onClick={setPane}>Settings</PaneButton>
+                  <PaneButton current={pane} target="moderation" onClick={setPane}>Moderation</PaneButton>
+                  <PaneButton current={pane} target="blocks" onClick={setPane}>Block List</PaneButton>
+                  <Link href="/help" className="db-nav-link">Help</Link>
+                  {isAdmin && (
+                    <a href="/admin" className="db-nav-link">Admin</a>
+                  )}
+                </div>
               )}
             </div>
 
@@ -310,6 +367,7 @@ export default function DashboardPage() {
               linkedToggle={linkedToggle}
               onToggleLink={toggleLinked}
               savingLink={savingLink}
+              onSetPane={setPane}
             />
           )}
 
@@ -397,12 +455,14 @@ function OverviewPane({
   linkedToggle,
   onToggleLink,
   savingLink,
+  onSetPane,
 }: {
   profile: Profile;
   other: Profile | null;
   linkedToggle: boolean;
   onToggleLink: (next: boolean) => void;
   savingLink: boolean;
+  onSetPane: (p: Pane) => void;
 }) {
   const supabase = createClient();
   const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
@@ -428,12 +488,12 @@ function OverviewPane({
   // Determine the most important next action
   const stripeConnected = !!(profile as any).stripe_onboarded;
   const nextMove = !stripeConnected
-    ? { href: "/dashboard?pane=payments", label: "Connect Stripe", desc: "Required before your audience can pay you.", color: "var(--accent-open)" }
+    ? { pane: "payments" as Pane, label: "Connect Stripe", desc: "Required before your audience can pay you.", color: "var(--accent-open)" }
     : stats.posts === 0
-    ? { href: "/dashboard?pane=posts", label: "Create your first post", desc: "Free posts build your audience. Paid posts build your income.", color: "var(--accent)" }
+    ? { pane: "posts" as Pane, label: "Create your first post", desc: "Free posts build your audience. Paid posts build your income.", color: "var(--accent)" }
     : stats.audience === 0
-    ? { href: "/dashboard?pane=channels", label: "Set up a subscription", desc: "Give your audience a reason to join.", color: "var(--accent)" }
-    : { href: "/dashboard?pane=posts", label: "New post", desc: "Keep your audience engaged.", color: "var(--accent)" };
+    ? { pane: "channels" as Pane, label: "Set up a subscription", desc: "Give your audience a reason to join.", color: "var(--accent)" }
+    : { pane: "posts" as Pane, label: "New post", desc: "Keep your audience engaged.", color: "var(--accent)" };
 
   return (
     <div className="pane">
@@ -453,6 +513,7 @@ function OverviewPane({
           hasPost={stats.posts > 0}
           hasChannel={false}
           onDismiss={() => setChecklistDismissed(true)}
+          onSetPane={onSetPane}
         />
       )}
 
@@ -510,14 +571,19 @@ function OverviewPane({
 
       {/* Next action — dynamic based on actual state */}
       <div style={{ marginBottom: "var(--s-8)" }}>
-        <Link href={nextMove.href} style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderLeft: `3px solid ${nextMove.color}`,
-          padding: "20px 28px", textDecoration: "none", color: "inherit",
-          borderRadius: "var(--r-2)", transition: "background var(--t-fast)",
-          gap: 16,
-        }}>
+        <button
+          onClick={() => onSetPane(nextMove.pane)}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderLeft: `3px solid ${nextMove.color}`,
+            padding: "20px 28px", color: "inherit", cursor: "pointer",
+            borderRadius: "var(--r-2)", transition: "background var(--t-fast)",
+            gap: 16, width: "100%", textAlign: "left",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+          onMouseLeave={e => (e.currentTarget.style.background = "var(--surface)")}
+        >
           <div>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: nextMove.color, marginBottom: 6 }}>
               Your next move
@@ -528,45 +594,67 @@ function OverviewPane({
             <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{nextMove.desc}</p>
           </div>
           <span style={{ color: nextMove.color, fontSize: 20, flexShrink: 0 }}>→</span>
-        </Link>
+        </button>
       </div>
 
       {/* Tools — calm list, not a grid */}
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {[
-          { href: "/dashboard?pane=payments", label: "Connect Stripe", desc: "Required before your audience can pay you.", accent: true },
-          { href: "/dashboard?pane=profile", label: "Edit profile", desc: "Avatar, bio, cover. Your first impression." },
+        {([
+          { pane: "payments" as Pane, label: "Connect Stripe", desc: "Required before your audience can pay you.", accent: true },
+          { pane: "profile" as Pane, label: "Edit profile", desc: "Avatar, bio, cover. Your first impression." },
           { href: "/messages", label: "Messages", desc: "Inbox and Front Row messages." },
-          { href: "/dashboard?pane=channels", label: "Channels", desc: "Subscription tiers your audience can join." },
-          { href: "/dashboard?pane=social", label: "Social posts", desc: "Paste your Instagram, TikTok, or YouTube links." },
+          { pane: "channels" as Pane, label: "Channels", desc: "Subscription tiers your audience can join." },
+          { pane: "marketplace" as Pane, label: "Marketplace", desc: "Sell items from your collection." },
+          { pane: "social" as Pane, label: "Social posts", desc: "Paste your Instagram, TikTok, or YouTube links." },
           { href: "/live", label: "Go Live", desc: "Stream directly to your audience." },
           { href: "/merch", label: "Merch", desc: "Design and sell branded products. No upfront cost." },
-          { href: "/dashboard?pane=digital", label: "Digital store", desc: "Sell guides, presets, courses. 0% cut." },
-          { href: "/dashboard?pane=analytics", label: "Analytics", desc: "Audience growth and earnings." },
-          { href: "/dashboard?pane=advisor", label: "✦ Advisor", desc: "AI-powered monetization strategy." },
-        ].map(item => (
-          <Link key={item.href} href={item.href} style={{
+          { pane: "digital" as Pane, label: "Digital store", desc: "Sell guides, presets, courses. 0% cut." },
+          { pane: "analytics" as Pane, label: "Analytics", desc: "Audience growth and earnings." },
+          { pane: "advisor" as Pane, label: "✦ Advisor", desc: "AI-powered monetization strategy." },
+        ] as Array<{ pane?: Pane; href?: string; label: string; desc: string; accent?: boolean }>).map(item => {
+          const sharedStyle: React.CSSProperties = {
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "16px 20px", textDecoration: "none", color: "inherit",
+            padding: "16px 20px", color: "inherit",
             borderBottom: "1px solid var(--border)", gap: 16,
-            transition: "background var(--t-fast)",
-          }}
-            onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
-            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-          >
-            <div>
-              <p style={{
-                fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500,
-                color: (item as any).accent ? "var(--accent-open)" : "var(--text)",
-                margin: "0 0 3px",
-              }}>
-                {item.label}
-              </p>
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{item.desc}</p>
-            </div>
-            <span style={{ color: "var(--muted)", fontSize: 16, flexShrink: 0, opacity: 0.4 }}>›</span>
-          </Link>
-        ))}
+            transition: "background var(--t-fast)", cursor: "pointer",
+          };
+          const inner = (
+            <>
+              <div>
+                <p style={{
+                  fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500,
+                  color: item.accent ? "var(--accent-open)" : "var(--text)",
+                  margin: "0 0 3px",
+                }}>
+                  {item.label}
+                </p>
+                <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{item.desc}</p>
+              </div>
+              <span style={{ color: "var(--muted)", fontSize: 16, flexShrink: 0, opacity: 0.4 }}>›</span>
+            </>
+          );
+          return item.pane ? (
+            <button
+              key={item.label}
+              onClick={() => onSetPane(item.pane!)}
+              style={{ ...sharedStyle, background: "transparent", border: "none", borderBottom: "1px solid var(--border)", width: "100%", textAlign: "left" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              {inner}
+            </button>
+          ) : (
+            <Link
+              key={item.label}
+              href={item.href!}
+              style={{ ...sharedStyle, textDecoration: "none" }}
+              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              {inner}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -3316,6 +3404,10 @@ function MarketplacePane({ profile }: { profile: Profile }) {
   const [subscriberOnly, setSubscriberOnly] = React.useState(false);
   const [personalNote, setPersonalNote] = React.useState("");
   const [autograph, setAutograph] = React.useState(false);
+  const [images, setImages] = React.useState<string[]>([]);
+  const [videoUrl, setVideoUrl] = React.useState("");
+  const [imgUploading, setImgUploading] = React.useState(false);
+  const imgInputRef = React.useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
@@ -3327,15 +3419,34 @@ function MarketplacePane({ profile }: { profile: Profile }) {
 
   React.useEffect(() => { load(); }, []);
 
+  async function handleImageFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setImgUploading(true);
+    const remaining = 8 - images.length;
+    const toUpload = Array.from(files).slice(0, remaining);
+    const newUrls: string[] = [];
+    for (const file of toUpload) {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.url) newUrls.push(data.url as string);
+    }
+    setImages(prev => [...prev, ...newUrls]);
+    setImgUploading(false);
+  }
+
   async function createListing() {
     setSaving(true);
     await fetch("/api/marketplace", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, description, priceUsd, condition, category, quantity, subscriberOnly, personalNote, autograph }),
+      body: JSON.stringify({ title, description, priceUsd, condition, category, quantity, subscriberOnly, personalNote, autograph, images, videoUrl: videoUrl || null }),
     });
     setTitle(""); setDescription(""); setPriceUsd("25"); setPersonalNote("");
-    setSubscriberOnly(false); setAutograph(false); setCreating(false);
+    setSubscriberOnly(false); setAutograph(false);
+    setImages([]); setVideoUrl("");
+    setCreating(false);
     await load();
     setSaving(false);
   }
@@ -3365,6 +3476,45 @@ function MarketplacePane({ profile }: { profile: Profile }) {
       {creating && (
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid var(--accent)", borderRadius: "var(--r-3)", padding: "var(--s-6)", marginBottom: "var(--s-6)" }}>
           <p className="kicker" style={{ marginBottom: "var(--s-5)" }}>New listing</p>
+
+          {/* Photos */}
+          <div style={{ marginBottom: "var(--s-5)" }}>
+            <label className="label">Photos (up to 8)</label>
+            {images.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, marginTop: 8 }}>
+                {images.map((url, idx) => (
+                  <div key={url + idx} style={{ position: "relative", width: 72, height: 72, borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
+                    <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    {idx === 0 && <span style={{ position: "absolute", bottom: 2, left: 2, fontFamily: "var(--font-mono)", fontSize: 7, letterSpacing: "0.1em", textTransform: "uppercase", background: "var(--accent)", color: "#09090C", padding: "1px 4px", borderRadius: 2 }}>Primary</span>}
+                    <button type="button" onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))} style={{ position: "absolute", top: 2, right: 2, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.7)", border: "none", color: "#fff", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1, padding: 0 }}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {images.length < 8 && (
+              <>
+                <button type="button" onClick={() => imgInputRef.current?.click()} disabled={imgUploading} className="btn" style={{ fontSize: 11, opacity: imgUploading ? 0.5 : 1 }}>
+                  {imgUploading ? "Uploading…" : images.length === 0 ? "Add photos" : "Add more"}
+                </button>
+                <input ref={imgInputRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: "none" }} onChange={(e) => handleImageFiles(e.target.files)} />
+              </>
+            )}
+            <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>JPG, PNG, WEBP · First photo is your hero image</p>
+          </div>
+
+          {/* Video */}
+          <div style={{ marginBottom: "var(--s-5)" }}>
+            <label className="label">Video preview (optional)</label>
+            {videoUrl ? (
+              <div>
+                <video src={videoUrl} controls style={{ width: "100%", maxHeight: 200, borderRadius: 6, background: "#111118", display: "block", marginTop: 8 }} />
+                <button type="button" onClick={() => setVideoUrl("")} style={{ marginTop: 6, padding: "4px 12px", fontSize: 11, background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 4, color: "var(--muted)", cursor: "pointer", fontFamily: "var(--font-mono)", letterSpacing: "0.05em" }}>Remove video</button>
+              </div>
+            ) : (
+              <VideoUpload onUpload={(result: any) => setVideoUrl(result.cdnUrl)} label="Add a short video — show it off, talk about the item" />
+            )}
+          </div>
+
           <div className="form-row" style={{ marginBottom: "var(--s-4)" }}>
             <div className="form-field">
               <label className="label">Title</label>
@@ -3379,7 +3529,7 @@ function MarketplacePane({ profile }: { profile: Profile }) {
             <label className="label">Description</label>
             <textarea className="textarea" rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Tell fans about the item — size, story, condition details..." />
           </div>
-          <div className="form-row" style={{ marginBottom: "var(--s-4)" }}>
+          <div className="form-row" style={{ marginBottom: "var(--s-4)"}}>
             <div className="form-field">
               <label className="label">Category</label>
               <select className="input" value={category} onChange={e => setCategory(e.target.value)} style={{ cursor: "pointer" }}>
@@ -3398,8 +3548,8 @@ function MarketplacePane({ profile }: { profile: Profile }) {
             </div>
           </div>
           <div className="form-field" style={{ marginBottom: "var(--s-4)" }}>
-            <label className="label">Personal note to buyer (optional)</label>
-            <input className="input" value={personalNote} onChange={e => setPersonalNote(e.target.value)} placeholder="A handwritten note goes in the package..." />
+            <label className="label">Personal note (shown on listing)</label>
+            <input className="input" value={personalNote} onChange={e => setPersonalNote(e.target.value)} placeholder="The story behind this item, or a note to your fan..." />
           </div>
           <div style={{ display: "flex", gap: 24, marginBottom: "var(--s-5)" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "var(--text-soft)" }}>
@@ -3424,30 +3574,31 @@ function MarketplacePane({ profile }: { profile: Profile }) {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {listings.map(l => (
-            <div key={l.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+          {listings.map((l: any) => (
+            <div key={l.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", alignItems: "flex-start", gap: 16 }}>
+              {l.images && l.images.length > 0 && (
+                <img src={l.images[0]} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text)", margin: 0 }}>{l.title}</p>
                   {l.autograph && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)", background: "rgba(242,184,75,0.08)", padding: "2px 6px", borderRadius: 3 }}>✍️ Signed</span>}
                   {l.subscriber_only && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", background: "rgba(255,255,255,0.05)", padding: "2px 6px", borderRadius: 3 }}>🔒 Subs only</span>}
+                  {l.video_url && <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)", background: "rgba(255,255,255,0.04)", padding: "2px 6px", borderRadius: 3 }}>▶ Video</span>}
                 </div>
                 <div style={{ display: "flex", gap: 16, fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.06em" }}>
                   <span style={{ color: "var(--accent)" }}>${l.price_usd}</span>
                   <span style={{ color: "var(--muted)" }}>{CATEGORY_LABELS[l.category] ?? l.category}</span>
                   <span style={{ color: "var(--muted)" }}>{CONDITION_LABELS[l.condition] ?? l.condition}</span>
                   <span style={{ color: l.status === "sold" ? "rgba(248,113,113,0.7)" : "rgba(52,211,153,0.7)" }}>{l.status === "sold" ? "Sold" : `${l.quantity} available`}</span>
+                  <span style={{ color: "var(--muted)" }}>{l.images?.length ?? 0} photo{l.images?.length !== 1 ? "s" : ""}</span>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                 {l.status === "active" && (
-                  <button onClick={() => markSold(l.id)} style={{ padding: "4px 10px", background: "none", border: "1px solid var(--border)", borderRadius: 4, color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
-                    Mark sold
-                  </button>
+                  <button onClick={() => markSold(l.id)} style={{ padding: "4px 10px", background: "none", border: "1px solid var(--border)", borderRadius: 4, color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>Mark sold</button>
                 )}
-                <button onClick={() => archiveListing(l.id)} style={{ padding: "4px 10px", background: "none", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 4, color: "rgba(248,113,113,0.7)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>
-                  Remove
-                </button>
+                <button onClick={() => archiveListing(l.id)} style={{ padding: "4px 10px", background: "none", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 4, color: "rgba(248,113,113,0.7)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           ))}
@@ -3457,7 +3608,6 @@ function MarketplacePane({ profile }: { profile: Profile }) {
   );
 }
 
-// ──────────────────────────────────────────────────────────────────
 // PANE: Settings — account-level (email, dangerous actions later)
 // ──────────────────────────────────────────────────────────────────
 

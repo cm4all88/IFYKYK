@@ -20,13 +20,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (!profileId) return NextResponse.json({ error: "Missing profileId" }, { status: 400 });
-
   const { data } = await (supabase as any)
     .from("marketplace_listings").select("*")
     .eq("creator_profile_id", profileId)
-    .eq("status", "active")
+    .in("status", ["active", "sold"])
     .order("created_at", { ascending: false });
-
   return NextResponse.json({ listings: data ?? [] });
 }
 
@@ -40,8 +38,7 @@ export async function POST(req: NextRequest) {
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
   const body = await req.json();
-  const { title, description, priceUsd, condition, category, images, quantity, subscriberOnly, personalNote, autograph } = body;
-
+  const { title, description, priceUsd, condition, category, images, videoUrl, quantity, subscriberOnly, personalNote, autograph } = body;
   if (!title?.trim() || !priceUsd) return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
 
   const { data, error } = await (supabase as any)
@@ -54,6 +51,7 @@ export async function POST(req: NextRequest) {
       condition: condition ?? "good",
       category: category ?? "other",
       images: Array.isArray(images) ? images : [],
+      video_url: videoUrl ?? null,
       quantity: parseInt(quantity ?? "1"),
       subscriber_only: subscriberOnly ?? false,
       personal_note: personalNote?.trim() || null,

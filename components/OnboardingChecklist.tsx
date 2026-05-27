@@ -10,24 +10,24 @@ interface Props {
   hasPost: boolean;
   hasChannel: boolean;
   onDismiss: () => void;
+  onSetPane?: (p: string) => void;
 }
 
-export default function OnboardingChecklist({ hasAvatar, hasBio, hasStripe, hasPost, hasChannel, onDismiss }: Props) {
+export default function OnboardingChecklist({ hasAvatar, hasBio, hasStripe, hasPost, hasChannel, onDismiss, onSetPane }: Props) {
   const steps = [
-    { done: hasAvatar && hasBio, label: "Complete your profile", desc: "Add a photo and bio so fans know who you are.", href: "/dashboard?pane=profile" },
-    { done: hasStripe, label: "Connect Stripe", desc: "Required before any fan can pay you.", href: "/dashboard?pane=payments" },
-    { done: hasChannel, label: "Create a subscription tier", desc: "Give fans a reason to subscribe.", href: "/dashboard?pane=channels" },
-    { done: hasPost, label: "Publish your first post", desc: "Free posts build your audience.", href: "/dashboard?pane=posts" },
+    { done: hasAvatar && hasBio, label: "Complete your profile", desc: "Add a photo and bio so fans know who you are.", pane: "profile" },
+    { done: hasStripe, label: "Connect Stripe", desc: "Required before any fan can pay you.", pane: "payments" },
+    { done: hasChannel, label: "Create a subscription tier", desc: "Give fans a reason to subscribe.", pane: "channels" },
+    { done: hasPost, label: "Publish your first post", desc: "Free posts build your audience.", pane: "posts" },
   ];
 
   const done = steps.filter(s => s.done).length;
   const pct = Math.round((done / steps.length) * 100);
-  const allDone = done === steps.length;
 
   const mono = "var(--font-mono, DM Mono, monospace)";
   const serif = "var(--font-serif, Cormorant Garamond, Georgia, serif)";
 
-  if (allDone) return null;
+  if (done === steps.length) return null;
 
   return (
     <div style={{
@@ -44,14 +44,13 @@ export default function OnboardingChecklist({ hasAvatar, hasBio, hasStripe, hasP
         <p style={{ fontFamily: mono, fontSize: 10, color: "var(--muted)", margin: 0 }}>{done}/{steps.length} complete</p>
       </div>
 
-      {/* Progress bar */}
       <div style={{ height: 3, background: "var(--border)", borderRadius: 2, marginBottom: 20, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", borderRadius: 2, transition: "width 0.4s ease" }} />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {steps.map((step, i) => (
-          <Link key={i} href={step.href} style={{
+        {steps.map((step, i) => {
+          const itemStyle: React.CSSProperties = {
             display: "flex", alignItems: "center", gap: 14,
             padding: "10px 14px", borderRadius: "var(--r-2)",
             textDecoration: "none", color: "inherit",
@@ -59,25 +58,40 @@ export default function OnboardingChecklist({ hasAvatar, hasBio, hasStripe, hasP
             border: `1px solid ${step.done ? "transparent" : "rgba(242,184,75,0.08)"}`,
             opacity: step.done ? 0.5 : 1,
             transition: "background 0.15s",
-          }}>
-            <div style={{
-              width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-              border: `2px solid ${step.done ? "var(--accent-open)" : "rgba(242,184,75,0.3)"}`,
-              background: step.done ? "rgba(52,211,153,0.15)" : "transparent",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 12,
-            }}>
-              {step.done ? "✓" : ""}
-            </div>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: step.done ? 400 : 500, color: step.done ? "var(--muted)" : "var(--text)", margin: "0 0 2px" }}>
-                {step.label}
-              </p>
-              {!step.done && <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>{step.desc}</p>}
-            </div>
-            {!step.done && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 14, opacity: 0.7 }}>→</span>}
-          </Link>
-        ))}
+            cursor: step.done ? "default" : "pointer",
+            width: "100%", textAlign: "left" as const,
+          };
+          const inner = (
+            <>
+              <div style={{
+                width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                border: `2px solid ${step.done ? "var(--accent-open)" : "rgba(242,184,75,0.3)"}`,
+                background: step.done ? "rgba(52,211,153,0.15)" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
+              }}>
+                {step.done ? "✓" : ""}
+              </div>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: step.done ? 400 : 500, color: step.done ? "var(--muted)" : "var(--text)", margin: "0 0 2px" }}>
+                  {step.label}
+                </p>
+                {!step.done && <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>{step.desc}</p>}
+              </div>
+              {!step.done && <span style={{ marginLeft: "auto", color: "var(--accent)", fontSize: 14, opacity: 0.7 }}>→</span>}
+            </>
+          );
+
+          // Use onSetPane if available (within dashboard), otherwise fall back to Link
+          return onSetPane && !step.done ? (
+            <button key={i} style={{ ...itemStyle, background: "rgba(242,184,75,0.03)", border: "1px solid rgba(242,184,75,0.08)" }} onClick={() => onSetPane(step.pane)}>
+              {inner}
+            </button>
+          ) : (
+            <Link key={i} href={`/dashboard?pane=${step.pane}`} style={itemStyle}>
+              {inner}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

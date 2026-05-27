@@ -253,18 +253,18 @@ export default async function CreatorPage(props: {
             position: absolute; inset: 0;
             width: 100%; height: 100%;
             object-fit: cover;
-            opacity: 0.12;
-            filter: saturate(0.6);
+            opacity: 0.45;
+            filter: saturate(0.8) brightness(0.85);
           }
           .cp-stage-vignette {
             position: absolute; inset: 0;
-            background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 20%, rgba(9,9,12,0.7) 70%, rgba(9,9,12,0.97) 100%);
+            background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(9,9,12,0.45) 65%, rgba(9,9,12,0.82) 100%);
           }
           /* Spotlight beam — wide cone only, no vertical line */
           .cp-stage-beam-wide {
             position: absolute; top: 0; left: 50%; transform: translateX(-50%);
             width: min(700px, 80vw); height: 70%;
-            background: radial-gradient(ellipse 60% 100% at 50% 0%, rgba(242,184,75,0.08) 0%, transparent 65%);
+            background: radial-gradient(ellipse 60% 100% at 50% 0%, rgba(242,184,75,0.14) 0%, transparent 65%);
           }
           .cp-stage-floor {
             position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
