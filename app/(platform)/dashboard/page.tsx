@@ -513,7 +513,7 @@ function OverviewPane({
           hasPost={stats.posts > 0}
           hasChannel={false}
           onDismiss={() => setChecklistDismissed(true)}
-          onSetPane={onSetPane}
+          onSetPane={(p) => onSetPane(p as Pane)}
         />
       )}
 
