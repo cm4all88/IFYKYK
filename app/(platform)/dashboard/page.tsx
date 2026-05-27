@@ -70,7 +70,7 @@ export default function DashboardPage() {
   // Auto-open the section containing the active pane
   React.useEffect(() => {
     const s = PANE_SECTION[pane];
-    if (s) setOpenSections(prev => new Set([...prev, s]));
+    if (s) setOpenSections(prev => new Set(Array.from(prev).concat(s)));
   }, [pane]);
 
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
