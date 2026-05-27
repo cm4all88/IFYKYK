@@ -3733,11 +3733,13 @@ function PaymentsPane({ profile }: { profile: Profile }) {
     setErr(null);
     try {
       const res = await fetch("/api/stripe/connect/start", { method: "POST" });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      let data: any = {};
+      try { data = await res.json(); } catch { /* empty body */ }
+      if (!res.ok || data.error) throw new Error(data.error ?? `Server error ${res.status}`);
+      if (!data.url) throw new Error("No redirect URL returned from Stripe");
       window.location.href = data.url;
     } catch (e: any) {
-      setErr(e.message);
+      setErr(e.message ?? "Could not connect Stripe. Check your Stripe API key in Vercel env vars.");
       setConnecting(false);
     }
   }
