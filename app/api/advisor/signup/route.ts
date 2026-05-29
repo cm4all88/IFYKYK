@@ -73,14 +73,14 @@ export async function POST(req: NextRequest) {
     const raw: string = data.content?.[0]?.text ?? "";
 
     // Extract the structured data block
-    const match = raw.match(/\[\[EXTRACTED:(.*?)\]\]/s);
+    const match = raw.match(/\[\[EXTRACTED:([\s\S]*?)\]\]/);
     let extracted = { displayName: null as string | null, suggestedHandle: null as string | null };
     if (match) {
       try { extracted = JSON.parse(match[1]); } catch { /* ignore */ }
     }
 
     // Strip the marker from the visible response
-    const response = raw.replace(/\n?\[\[EXTRACTED:.*?\]\]/s, "").trim();
+    const response = raw.replace(/\n?\[\[EXTRACTED:[\s\S]*?\]\]/, "").trim();
 
     return NextResponse.json({ response, extracted });
   } catch (e: any) {
