@@ -98,10 +98,22 @@ export default function SignupPage() {
         signal: controller.signal,
       });
       let text = "";
+      let extracted: { displayName?: string | null; suggestedHandle?: string | null } = {};
       try {
         const data = await res.json();
         text = data.response ?? "";
+        extracted = data.extracted ?? {};
       } catch { /* empty */ }
+
+      // Apply any extracted fields to the account form
+      if (extracted.displayName) {
+        setForm((f) => ({ ...f, displayName: extracted.displayName! }));
+      }
+      if (extracted.suggestedHandle) {
+        const handle = extracted.suggestedHandle.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 30);
+        setForm((f) => ({ ...f, spotlightHandle: handle }));
+      }
+
       if (!text.trim()) {
         setMessages((m) => m.slice(0, -1));
         setStreamErr("The advisor didn't respond. Try sending again.");
