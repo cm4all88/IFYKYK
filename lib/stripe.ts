@@ -17,6 +17,11 @@ export async function createConnectAccount(email: string) {
       card_payments: { requested: true },
       transfers: { requested: true },
     },
+    settings: {
+      payouts: {
+        schedule: { interval: "daily" },
+      },
+    },
   });
 }
 
@@ -49,8 +54,11 @@ export async function createSubscription({
     {
       customer: customerId,
       items: [{ price: priceId }],
-      application_fee_percent: 0, // We charge the creator a flat fee, not a percentage
-      payment_settings: { save_default_payment_method: "on_subscription" },
+      application_fee_percent: 0,
+      payment_settings: {
+        save_default_payment_method: "on_subscription",
+        payment_method_types: ["card"],
+      },
     },
     { stripeAccount: creatorAccountId }
   );
