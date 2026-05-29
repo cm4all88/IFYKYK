@@ -54,7 +54,7 @@ export async function createSubscription({
     {
       customer: customerId,
       items: [{ price: priceId }],
-      application_fee_percent: 0,
+      application_fee_percent: 3,  // 3% Spotlightly fee charged to fan on top of creator's price
       payment_settings: {
         save_default_payment_method: "on_subscription",
         payment_method_types: ["card"],
