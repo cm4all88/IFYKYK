@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { createConnectAccount, createOnboardingLink } from "@/lib/stripe";
+import { createOnboardingLink } from "@/lib/stripe";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,22 +23,40 @@ export async function POST(req: NextRequest) {
     let accountId = profile.stripe_account_id;
 
     if (!accountId) {
-      const account = await createConnectAccount(user.email!);
-      accountId = account.id;
-      await (supabase as any)
-        .from("creator_profiles")
-        .update({ stripe_account_id: accountId })
-        .eq("id", profile.id);
+      console.log("Creating new Stripe Connect account for user", user.id);
+      try {
+        const account = await stripe.accounts.create({ type: "express" });
+        accountId = account.id;
+        console.log("Created account:", accountId);
+        await (supabase as any)
+          .from("creator_profiles")
+          .update({ stripe_account_id: accountId })
+          .eq("id", profile.id);
+      } catch (e: any) {
+        console.error("Account creation failed:", e.message, e.code);
+        return NextResponse.json({ error: `Account creation failed: ${e.message}` }, { status: 500 });
+      }
+    } else {
+      console.log("Reusing existing account:", accountId);
     }
 
-    const link = await createOnboardingLink(accountId);
-    return NextResponse.json({ url: link.url });
+    try {
+      const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
+      const link = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: `${base}/dashboard?pane=payments`,
+        return_url: `${base}/dashboard?pane=payments`,
+        type: "account_onboarding",
+      });
+      console.log("Onboarding link created:", link.url);
+      return NextResponse.json({ url: link.url });
+    } catch (e: any) {
+      console.error("Account link creation failed:", e.message, e.code);
+      return NextResponse.json({ error: `Onboarding link failed: ${e.message}` }, { status: 500 });
+    }
 
   } catch (e: any) {
-    console.error("Stripe connect error:", e);
-    return NextResponse.json(
-      { error: e?.message ?? "Failed to start Stripe onboarding" },
-      { status: 500 }
-    );
+    console.error("Stripe connect error:", e.message);
+    return NextResponse.json({ error: e.message ?? "Failed to start Stripe onboarding" }, { status: 500 });
   }
 }
