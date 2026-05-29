@@ -226,6 +226,8 @@ export default function OnboardingPage() {
         setSelectedTags(data.tags ?? []);
         setStageName(data.display_name ?? "");
         if (data.onboarding_completed_at) router.push("/dashboard");
+        // Skip name + about steps — signup already collected those
+        else if (data.display_name) setStep("profile");
       }
     });
   }, []);
@@ -373,14 +375,6 @@ export default function OnboardingPage() {
           opacity: 0.07,
           pointerEvents: "none",
           zIndex: 0,
-        }} />
-        {/* Spotlight beam from top */}
-        <div style={{
-          position: "absolute", top: 0, left: "50%",
-          transform: "translateX(-50%)",
-          width: 2, height: "60%",
-          background: "linear-gradient(to bottom, rgba(242,184,75,0.9), transparent)",
-          pointerEvents: "none",
         }} />
         <div style={{
           position: "absolute", top: 0, left: "50%",
@@ -980,13 +974,6 @@ export default function OnboardingPage() {
           opacity: 0.08,
           pointerEvents: "none",
           zIndex: 0,
-        }} />
-        {/* Full spotlight on the creator */}
-        <div style={{
-          position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
-          width: 2, height: "55%",
-          background: "linear-gradient(to bottom, rgba(242,184,75,0.95), transparent)",
-          pointerEvents: "none",
         }} />
         <div style={{
           position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)",
