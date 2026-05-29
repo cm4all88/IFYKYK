@@ -91,30 +91,27 @@ export default function SignupPage() {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const res = await fetch("/api/advisor", {
+      const res = await fetch("/api/advisor/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: opts.isOpening ? [] : history, backstageChoice, opening: !!opts.isOpening }),
+        body: JSON.stringify({ messages: opts.isOpening ? [] : history, backstageChoice }),
         signal: controller.signal,
       });
-      if (!res.ok || !res.body) throw new Error(`Advisor responded ${res.status}`);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let acc = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        acc += decoder.decode(value, { stream: true });
+      let text = "";
+      try {
+        const data = await res.json();
+        text = data.response ?? "";
+      } catch { /* empty */ }
+      if (!text.trim()) {
+        setMessages((m) => m.slice(0, -1));
+        setStreamErr("The advisor didn't respond. Try sending again.");
+      } else {
         setMessages((m) => {
           const next = [...m];
           const last = next[next.length - 1];
-          if (last?.role === "assistant") next[next.length - 1] = { ...last, content: acc };
+          if (last?.role === "assistant") next[next.length - 1] = { ...last, content: text };
           return next;
         });
-      }
-      if (!acc.trim()) {
-        setMessages((m) => m.slice(0, -1));
-        setStreamErr("The advisor didn't respond. Try sending again.");
       }
     } catch (e: any) {
       if (e?.name !== "AbortError") {
