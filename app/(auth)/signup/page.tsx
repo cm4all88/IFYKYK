@@ -352,7 +352,7 @@ function ChatStage({ backstageChoice, messages, chatInput, setChatInput, streami
   setChatInput: (v: string) => void; streaming: boolean; streamErr: string | null;
   onSubmit: (e: FormEvent) => void; onContinue: () => void; chatEndRef: React.RefObject<HTMLDivElement>;
 }) {
-  const continuePrompt = messages.filter((m) => m.role === "user").length >= 1;
+  const continuePrompt = messages.length >= 2;
   return (
     <div className="chat-stage">
       <p className="kicker">Step Two</p>
@@ -374,8 +374,24 @@ function ChatStage({ backstageChoice, messages, chatInput, setChatInput, streami
             placeholder={streaming ? "Thinking…" : "Type your reply"} disabled={streaming} autoFocus />
           <button type="submit" disabled={streaming || !chatInput.trim()}>Send</button>
         </form>
-        <button className={`continue ${continuePrompt ? "ready" : ""}`} onClick={onContinue}>
-          {continuePrompt ? "Continue to account →" : "Skip ahead to account creation"}
+        <button
+          onClick={onContinue}
+          style={{
+            display: "block", width: "100%", border: "none",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
+            padding: continuePrompt ? "20px" : "14px",
+            background: continuePrompt ? "#f5c842" : "transparent",
+            color: continuePrompt ? "#0a0a0f" : "#6b6b80",
+            fontFamily: "DM Mono, monospace",
+            fontSize: continuePrompt ? "12px" : "11px",
+            letterSpacing: continuePrompt ? "0.18em" : "0.15em",
+            textTransform: "uppercase",
+            cursor: "pointer",
+            fontWeight: continuePrompt ? 600 : 400,
+            transition: "all 0.2s ease",
+          }}
+        >
+          {continuePrompt ? "Continue — claim your handle →" : "Skip to account creation"}
         </button>
       </div>
     </div>
@@ -567,9 +583,10 @@ function SignupStyles() {
       .chat-input input::placeholder { color: var(--muted); }
       .chat-input button { background: var(--accent-spot); color: #0a0a0f; border: none; padding: 0 28px; font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
       .chat-input button:disabled { opacity: 0.3; cursor: not-allowed; }
-      .continue { display: block; width: 100%; background: transparent; border: none; border-top: 1px solid var(--border); padding: 16px; color: var(--muted); font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
+      .continue { display: block; width: 100%; background: transparent; border: none; border-top: 1px solid var(--border); padding: 18px; color: var(--muted); font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
       .continue:hover { color: var(--text); background: rgba(255,255,255,0.02); }
-      .continue.ready { color: var(--accent-spot); }
+      .continue.ready { color: #0a0a0f; background: var(--accent-spot); font-size: 12px; letter-spacing: 0.18em; }
+      .continue.ready:hover { opacity: 0.9; }
 
       /* ── Form ── */
       .account-form { display: flex; flex-direction: column; gap: 20px; max-width: 540px; }
