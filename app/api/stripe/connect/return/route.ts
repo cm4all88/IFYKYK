@@ -15,10 +15,15 @@ export async function GET(req: NextRequest) {
     .single();
 
   if (profile?.stripe_account_id) {
-    // Verify account is actually onboarded
     try {
       const account = await stripe.accounts.retrieve(profile.stripe_account_id);
       if (account.details_submitted) {
+        // ✅ Mark creator as onboarded in the database
+        await (supabase as any)
+          .from("creator_profiles")
+          .update({ stripe_onboarded: true })
+          .eq("id", profile.id);
+
         return NextResponse.redirect(new URL("/dashboard?pane=payments&stripe=connected", req.url));
       }
     } catch {}

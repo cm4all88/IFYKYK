@@ -1,13 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
-const ADMIN_ID = "9b5ac2dc-ea4f-4bac-b2ef-70608562568a";
-
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const { pathname } = req.nextUrl;
-
-  if (pathname !== "/" && pathname !== "/dashboard" && !pathname.startsWith("/admin")) return res;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,37 +18,50 @@ export async function middleware(req: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Protect /admin — must be the admin user
+  // ── Admin protection ──────────────────────────────────────────
   if (pathname.startsWith("/admin")) {
-    if (!session || session.user.id !== ADMIN_ID) {
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    if (!session || !adminEmail || session.user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
       return NextResponse.redirect(new URL("/", req.url));
     }
     return res;
   }
 
+  // ── Not logged in ─────────────────────────────────────────────
   if (!session) {
-    if (pathname === "/dashboard") {
+    if (pathname === "/dashboard" || pathname === "/onboarding" || pathname === "/feed") {
       return NextResponse.redirect(new URL("/login", req.url));
     }
     return res;
   }
 
-  // Logged in and hitting root — redirect to dashboard
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
+  // ── Logged in — determine account type ───────────────────────
+  const isCreatorRoute = pathname === "/dashboard" || pathname === "/onboarding";
+  const isFanRoute = pathname === "/feed";
+  const isRoot = pathname === "/";
 
-  // Logged in and hitting dashboard — check if onboarding is complete
-  if (pathname === "/dashboard") {
+  if (isRoot || isCreatorRoute || isFanRoute) {
     const { data: profile } = await supabase
       .from("creator_profiles")
-      .select("onboarding_completed_at")
+      .select("id, onboarding_completed_at")
       .eq("user_id", session.user.id)
       .eq("kind", "spotlight")
       .maybeSingle();
 
-    if (profile && !profile.onboarding_completed_at) {
-      return NextResponse.redirect(new URL("/onboarding", req.url));
+    const isCreator = !!profile;
+
+    if (isRoot) {
+      return NextResponse.redirect(new URL(isCreator ? "/dashboard" : "/feed", req.url));
+    }
+
+    if (!isCreator && isCreatorRoute) {
+      return NextResponse.redirect(new URL("/feed", req.url));
+    }
+
+    if (isCreator && pathname === "/dashboard") {
+      if (profile && !profile.onboarding_completed_at) {
+        return NextResponse.redirect(new URL("/onboarding", req.url));
+      }
     }
   }
 
@@ -60,5 +69,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard", "/admin/:path*"],
+  matcher: ["/", "/dashboard", "/onboarding", "/feed", "/admin/:path*"],
 };

@@ -1,7 +1,7 @@
 # Run this once to create Spotlightly billing tier products in Stripe
 # Then add the price IDs to Vercel env vars
 
-$key = "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"  # Replace with your live Stripe key
+$key = "sk_live_YOUR_KEY_HERE"  # Replace with your live Stripe key
 
 $tiers = @(
     @{ name="Spotlightly Starter"; desc="Up to 100 subscribers"; price=2900;  meta="starter" },

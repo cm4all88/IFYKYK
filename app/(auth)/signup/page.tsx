@@ -216,7 +216,12 @@ export default function SignupPage() {
       <div className="frame">
         <header className="topbar">
           <div className="brand">Spot<span>light</span>ly</div>
-          <PhaseDots phase={phase} hasReferral={!!referrerHandle} />
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <a href="/fan-signup" style={{ fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.1em", color: "#6b6b80", textDecoration: "none" }}>
+              Join as a fan instead
+            </a>
+            <PhaseDots phase={phase} hasReferral={!!referrerHandle} />
+          </div>
         </header>
 
         <div className="stage">
@@ -327,7 +332,7 @@ function PhaseDots({ phase, hasReferral }: { phase: Phase; hasReferral: boolean 
 function BackstagePicker({ onPick }: { onPick: (c: BackstageChoice) => void }) {
   return (
     <div className="picker">
-      <p className="kicker">One question</p>
+      <p className="kicker">Creator account · Step one</p>
       <h1 className="title">Are you opening <em>a Backstage</em> too?</h1>
       <p className="lede">
         Backstage is our adult-content tier. It&apos;s a separate public

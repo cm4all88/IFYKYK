@@ -36,13 +36,19 @@ export default function LandingPage() {
             from your first post to your most exclusive content.
           </p>
 
-          <div className="hero-actions">
-            <Link href="/signup" className="btn btn--primary hero-cta">
-              Claim your handle →
-            </Link>
-            <Link href="/login" className="btn btn--secondary">
-              Sign in
-            </Link>
+          <div className="hero-actions" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <Link href="/signup" className="btn btn--primary hero-cta">
+                Start creating →
+              </Link>
+              <Link href="/fan-signup" className="btn btn--secondary">
+                Join as a fan
+              </Link>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-muted, #6b6b80)", fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: "0.05em" }}>
+              Already have an account?{" "}
+              <Link href="/login" style={{ color: "var(--accent, #f5c842)", textDecoration: "none" }}>Sign in →</Link>
+            </p>
           </div>
 
           <div className="hero-venue">
