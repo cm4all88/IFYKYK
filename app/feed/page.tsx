@@ -46,8 +46,11 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "video",  label: "Video" },
   { key: "image",  label: "Photos" },
   { key: "text",   label: "Written" },
-  { key: "locked", label: "Subscriber" },
+  { key: "locked", label: "Premium" },
 ];
+
+const mono = "var(--font-mono)";
+const serif = "var(--font-serif)";
 
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -69,64 +72,63 @@ function dayLabel(iso: string) {
   return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 }
 
-// ── Live Now banner ───────────────────────────────────────────
+// ── Avatar ─────────────────────────────────────────────────────
+function Avatar({ url, name, size, ring = true }: { url: string | null; name?: string; size: number; ring?: boolean }) {
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0,
+      border: ring ? "1px solid var(--accent-border)" : "none",
+      background: "var(--accent-soft)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      {url
+        ? <img src={url} alt={name ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        : <span style={{ fontFamily: serif, fontSize: size * 0.42, color: "var(--accent)" }}>{(name ?? "?")[0]?.toUpperCase()}</span>
+      }
+    </div>
+  );
+}
+
+// ── Live Now ───────────────────────────────────────────────────
 function LiveNowSection({ streams }: { streams: LiveStream[] }) {
   if (streams.length === 0) return null;
-  const mono = "DM Mono, monospace";
-  const serif = "Cormorant Garamond, Georgia, serif";
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
         <span style={{
-          display: "inline-block", width: 8, height: 8, borderRadius: "50%",
-          background: "#ef4444",
-          boxShadow: "0 0 0 0 rgba(239,68,68,0.4)",
-          animation: "live-pulse 1.5s ease-in-out infinite",
+          display: "inline-block", width: 7, height: 7, borderRadius: "50%",
+          background: "#ef4444", animation: "live-pulse 1.5s ease-in-out infinite",
         }} />
-        <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "#ef4444" }}>
-          Live now
+        <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.26em", textTransform: "uppercase", color: "#ef4444" }}>
+          On stage now
         </span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {streams.map((s) => (
           <Link key={s.id} href={`/${s.creator_profile.handle}`} style={{
             display: "flex", alignItems: "center", gap: 14,
-            background: "rgba(239,68,68,0.06)",
-            border: "1px solid rgba(239,68,68,0.2)",
-            borderRadius: 8, padding: "14px 18px",
-            textDecoration: "none", transition: "border-color 0.15s",
+            background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.18)",
+            borderRadius: 10, padding: "14px 18px", textDecoration: "none", transition: "border-color 0.15s",
           }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(239,68,68,0.4)")}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(239,68,68,0.18)")}
           >
             <div style={{ position: "relative", flexShrink: 0 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: "50%", overflow: "hidden",
-                border: "2px solid rgba(239,68,68,0.4)",
-                background: "rgba(239,68,68,0.1)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {s.creator_profile.avatar_url
-                  ? <img src={s.creator_profile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ fontFamily: serif, fontSize: 18, color: "rgba(239,68,68,0.6)" }}>{s.creator_profile.display_name?.[0]?.toUpperCase()}</span>
-                }
-              </div>
+              <Avatar url={s.creator_profile.avatar_url} name={s.creator_profile.display_name} size={44} ring={false} />
               <span style={{
-                position: "absolute", bottom: -2, right: -2,
-                background: "#ef4444", borderRadius: 3, padding: "1px 4px",
-                fontFamily: mono, fontSize: 7, letterSpacing: "0.1em",
-                textTransform: "uppercase", color: "#fff",
+                position: "absolute", bottom: -2, right: -2, background: "#ef4444", borderRadius: 3,
+                padding: "1px 4px", fontFamily: mono, fontSize: 7, letterSpacing: "0.1em", textTransform: "uppercase", color: "#fff",
               }}>Live</span>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: serif, fontSize: 17, fontWeight: 400, color: "#fff", margin: "0 0 3px", lineHeight: 1.2 }}>
+              <p style={{ fontFamily: serif, fontSize: 18, fontWeight: 400, color: "var(--text)", margin: "0 0 3px", lineHeight: 1.2 }}>
                 {s.creator_profile.display_name}
               </p>
-              <p style={{ fontFamily: mono, fontSize: 11, color: "rgba(255,255,255,0.45)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{ fontFamily: mono, fontSize: 11, color: "var(--muted-faint)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {s.title}
               </p>
             </div>
-            <span style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#ef4444", flexShrink: 0 }}>
+            <span style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "#ef4444", flexShrink: 0 }}>
               Watch →
             </span>
           </Link>
@@ -136,35 +138,19 @@ function LiveNowSection({ streams }: { streams: LiveStream[] }) {
   );
 }
 
-// ── Creator avatar strip ───────────────────────────────────────
+// ── Creator strip ──────────────────────────────────────────────
 function CreatorStrip({ creators }: { creators: Creator[] }) {
   if (creators.length === 0) return null;
   return (
-    <div style={{
-      display: "flex", gap: 16, overflowX: "auto", padding: "0 24px 20px",
-      scrollbarWidth: "none",
-    }}>
+    <div style={{ display: "flex", gap: 20, overflowX: "auto", padding: "0 24px 24px", scrollbarWidth: "none" }}>
       {creators.map((c) => (
         <Link key={c.id} href={`/${c.handle}`} style={{
-          display: "flex", flexDirection: "column", alignItems: "center",
-          gap: 8, textDecoration: "none", flexShrink: 0,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 9, textDecoration: "none", flexShrink: 0,
         }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: "50%", overflow: "hidden",
-            border: "2px solid rgba(240,180,41,0.3)",
-            background: "rgba(240,180,41,0.08)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            {c.avatar_url
-              ? <img src={c.avatar_url} alt={c.display_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <span style={{ fontFamily: "Cormorant Garamond, serif", fontSize: 20, color: "rgba(240,180,41,0.6)" }}>{c.display_name?.[0]?.toUpperCase()}</span>
-            }
-          </div>
+          <Avatar url={c.avatar_url} name={c.display_name} size={56} />
           <span style={{
-            fontFamily: "DM Mono, monospace", fontSize: 9, letterSpacing: "0.08em",
-            color: "#52525b", maxWidth: 60, textAlign: "center",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            fontFamily: mono, fontSize: 9, letterSpacing: "0.06em", color: "var(--muted-faint)",
+            maxWidth: 64, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             @{c.handle}
           </span>
@@ -174,7 +160,7 @@ function CreatorStrip({ creators }: { creators: Creator[] }) {
   );
 }
 
-// ── Video card with hover-play ─────────────────────────────────
+// ── Video with hover-play ──────────────────────────────────────
 function VideoMedia({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   return (
@@ -182,182 +168,100 @@ function VideoMedia({ src }: { src: string }) {
       ref={ref}
       src={src}
       muted playsInline loop preload="metadata"
-      style={{ width: "100%", display: "block", maxHeight: 520, objectFit: "cover" }}
+      style={{ width: "100%", display: "block", maxHeight: 540, objectFit: "cover" }}
       onMouseEnter={() => ref.current?.play()}
       onMouseLeave={() => { if (ref.current) { ref.current.pause(); ref.current.currentTime = 0; } }}
     />
   );
 }
 
-// ── Single post card ───────────────────────────────────────────
+// ── Post card ──────────────────────────────────────────────────
 function PostCard({ post }: { post: Post }) {
   const creator = post.creator_profile;
   const hasMedia = !!post.media_url;
   const isLocked = !post.isUnlocked && post.tier !== "free";
-  const mono = "DM Mono, monospace";
-  const serif = "Cormorant Garamond, Georgia, serif";
 
   return (
-    <article style={{
-      background: "#0E0E12",
-      border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: 8,
-      overflow: "hidden",
-      transition: "border-color 0.2s",
-    }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)")}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)")}
-    >
-      {/* Creator credit — playbill style */}
+    <article className="feed-card">
+      {/* Playbill credit line */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "16px 20px",
-        borderBottom: hasMedia ? "1px solid rgba(255,255,255,0.04)" : "none",
+        display: "flex", alignItems: "center", gap: 13, padding: "18px 22px",
+        borderBottom: hasMedia ? "1px solid rgba(255,255,255,0.05)" : "none",
       }}>
-        <Link href={`/${creator.handle}`} style={{ display: "block", flexShrink: 0 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: "50%", overflow: "hidden",
-            background: "rgba(240,180,41,0.08)",
-            border: "1px solid rgba(240,180,41,0.2)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            {creator.avatar_url
-              ? <img src={creator.avatar_url} alt={creator.display_name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <span style={{ fontFamily: serif, fontSize: 16, color: "rgba(240,180,41,0.6)" }}>{creator.display_name?.[0]?.toUpperCase()}</span>
-            }
-          </div>
+        <Link href={`/${creator.handle}`} style={{ flexShrink: 0 }}>
+          <Avatar url={creator.avatar_url} name={creator.display_name} size={38} />
         </Link>
         <div style={{ flex: 1, minWidth: 0 }}>
           <Link href={`/${creator.handle}`} style={{ textDecoration: "none" }}>
-            <p style={{ fontFamily: serif, fontSize: 16, fontWeight: 400, color: "#fff", margin: 0, lineHeight: 1.2 }}>
+            <p style={{ fontFamily: serif, fontSize: 17, fontWeight: 400, color: "var(--text)", margin: 0, lineHeight: 1.2 }}>
               {creator.display_name}
             </p>
           </Link>
-          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.1em", color: "#52525b", margin: "3px 0 0" }}>
-            @{creator.handle}
+          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.08em", color: "var(--muted-faint)", margin: "3px 0 0" }}>
+            @{creator.handle} · {timeAgo(post.created_at)}
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {post.is_pinned && (
-            <span style={{ fontFamily: mono, fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(240,180,41,0.6)", background: "rgba(240,180,41,0.08)", border: "1px solid rgba(240,180,41,0.2)", padding: "2px 7px", borderRadius: 2 }}>
-              Pinned
-            </span>
+            <span className="badge badge--accent">Pinned</span>
           )}
           {post.tier !== "free" && (
-            <span style={{ fontFamily: mono, fontSize: 8, letterSpacing: "0.12em", textTransform: "uppercase", color: post.isUnlocked ? "rgba(52,211,153,0.7)" : "rgba(240,180,41,0.6)", background: post.isUnlocked ? "rgba(52,211,153,0.08)" : "rgba(240,180,41,0.08)", border: `1px solid ${post.isUnlocked ? "rgba(52,211,153,0.2)" : "rgba(240,180,41,0.2)"}`, padding: "2px 7px", borderRadius: 2 }}>
+            <span className={`badge ${post.isUnlocked ? "badge--green" : "badge--accent"}`}>
               {post.isUnlocked ? "Unlocked" : "Premium"}
             </span>
           )}
-          <span style={{ fontFamily: mono, fontSize: 9, color: "#71717a" }}>
-            {timeAgo(post.created_at)}
-          </span>
         </div>
       </div>
 
       {/* Media */}
       {hasMedia && (
-        <div style={{ position: "relative", background: "#080808" }}>
+        <div style={{ position: "relative", background: "#080809" }}>
           {isLocked ? (
             <div style={{ position: "relative", overflow: "hidden" }}>
-              {/* Blurred preview */}
               {post.media_type === "video"
-                ? <video src={post.media_url!} muted style={{ width: "100%", display: "block", maxHeight: 360, objectFit: "cover", filter: "blur(20px) brightness(0.4)", transform: "scale(1.05)" }} />
-                : <img src={post.media_url!} alt="" style={{ width: "100%", display: "block", maxHeight: 360, objectFit: "cover", filter: "blur(20px) brightness(0.4)", transform: "scale(1.05)" }} />
+                ? <video src={post.media_url!} muted style={{ width: "100%", display: "block", maxHeight: 380, objectFit: "cover", filter: "blur(22px) brightness(0.38)", transform: "scale(1.06)" }} />
+                : <img src={post.media_url!} alt="" style={{ width: "100%", display: "block", maxHeight: 380, objectFit: "cover", filter: "blur(22px) brightness(0.38)", transform: "scale(1.06)" }} />
               }
-              {/* Lock overlay */}
               <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 12, padding: 24,
-                background: "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%)",
+                position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", gap: 16, padding: 24,
+                background: "radial-gradient(ellipse 80% 80% at 50% 50%, rgba(9,9,12,0.15) 0%, rgba(9,9,12,0.7) 100%)",
               }}>
                 <div style={{
-                  width: 52, height: 52, borderRadius: "50%",
-                  background: "rgba(240,180,41,0.1)",
-                  border: "1px solid rgba(240,180,41,0.3)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 22,
-                }}>
-                  🔒
-                </div>
-                <p style={{ fontFamily: serif, fontSize: 18, fontStyle: "italic", color: "rgba(255,255,255,0.8)", margin: 0, textAlign: "center" }}>
-                  Subscriber exclusive
+                  width: 54, height: 54, borderRadius: "50%", background: "var(--accent-soft)",
+                  border: "1px solid var(--accent-border)", display: "flex", alignItems: "center",
+                  justifyContent: "center", fontSize: 20, color: "var(--accent)",
+                }}>✦</div>
+                <p style={{ fontFamily: serif, fontSize: 20, fontStyle: "italic", fontWeight: 300, color: "var(--text)", margin: 0, textAlign: "center" }}>
+                  Behind the curtain
                 </p>
-                <Link href={`/${creator.handle}`} style={{
-                  fontFamily: mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase",
-                  color: "#09090C", background: "#F0B429", padding: "10px 20px",
-                  borderRadius: 3, textDecoration: "none",
-                }}>
-                  Subscribe to {creator.display_name}
+                <Link href={`/${creator.handle}`} className="btn btn--primary btn--small">
+                  Subscribe to unlock
                 </Link>
               </div>
             </div>
           ) : (
             post.media_type === "video"
               ? <VideoMedia src={post.media_url!} />
-              : <img src={post.media_url!} alt={post.caption ?? ""} style={{ width: "100%", display: "block", maxHeight: 560, objectFit: "cover" }} />
+              : <img src={post.media_url!} alt={post.caption ?? ""} style={{ width: "100%", display: "block", maxHeight: 580, objectFit: "cover" }} />
           )}
         </div>
       )}
 
-      {/* Caption / text content */}
+      {/* Caption */}
       {post.caption && (
-        <div style={{ padding: hasMedia ? "16px 20px 20px" : "4px 20px 20px" }}>
+        <div style={{ padding: hasMedia ? "18px 22px 22px" : "26px 24px" }}>
           {!hasMedia ? (
-            // Text-only post — large serif display
-            <p style={{
-              fontFamily: serif,
-              fontSize: 20,
-              fontWeight: 300,
-              lineHeight: 1.7,
-              color: "rgba(255,255,255,0.85)",
-              margin: 0,
-              fontStyle: "italic",
-            }}>
+            <p style={{ fontFamily: serif, fontSize: 22, fontWeight: 300, lineHeight: 1.6, color: "var(--text-soft)", margin: 0, fontStyle: "italic" }}>
               {isLocked ? post.caption.slice(0, 120) + "…" : post.caption}
             </p>
           ) : (
-            <p style={{
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: "rgba(255,255,255,0.65)",
-              margin: 0,
-            }}>
+            <p style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--text-soft)", margin: 0 }}>
               {isLocked ? post.caption.slice(0, 80) + "…" : post.caption}
             </p>
           )}
         </div>
       )}
-
-      {/* Footer stats */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 16,
-        padding: "12px 20px",
-        borderTop: "1px solid rgba(255,255,255,0.04)",
-      }}>
-        {post.views_count > 0 && (
-          <span style={{ fontFamily: mono, fontSize: 10, color: "#3f3f46", letterSpacing: "0.08em" }}>
-            {post.views_count.toLocaleString()} views
-          </span>
-        )}
-        {post.likes_count > 0 && (
-          <span style={{ fontFamily: mono, fontSize: 10, color: "#3f3f46", letterSpacing: "0.08em" }}>
-            ♥ {post.likes_count.toLocaleString()}
-          </span>
-        )}
-        <div style={{ marginLeft: "auto" }}>
-          <Link href={`/${creator.handle}`} style={{
-            fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase",
-            color: "#52525b", textDecoration: "none",
-            transition: "color 0.15s",
-          }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#F0B429")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "#52525b")}
-          >
-            View page →
-          </Link>
-        </div>
-      </div>
     </article>
   );
 }
@@ -365,31 +269,21 @@ function PostCard({ post }: { post: Post }) {
 // ── Act divider ────────────────────────────────────────────────
 function ActDivider({ label }: { label: string }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 16, margin: "8px 0",
-    }}>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
-      <span style={{
-        fontFamily: "DM Mono, monospace", fontSize: 9,
-        letterSpacing: "0.25em", textTransform: "uppercase",
-        color: "#3f3f46",
-      }}>
-        {label}
-      </span>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 18, margin: "32px 0 18px" }}>
+      <span className="feed-act">{label}</span>
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.07)" }} />
     </div>
   );
 }
 
 // ── Empty state ────────────────────────────────────────────────
 function EmptyState() {
-  const serif = "Cormorant Garamond, Georgia, serif";
   return (
     <div className="empty-state">
       <p className="empty-state-icon">✦</p>
-      <h2 className="empty-state-title">The stage is empty.</h2>
-      <p className="empty-state-body" style={{ maxWidth: 340, margin: "0 auto var(--s-8)" }}>
-        Subscribe to creators to see their posts here — your own curated lineup.
+      <h2 className="empty-state-title">The house lights are up.</h2>
+      <p className="empty-state-body" style={{ maxWidth: 360, margin: "0 auto var(--s-8)" }}>
+        Subscribe to a few creators and their work fills this space — your own curated lineup, no algorithm deciding for you.
       </p>
       <Link href="/explore" className="btn btn--primary">Find creators →</Link>
     </div>
@@ -401,23 +295,18 @@ function Skeleton() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {[1, 2, 3].map((i) => (
-        <div key={i} style={{
-          background: "#0E0E12", border: "1px solid rgba(255,255,255,0.06)",
-          borderRadius: 8, overflow: "hidden",
-          animation: "feed-pulse 1.5s ease-in-out infinite",
-          animationDelay: `${i * 0.15}s`,
-        }}>
-          <div style={{ padding: "16px 20px", display: "flex", gap: 12, alignItems: "center" }}>
-            <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        <div key={i} className="feed-card" style={{ animation: "feed-pulse 1.5s ease-in-out infinite", animationDelay: `${i * 0.15}s` }}>
+          <div style={{ padding: "18px 22px", display: "flex", gap: 13, alignItems: "center" }}>
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
             <div style={{ flex: 1 }}>
               <div style={{ height: 14, width: "40%", background: "rgba(255,255,255,0.05)", borderRadius: 2, marginBottom: 6 }} />
-              <div style={{ height: 10, width: "20%", background: "rgba(255,255,255,0.03)", borderRadius: 2 }} />
+              <div style={{ height: 10, width: "22%", background: "rgba(255,255,255,0.03)", borderRadius: 2 }} />
             </div>
           </div>
-          <div style={{ height: i === 2 ? 120 : 280, background: "rgba(255,255,255,0.03)" }} />
-          <div style={{ padding: "14px 20px" }}>
-            <div style={{ height: 12, width: "70%", background: "rgba(255,255,255,0.04)", borderRadius: 2, marginBottom: 8 }} />
-            <div style={{ height: 12, width: "45%", background: "rgba(255,255,255,0.03)", borderRadius: 2 }} />
+          <div style={{ height: i === 2 ? 130 : 300, background: "rgba(255,255,255,0.03)" }} />
+          <div style={{ padding: "16px 22px" }}>
+            <div style={{ height: 12, width: "72%", background: "rgba(255,255,255,0.04)", borderRadius: 2, marginBottom: 8 }} />
+            <div style={{ height: 12, width: "46%", background: "rgba(255,255,255,0.03)", borderRadius: 2 }} />
           </div>
         </div>
       ))}
@@ -438,7 +327,6 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [cursor, setCursor] = useState<string | null>(null);
 
-  // Check if this user is a creator (has a creator_profile)
   useEffect(() => {
     fetch("/api/profile/me")
       .then(r => r.json())
@@ -486,33 +374,20 @@ export default function FeedPage() {
     else grouped.push({ label, posts: [post] });
   }
 
-  const mono = "DM Mono, monospace";
-  const serif = "Cormorant Garamond, Georgia, serif";
-
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: "#09090C",
-      backgroundImage: "radial-gradient(ellipse 60% 35% at 50% 0%, rgba(240,180,41,0.06) 0%, transparent 65%)",
-      paddingBottom: 80,
-    }}>
+    <main className="spotlight-stage" style={{ minHeight: "100vh", paddingBottom: 96 }}>
+      <div className="spotlight-beam" aria-hidden="true" />
 
       {/* Header */}
-      <div style={{
-        position: "sticky", top: 0, zIndex: 20,
-        background: "rgba(9,9,12,0.92)", backdropFilter: "blur(12px)",
+      <header style={{
+        position: "sticky", top: 0, zIndex: 30,
+        background: "rgba(9,9,12,0.78)", backdropFilter: "blur(14px)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
-        <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
-          {/* Top bar */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "16px 0 0" }}>
+        <div style={{ maxWidth: 660, margin: "0 auto", padding: "0 24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "18px 0 0" }}>
             <Link href="/" className="brand-logo" style={{ justifySelf: "start", fontSize: 22 }}>Spot<span>light</span>ly</Link>
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#71717a", margin: 0, marginBottom: 4 }}>
-                Your lineup
-              </p>
-              <h1 className="feed-title">The Feed</h1>
-            </div>
+            <span className="feed-kicker">Your lineup</span>
             <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
               {isCreator && (
                 <Link href="/dashboard" className="nav-pill nav-pill--secondary">Dashboard</Link>
@@ -522,31 +397,34 @@ export default function FeedPage() {
           </div>
 
           {/* Filter pills */}
-          <div style={{
-            display: "flex", gap: 0, borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "8px 0 0",
-            scrollbarWidth: "none",
-          }}>
+          <div style={{ display: "flex", gap: 0, borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "14px 0 0", scrollbarWidth: "none" }}>
             {FILTERS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={`feed-filter${filter === key ? " feed-filter--active" : ""}`}
-              >
+              <button key={key} onClick={() => setFilter(key)} className={`feed-filter${filter === key ? " feed-filter--active" : ""}`}>
                 {label}
               </button>
             ))}
           </div>
         </div>
-      </div>
+      </header>
 
-      <div style={{ maxWidth: 640, margin: "0 auto", padding: "24px 24px 0" }}>
+      {/* Body */}
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 660, margin: "0 auto", padding: "0 24px" }}>
 
-        {/* Live now */}
+        {/* Editorial intro */}
+        <div style={{ textAlign: "center", padding: "56px 0 44px" }}>
+          <h1 className="feed-hero" style={{ fontSize: "clamp(38px, 7vw, 60px)", marginBottom: 14 }}>
+            Tonight's <em>lineup.</em>
+          </h1>
+          <p style={{ fontSize: 15, color: "var(--text-faint)", margin: "0 auto", maxWidth: 420, lineHeight: 1.6 }}>
+            Everyone you follow, in one place — on their terms, not an algorithm's.
+          </p>
+        </div>
+
         <LiveNowSection streams={liveStreams} />
 
-        {/* Creator avatar strip */}
+        {/* Creator strip */}
         {!loading && creators.length > 0 && (
-          <div style={{ marginBottom: 24, marginLeft: -24, marginRight: -24 }}>
+          <div style={{ marginBottom: 16, marginLeft: -24, marginRight: -24 }}>
             <CreatorStrip creators={creators} />
           </div>
         )}
@@ -557,10 +435,10 @@ export default function FeedPage() {
           <EmptyState />
         ) : (
           <>
-            {grouped.map(({ label, posts: dayPosts }, gi) => (
+            {grouped.map(({ label, posts: dayPosts }) => (
               <div key={label}>
                 <ActDivider label={label} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 8 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
                   {dayPosts.map((post) => (
                     <PostCard key={post.id} post={post} />
                   ))}
@@ -570,30 +448,16 @@ export default function FeedPage() {
 
             {/* Load more */}
             {hasMore && (
-              <div style={{ textAlign: "center", padding: "32px 0" }}>
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  style={{
-                    background: "transparent",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    borderRadius: 4, padding: "14px 32px",
-                    fontFamily: mono, fontSize: 10, letterSpacing: "0.15em",
-                    textTransform: "uppercase", color: "#71717a",
-                    cursor: loadingMore ? "default" : "pointer",
-                    opacity: loadingMore ? 0.5 : 1,
-                  }}
-                >
+              <div style={{ textAlign: "center", padding: "40px 0 0" }}>
+                <button onClick={loadMore} disabled={loadingMore} className="btn btn--secondary">
                   {loadingMore ? "Loading…" : "Load more"}
                 </button>
               </div>
             )}
 
             {!hasMore && posts.length > 0 && (
-              <div style={{ textAlign: "center", padding: "40px 0" }}>
-                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#71717a" }}>
-                  — End of tonight's show —
-                </p>
+              <div style={{ textAlign: "center", padding: "48px 0 0" }}>
+                <span className="feed-act">End of tonight's show</span>
               </div>
             )}
           </>
@@ -606,10 +470,7 @@ export default function FeedPage() {
           70% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
           100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
         }
-        @keyframes feed-pulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 0.7; }
-        }
+        @keyframes feed-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
         ::-webkit-scrollbar { display: none; }
       `}</style>
     </main>

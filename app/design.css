@@ -1169,3 +1169,35 @@ img { max-width: 100%; display: block; }
   transition: left var(--t-base), background var(--t-base);
 }
 .toggle--on .toggle-dot { left: 23px; background: #17181B; }
+
+/* ── Spotlight stage: the signature beam, reusable on any major surface ── */
+.spotlight-stage { position: relative; background: #09090C; overflow-x: hidden; }
+.spotlight-beam {
+  position: absolute; top: 0; left: 0; right: 0; height: 760px;
+  z-index: 0; pointer-events: none; overflow: hidden;
+  background:
+    radial-gradient(125% 60% at 50% -12%, rgba(242,184,75,0.16) 0%, rgba(242,184,75,0.035) 30%, transparent 60%),
+    radial-gradient(46% 52% at 8% 3%, rgba(168,85,247,0.07) 0%, transparent 60%),
+    radial-gradient(46% 52% at 92% 3%, rgba(52,211,153,0.06) 0%, transparent 60%);
+  animation: spotlight-breathe 7s ease-in-out infinite;
+}
+.spotlight-beam::after {
+  content: ""; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 1px; height: 360px;
+  background: linear-gradient(180deg, rgba(242,184,75,0.6) 0%, rgba(242,184,75,0) 100%);
+}
+@keyframes spotlight-breathe { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+
+/* ── Feed editorial surfaces ── */
+.feed-kicker { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.26em; text-transform: uppercase; color: var(--accent); }
+.feed-hero { font-family: var(--font-serif); font-weight: 300; letter-spacing: -0.01em; color: var(--text); line-height: 1.0; }
+.feed-hero em { font-style: italic; color: var(--accent); }
+.feed-card {
+  background: #0C0C10;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color var(--t-base) var(--ease), transform var(--t-base) var(--ease);
+}
+.feed-card:hover { border-color: var(--accent-border); transform: translateY(-2px); }
+.feed-act { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--muted-faint); }
