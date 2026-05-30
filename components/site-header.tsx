@@ -26,6 +26,7 @@ export default async function SiteHeader({
 
         <nav className="sh-nav">
           <ThemeToggle />
+          <Link href="/guide" className="sh-link">Creator Guide</Link>
           {user ? (
             <>
               <Link href="/explore" className="sh-link">

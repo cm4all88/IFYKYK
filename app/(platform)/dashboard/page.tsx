@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import ThemeToggle from "@/components/ThemeToggle";
+import PaneTooltip from "@/components/PaneTooltip";
 import VideoUpload from "@/components/VideoUpload";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import SocialPostsManager from "@/components/dashboard/SocialPostsManager";
@@ -2459,6 +2460,7 @@ function AnalyticsPane({ profile }: { profile: Profile }) {
 
   return (
     <div className="pane">
+      <PaneTooltip pane="analytics" />
       <div className="pane-head">
         <p className="kicker">Analytics</p>
         <h1 className="pane-title">Your <em>numbers.</em></h1>
@@ -2885,6 +2887,7 @@ function ChannelsPane({ profile }: { profile: Profile }) {
 
   return (
     <div className="pane">
+      <PaneTooltip pane="channels" />
       <div className="pane-head">
         <p className="kicker">Channels</p>
         <h1 className="pane-title">Your <em>channels.</em></h1>
@@ -3463,6 +3466,7 @@ function MarketplacePane({ profile }: { profile: Profile }) {
 
   return (
     <div className="pane">
+      <PaneTooltip pane="marketplace" />
       <div className="pane-head">
         <p className="kicker">Marketplace</p>
         <h1 className="pane-title">Sell what&apos;s <em>yours.</em></h1>
@@ -3746,6 +3750,7 @@ function PaymentsPane({ profile }: { profile: Profile }) {
 
   return (
     <div className="pane">
+      <PaneTooltip pane="payments" />
       <div className="pane-head">
         <p className="kicker">Payments</p>
         <h1 className="pane-title">Get <em>paid.</em></h1>
