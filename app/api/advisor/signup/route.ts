@@ -28,7 +28,7 @@ Example when you know both:
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, backstageChoice } = await req.json();
+    const { messages, backstageChoice, niche } = await req.json();
 
     const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);
     if (!ANTHROPIC_API_KEY) {
@@ -39,9 +39,20 @@ export async function POST(req: NextRequest) {
     }
 
     const isFirst = !messages || messages.length === 0;
-    const context = backstageChoice === "with_backstage"
+
+    // Build niche-specific context if provided
+    let nicheContext = "";
+    if (niche) {
+      const NICHES = (await import("@/lib/niches")).default;
+      const nicheData = (NICHES as any[]).find((n: any) => n.slug === niche);
+      if (nicheData) {
+        nicheContext = ` ${nicheData.advisorContext} Top features to highlight for them: ${nicheData.topFeatures.join(", ")}.`;
+      }
+    }
+
+    const context = (backstageChoice === "with_backstage"
       ? "This creator is setting up both Spotlight and Backstage profiles."
-      : "This creator is setting up a Spotlight profile.";
+      : "This creator is setting up a Spotlight profile.") + nicheContext;
 
     const anthropicMessages = isFirst
       ? [{ role: "user" as const, content: `${context} Start the conversation.` }]

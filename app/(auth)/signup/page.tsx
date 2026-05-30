@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
+import NichePicker from "@/components/NichePicker";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-client";
 import type { Database } from "@/lib/database.types";
 
-type Phase = "referred" | "pick_backstage" | "chat" | "account";
+type Phase = "referred" | "pick_niche" | "pick_backstage" | "chat" | "account";
 type BackstageChoice = "just_spotlight" | "with_backstage";
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type AccountForm = {
@@ -24,6 +25,7 @@ export default function SignupPage() {
   const [referrerAvatar, setReferrerAvatar] = useState<string | null>(null);
 
   const [phase, setPhase] = useState<Phase>("pick_backstage");
+  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
   const [backstageChoice, setBackstageChoice] = useState<BackstageChoice | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -94,7 +96,7 @@ export default function SignupPage() {
       const res = await fetch("/api/advisor/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: opts.isOpening ? [] : history, backstageChoice }),
+        body: JSON.stringify({ messages: opts.isOpening ? [] : history, backstageChoice, niche: selectedNiche }),
         signal: controller.signal,
       });
       let text = "";
@@ -230,8 +232,34 @@ export default function SignupPage() {
               handle={referrerHandle}
               displayName={referrerName}
               avatarUrl={referrerAvatar}
-              onContinue={() => setPhase("pick_backstage")}
+              onContinue={() => setPhase("pick_niche")}
             />
+          )}
+          {phase === "pick_niche" && (
+            <div>
+              <p className="kicker">Creator account · Step one</p>
+              <h1 className="title">What do you <em>create?</em></h1>
+              <p className="lede">Pick your niche and we'll personalize your onboarding — showing you the features that matter most for you.</p>
+              <NichePicker
+                selected={selectedNiche}
+                onSelect={(slug) => setSelectedNiche(slug)}
+                onSkip={() => setPhase("pick_backstage")}
+              />
+              {selectedNiche && (
+                <button
+                  onClick={() => setPhase("pick_backstage")}
+                  style={{
+                    marginTop: 20, padding: "14px 32px",
+                    background: "#f5c842", color: "#09090C", border: "none",
+                    borderRadius: 4, fontFamily: "DM Mono, monospace",
+                    fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase",
+                    fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  Continue →
+                </button>
+              )}
+            </div>
           )}
           {phase === "pick_backstage" && <BackstagePicker onPick={pickBackstage} />}
           {phase === "chat" && (
@@ -316,8 +344,8 @@ function ReferredWelcome({
 // ── Phase dots ────────────────────────────────────────────────────
 function PhaseDots({ phase, hasReferral }: { phase: Phase; hasReferral: boolean }) {
   const steps: Phase[] = hasReferral
-    ? ["referred", "pick_backstage", "chat", "account"]
-    : ["pick_backstage", "chat", "account"];
+    ? ["referred", "pick_niche", "pick_backstage", "chat", "account"]
+    : ["pick_niche", "pick_backstage", "chat", "account"];
   const idx = steps.indexOf(phase);
   return (
     <div className="dots">
