@@ -116,7 +116,7 @@ export default function OnesheetPage() {
           </div>
           <div className="os-feat">
             <p className="os-feat-t">Personal marketplace</p>
-            <p className="os-feat-d">Sell signed items, worn gear, prints, personal pieces directly from your page. Spotlightly takes 5%.</p>
+            <p className="os-feat-d">Sell signed items, worn gear, prints, personal pieces directly from your page. Spotlightly takes 5% for hosting.</p>
           </div>
         </div>
 

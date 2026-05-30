@@ -4,58 +4,53 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const FONTS = [
-  { id: "Bebas Neue",       label: "Bebas Neue",        url: "https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" },
-  { id: "Pacifico",         label: "Pacifico",           url: "https://fonts.googleapis.com/css2?family=Pacifico&display=swap" },
-  { id: "Anton",            label: "Anton",              url: "https://fonts.googleapis.com/css2?family=Anton&display=swap" },
-  { id: "Permanent Marker", label: "Permanent Marker",   url: "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" },
-  { id: "Righteous",        label: "Righteous",          url: "https://fonts.googleapis.com/css2?family=Righteous&display=swap" },
-  { id: "Press Start 2P",   label: "Press Start 2P",     url: "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" },
-  { id: "Dancing Script",   label: "Dancing Script",     url: "https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" },
-  { id: "Bangers",          label: "Bangers",            url: "https://fonts.googleapis.com/css2?family=Bangers&display=swap" },
+  { id: "Bebas Neue",       label: "Bebas Neue",       url: "https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" },
+  { id: "Pacifico",         label: "Pacifico",          url: "https://fonts.googleapis.com/css2?family=Pacifico&display=swap" },
+  { id: "Anton",            label: "Anton",             url: "https://fonts.googleapis.com/css2?family=Anton&display=swap" },
+  { id: "Permanent Marker", label: "Permanent Marker",  url: "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" },
+  { id: "Righteous",        label: "Righteous",         url: "https://fonts.googleapis.com/css2?family=Righteous&display=swap" },
+  { id: "Press Start 2P",   label: "Press Start 2P",    url: "https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" },
+  { id: "Dancing Script",   label: "Dancing Script",    url: "https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" },
+  { id: "Bangers",          label: "Bangers",           url: "https://fonts.googleapis.com/css2?family=Bangers&display=swap" },
 ];
 
-const PRODUCTS = [
-  { id: "tshirt",  label: "T-Shirt",  emoji: "👕" },
-  { id: "hoodie",  label: "Hoodie",   emoji: "🧥" },
-  { id: "mug",     label: "Mug",      emoji: "☕" },
-  { id: "tote",    label: "Tote",     emoji: "👜" },
-  { id: "hat",     label: "Hat",      emoji: "🧢" },
-  { id: "poster",  label: "Poster",   emoji: "🖼️" },
-];
+const SWATCHES = ["#F0B429","#E63946","#ffffff","#000000","#34D399","#C084FC","#3B82F6","#F97316","#EC4899","#A3E635"];
 
-const PRODUCT_COLORS = [
-  "#ffffff","#000000","#1a1a2e","#2a2a2a","#c8b89a","#e63946",
-  "#457b9d","#2d6a4f","#f4a261","#7b2d8b","#f0b429","#f5f5f0",
-];
-
-const SWATCHES = [
-  "#F0B429","#E63946","#ffffff","#000000","#34D399","#C084FC",
-  "#3B82F6","#F97316","#EC4899","#A3E635","#FF6B6B","#4ECDC4",
+const FALLBACK_PRODUCTS = [
+  { id: 71,  type: "tshirt", name: "Classic Tee",    emoji: "👕", baseCost: 12.95, colors: [], sizes: ["S","M","L","XL","2XL"], variants: [], image: null },
+  { id: 146, type: "hoodie", name: "Pullover Hoodie", emoji: "🧥", baseCost: 24.95, colors: [], sizes: ["S","M","L","XL","2XL"], variants: [], image: null },
+  { id: 19,  type: "mug",    name: "Coffee Mug 11oz", emoji: "☕", baseCost: 8.95,  colors: [], sizes: ["11oz"], variants: [], image: null },
+  { id: 200, type: "tote",   name: "Tote Bag",        emoji: "👜", baseCost: 14.95, colors: [], sizes: ["One Size"], variants: [], image: null },
+  { id: 75,  type: "hat",    name: "Snapback Cap",    emoji: "🧢", baseCost: 15.95, colors: [], sizes: ["One Size"], variants: [], image: null },
+  { id: 1,   type: "poster", name: "Poster",          emoji: "🖼️", baseCost: 9.95,  colors: [], sizes: ["Small","Medium","Large"], variants: [], image: null },
 ];
 
 export default function MerchCreatePage() {
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
+
+  const [products, setProducts] = useState(FALLBACK_PRODUCTS);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
 
   const [mode, setMode] = useState<"text" | "image">("text");
-  const [text, setText] = useState("YOUR TEXT");
+  const [text, setText] = useState("YOUR NAME");
   const [font, setFont] = useState("Bebas Neue");
   const [fontSize, setFontSize] = useState(120);
-  const [letterColors, setLetterColors] = useState<string[]>([]);
-  const [globalColor, setGlobalColor] = useState("#F0B429");
-  const [usePerLetter, setUsePerLetter] = useState(false);
-  const [selectedLetter, setSelectedLetter] = useState<number | null>(null);
-  const [productType, setProductType] = useState("tshirt");
-  const [productBg, setProductBg] = useState("#ffffff");
+  const [textColor, setTextColor] = useState("#F0B429");
   const [imageData, setImageData] = useState<string | null>(null);
-  const [productName, setProductName] = useState("Custom Merch");
-  const [price, setPrice] = useState("29.99");
+
+  const [selectedProduct, setSelectedProduct] = useState(FALLBACK_PRODUCTS[0]);
+  const [selectedColor, setSelectedColor] = useState<{ name: string; hex: string } | null>(null);
+  const [selectedSize, setSelectedSize] = useState("M");
+  const [price, setPrice] = useState("34.99");
+  const [productName, setProductName] = useState("");
+
   const [saving, setSaving] = useState(false);
+  const [generatingMockup, setGeneratingMockup] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // Load Google Fonts
+  // Load fonts
   useEffect(() => {
     FONTS.forEach(f => {
       if (!document.querySelector(`link[href="${f.url}"]`)) {
@@ -66,26 +61,40 @@ export default function MerchCreatePage() {
     });
   }, []);
 
-  // Sync letter colors
+  // Load Loudcap catalog from Printful
   useEffect(() => {
-    setLetterColors(prev => {
-      const chars = text.split("");
-      const next = chars.map((_, i) => prev[i] ?? globalColor);
-      return next;
-    });
-  }, [text.length]);
+    fetch("/api/merch/catalog")
+      .then(r => r.json())
+      .then(data => {
+        if (data.products?.length > 0) {
+          setProducts(data.products);
+          setSelectedProduct(data.products[0]);
+          if (data.products[0].colors?.length > 0) {
+            setSelectedColor(data.products[0].colors[0]);
+          }
+          setCatalogLoaded(true);
+        }
+      })
+      .catch(() => { /* use fallback */ });
+  }, []);
 
-  // Render design to canvas
+  // When product changes, reset color/size
+  function pickProduct(p: typeof FALLBACK_PRODUCTS[0]) {
+    setSelectedProduct(p as any);
+    setSelectedColor((p as any).colors?.[0] ?? null);
+    setSelectedSize((p as any).sizes?.[0] ?? "M");
+    setProductName(p.name);
+    setPrice(String(Math.ceil(p.baseCost * 2.5)));
+  }
+
+  // Canvas render
   const renderCanvas = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     const W = 1200, H = 1200;
     canvas.width = W; canvas.height = H;
-
-    // Transparent background (design only, no product color)
     ctx.clearRect(0, 0, W, H);
 
     if (mode === "image" && imageData) {
@@ -93,36 +102,21 @@ export default function MerchCreatePage() {
         const img = new Image();
         img.onload = () => {
           const scale = Math.min((W * 0.8) / img.width, (H * 0.8) / img.height);
-          const iw = img.width * scale;
-          const ih = img.height * scale;
-          ctx.drawImage(img, (W - iw) / 2, (H - ih) / 2, iw, ih);
+          ctx.drawImage(img, (W - img.width * scale) / 2, (H - img.height * scale) / 2, img.width * scale, img.height * scale);
           resolve();
         };
         img.src = imageData;
       });
     } else if (mode === "text" && text.trim()) {
-      await document.fonts.ready;
-      const fontStr = `bold ${fontSize}px '${font}', sans-serif`;
-      ctx.font = fontStr;
+      // Use document.fonts.load() to ensure font is actually downloaded
+      try { await document.fonts.load(`bold ${fontSize}px '${font}'`); } catch (_) {}
+      ctx.font = `bold ${fontSize}px '${font}', sans-serif`;
       ctx.textBaseline = "middle";
-
-      if (usePerLetter) {
-        // Measure total width for centering
-        const widths = text.split("").map(c => ctx.measureText(c).width);
-        const total = widths.reduce((a, b) => a + b, 0);
-        let x = (W - total) / 2;
-        text.split("").forEach((char, i) => {
-          ctx.fillStyle = letterColors[i] ?? globalColor;
-          ctx.fillText(char, x, H / 2);
-          x += widths[i];
-        });
-      } else {
-        ctx.textAlign = "center";
-        ctx.fillStyle = globalColor;
-        ctx.fillText(text, W / 2, H / 2);
-      }
+      ctx.textAlign = "center";
+      ctx.fillStyle = textColor;
+      ctx.fillText(text, W / 2, H / 2);
     }
-  }, [mode, text, font, fontSize, globalColor, letterColors, usePerLetter, imageData]);
+  }, [mode, text, font, fontSize, textColor, imageData]);
 
   useEffect(() => { renderCanvas(); }, [renderCanvas]);
 
@@ -130,105 +124,179 @@ export default function MerchCreatePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = ev => setImageData(ev.target?.result as string);
+    reader.onload = ev => { if (ev.target?.result) setImageData(ev.target.result as string); };
     reader.readAsDataURL(file);
   }
 
-  function randomizeColors() {
-    const palette = ["#F0B429","#E63946","#ffffff","#34D399","#C084FC","#3B82F6","#F97316","#EC4899","#A3E635","#FF6B6B"];
-    setLetterColors(text.split("").map(() => palette[Math.floor(Math.random() * palette.length)]));
-    setUsePerLetter(true);
-  }
-
-  function setLetterColor(i: number, color: string) {
-    setLetterColors(prev => { const n = [...prev]; n[i] = color; return n; });
-  }
-
-  async function save() {
-    setErr(null);
-    if (!canvasRef.current) return;
+  async function handleSave() {
+    if (!productName.trim()) { setErr("Add a product name first."); return; }
     setSaving(true);
+    setErr(null);
 
-    // Export canvas to blob
+    // Export design from canvas
     const blob = await new Promise<Blob | null>(res => canvasRef.current!.toBlob(res, "image/png"));
-    if (!blob) { setErr("Could not export design"); setSaving(false); return; }
+    if (!blob) { setErr("Could not export design."); setSaving(false); return; }
 
-    // Upload design to BunnyCDN
+    // Upload design to CDN
     const fd = new FormData();
     fd.append("file", blob, "design.png");
     const uploadRes = await fetch("/api/upload", { method: "POST", body: fd });
     const uploadData = await uploadRes.json();
+    if (!uploadData.url) { setErr(uploadData.error ?? "Upload failed."); setSaving(false); return; }
 
-    if (!uploadData.url) {
-      setErr(uploadData.error ?? "Upload failed — check BunnyCDN is configured");
-      setSaving(false);
-      return;
-    }
+    const designUrl = uploadData.url;
 
-    // Create product
+    // Get variant IDs for the selected product/color
+    const variantIds = (selectedProduct as any).variants
+      ?.filter((v: any) => !selectedColor || v.color === selectedColor.name)
+      .map((v: any) => v.id)
+      .slice(0, 5) ?? [];
+
+    // Create product in DB (and Printful if configured)
     const createRes = await fetch("/api/merch/create-product", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        designUrl: uploadData.url,
-        productType,
+        designUrl,
+        productType: selectedProduct.type,
+        productId: selectedProduct.id,
         name: productName,
         price,
-        productColor: productBg,
+        productColor: selectedColor?.hex ?? "#ffffff",
+        variantIds,
       }),
     });
-
     const createData = await createRes.json();
-    if (!createData.ok) {
-      setErr(createData.error ?? "Could not create product");
-      setSaving(false);
-      return;
-    }
+    if (!createData.ok) { setErr(createData.error ?? "Could not create product."); setSaving(false); return; }
+
+    // Generate real Printful mockup in background
+    setGeneratingMockup(true);
+    try {
+      const mockupRes = await fetch("/api/merch/mockup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ designUrl, productType: selectedProduct.type, variantIds }),
+      });
+      const mockupData = await mockupRes.json();
+      // If we got a real mockup, update the product record
+      if (mockupData.mockupUrl && mockupData.status === "completed" && createData.product?.id) {
+        await fetch("/api/merch/create-product", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: createData.product.id, mockup_urls: [mockupData.mockupUrl] }),
+        });
+      }
+    } catch { /* non-fatal */ }
 
     router.push("/merch?created=1");
   }
 
-  // Preview: canvas preview scaled down
-  const previewText = mode === "text" ? text : null;
-  const previewImage = mode === "image" ? imageData : null;
+  const bgSurface = "#111118";
+  const border = "rgba(255,255,255,0.08)";
+  const muted = "#71717a";
+  const accent = "#F0B429";
+  const mono = "DM Mono, monospace";
+  const serif = "Cormorant Garamond, Georgia, serif";
+
+  const baseCost = selectedProduct.baseCost;
+  const priceNum = parseFloat(price || "0");
+  const creatorEarns = Math.max(0, priceNum * 0.95 - baseCost).toFixed(2);
 
   return (
-    <div style={{ minHeight:"100vh", background:"var(--bg)", color:"var(--text)", fontFamily:"var(--font-sans)" }}>
-      <style>{`:root{--accent:#F0B429;--surface:#111115;--border:rgba(255,255,255,.07);--muted:#71717A;}`}</style>
+    <div style={{ minHeight: "100vh", background: "#09090C", color: "#e8e8f0", fontFamily: "system-ui, sans-serif" }}>
+      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} />
 
       {/* Header */}
-      <header style={{ borderBottom:"1px solid var(--border)", padding:"14px 28px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10, background:"var(--bg)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <Link href="/" style={{ fontFamily:"var(--font-serif)", fontSize:20, color:"var(--text)", textDecoration:"none" }}>
-            Spot<span style={{ color:"var(--accent)" }}>light</span>ly
+      <header style={{ borderBottom: `1px solid ${border}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10, background: "#09090C" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Link href="/" style={{ fontFamily: serif, fontSize: 20, color: "#fff", textDecoration: "none" }}>
+            Spot<span style={{ color: accent }}>light</span>ly
           </Link>
-          <span style={{ color:"var(--muted)", fontSize:13 }}>/ Loudcap Designer</span>
+          <span style={{ color: muted, fontSize: 13 }}>/ Loudcap Designer</span>
         </div>
-        <Link href="/merch" style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".15em", textTransform:"uppercase", color:"var(--muted)", textDecoration:"none" }}>← Back to Merch</Link>
+        <Link href="/merch" style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: muted, textDecoration: "none" }}>← Back</Link>
       </header>
 
-      {/* Hidden canvas for export */}
-      <canvas ref={canvasRef} style={{ display:"none" }} />
-
-      <div style={{ maxWidth:1100, margin:"0 auto", padding:"32px 24px 80px", display:"grid", gridTemplateColumns:"1fr 340px", gap:16, alignItems:"start" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 24px 80px", display: "grid", gridTemplateColumns: "1fr 320px", gap: 12, alignItems: "start" }}>
 
         {/* LEFT — Controls */}
-        <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-          <div style={{ padding:"20px 0 8px" }}>
-            <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".2em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Loudcap Merch Designer</p>
-            <h1 style={{ fontFamily:"var(--font-serif)", fontSize:32, fontWeight:300, color:"var(--text)" }}>Design your <em style={{ color:"var(--accent)" }}>product.</em></h1>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ paddingBottom: 8 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: muted, marginBottom: 4 }}>
+              Loudcap {!catalogLoaded ? "· Loading catalog…" : "· Catalog loaded"}
+            </p>
+            <h1 style={{ fontFamily: serif, fontSize: 32, fontWeight: 300, color: "#fff" }}>
+              Design your <em style={{ color: accent }}>product.</em>
+            </h1>
           </div>
 
-          {/* Mode */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16 }}>
-            <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:10 }}>Design type</p>
-            <div style={{ display:"flex", gap:3 }}>
-              {(["text","image"] as const).map(m => (
-                <button key={m} onClick={() => setMode(m)} style={{ flex:1, padding:"10px", borderRadius:8, border:"1px solid", cursor:"pointer", fontSize:13, fontWeight:700,
-                  background: mode===m ? "rgba(240,180,41,0.1)" : "transparent",
-                  color: mode===m ? "var(--accent)" : "var(--muted)",
-                  borderColor: mode===m ? "rgba(240,180,41,0.3)" : "var(--border)" }}>
-                  {m === "text" ? "✏️ Text" : "🖼️ Image"}
+          {/* Product picker — real Printful catalog */}
+          <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 16 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 12 }}>Product</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+              {products.map((p: any) => (
+                <button key={p.id} onClick={() => pickProduct(p)} style={{
+                  padding: "12px 8px", borderRadius: 6, border: "1px solid", cursor: "pointer", textAlign: "center",
+                  background: selectedProduct.id === p.id ? "rgba(240,180,41,0.1)" : "rgba(255,255,255,0.03)",
+                  borderColor: selectedProduct.id === p.id ? "rgba(240,180,41,0.3)" : border,
+                  color: selectedProduct.id === p.id ? accent : muted, fontSize: 12,
+                }}>
+                  <div style={{ fontSize: 22, marginBottom: 4 }}>{p.emoji}</div>
+                  <div style={{ fontWeight: 600, color: selectedProduct.id === p.id ? accent : "#e8e8f0", marginBottom: 2 }}>{p.name}</div>
+                  <div style={{ fontFamily: mono, fontSize: 9, color: muted }}>${p.baseCost?.toFixed(2)} base</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color picker — real Printful colors */}
+          {(selectedProduct as any).colors?.length > 0 && (
+            <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 16 }}>
+              <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 10 }}>
+                Product color {selectedColor && <span style={{ color: "#e8e8f0" }}>— {selectedColor.name}</span>}
+              </p>
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                {(selectedProduct as any).colors.map((c: any) => (
+                  <button key={c.hex} onClick={() => setSelectedColor(c)} title={c.name} style={{
+                    width: 28, height: 28, borderRadius: "50%", background: c.hex, cursor: "pointer", padding: 0,
+                    border: selectedColor?.hex === c.hex ? "3px solid #F0B429" : "2px solid rgba(255,255,255,0.2)",
+                    outline: "none",
+                  }} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Size picker */}
+          {(selectedProduct as any).sizes?.length > 1 && (
+            <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 16 }}>
+              <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 10 }}>Available sizes</p>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {(selectedProduct as any).sizes.map((s: string) => (
+                  <button key={s} onClick={() => setSelectedSize(s)} style={{
+                    padding: "6px 12px", borderRadius: 4, border: "1px solid", cursor: "pointer", fontSize: 12,
+                    background: selectedSize === s ? "rgba(240,180,41,0.1)" : "transparent",
+                    borderColor: selectedSize === s ? "rgba(240,180,41,0.3)" : border,
+                    color: selectedSize === s ? accent : muted,
+                  }}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Design type */}
+          <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 16 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 10 }}>Design type</p>
+            <div style={{ display: "flex", gap: 6 }}>
+              {(["text", "image"] as const).map(m => (
+                <button key={m} onClick={() => setMode(m)} style={{
+                  flex: 1, padding: "10px", borderRadius: 6, border: "1px solid", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                  background: mode === m ? "rgba(240,180,41,0.1)" : "transparent",
+                  color: mode === m ? accent : muted,
+                  borderColor: mode === m ? "rgba(240,180,41,0.3)" : border,
+                }}>
+                  {m === "text" ? "✏️ Text" : "🖼️ Upload image"}
                 </button>
               ))}
             </div>
@@ -236,21 +304,26 @@ export default function MerchCreatePage() {
 
           {/* Text controls */}
           {mode === "text" && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:20, display:"flex", flexDirection:"column", gap:18 }}>
+            <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:8 }}>Your text</p>
-                <input type="text" value={text} onChange={e => setText(e.target.value.toUpperCase())} maxLength={24}
-                  style={{ width:"100%", background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:6, padding:"12px 16px", color:"var(--text)", fontSize:18, fontWeight:700, outline:"none", fontFamily:"var(--font-mono)", letterSpacing:".05em" }} />
+                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 8 }}>Your text</p>
+                <input
+                  type="text" value={text} onChange={e => setText(e.target.value.toUpperCase())} maxLength={24}
+                  style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: `1px solid ${border}`, borderRadius: 4, padding: "12px 16px", color: "#fff", fontSize: 18, fontWeight: 700, outline: "none", fontFamily: mono, letterSpacing: "0.05em", boxSizing: "border-box" }}
+                />
               </div>
 
               <div>
-                <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:10 }}>Font</p>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 10 }}>Font</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                   {FONTS.map(f => (
-                    <button key={f.id} onClick={() => setFont(f.id)} style={{ padding:"10px 12px", borderRadius:8, border:"1px solid", cursor:"pointer", textAlign:"left",
-                      background: font===f.id ? "rgba(240,180,41,0.1)" : "rgba(255,255,255,0.03)",
-                      borderColor: font===f.id ? "rgba(240,180,41,0.3)" : "var(--border)",
-                      fontFamily: `'${f.id}', cursive`, fontSize:15, color: font===f.id ? "var(--accent)" : "#F2F2F0" }}>
+                    <button key={f.id} onClick={() => setFont(f.id)} style={{
+                      padding: "10px 12px", borderRadius: 6, border: "1px solid", cursor: "pointer", textAlign: "left",
+                      background: font === f.id ? "rgba(240,180,41,0.1)" : "rgba(255,255,255,0.03)",
+                      borderColor: font === f.id ? "rgba(240,180,41,0.3)" : border,
+                      fontFamily: `'${f.id}', cursive`, fontSize: 15,
+                      color: font === f.id ? accent : "#e8e8f0",
+                    }}>
                       {f.label}
                     </button>
                   ))}
@@ -258,163 +331,133 @@ export default function MerchCreatePage() {
               </div>
 
               <div>
-                <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:8 }}>Size — {fontSize}px</p>
-                <input type="range" min={40} max={240} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} style={{ width:"100%", accentColor:"var(--accent)" }} />
+                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 8 }}>Size — {fontSize}px</p>
+                <input type="range" min={40} max={240} value={fontSize} onChange={e => setFontSize(Number(e.target.value))} style={{ width: "100%", accentColor: accent }} />
               </div>
 
               <div>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                  <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)" }}>Colors</p>
-                  <div style={{ display:"flex", gap:6 }}>
-                    <button onClick={() => setUsePerLetter(!usePerLetter)} style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".1em", textTransform:"uppercase", padding:"4px 10px", borderRadius:99, border:"1px solid", cursor:"pointer",
-                      background: usePerLetter ? "rgba(240,180,41,0.1)" : "transparent",
-                      color: usePerLetter ? "var(--accent)" : "var(--muted)",
-                      borderColor: usePerLetter ? "rgba(240,180,41,0.3)" : "var(--border)" }}>
-                      Per letter
-                    </button>
-                    <button onClick={randomizeColors} style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".1em", textTransform:"uppercase", padding:"4px 10px", borderRadius:99, border:"1px solid var(--border)", background:"transparent", color:"var(--muted)", cursor:"pointer" }}>
-                      🎲 Random
-                    </button>
-                  </div>
+                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 10 }}>Text color</p>
+                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                  {SWATCHES.map(c => (
+                    <button key={c} onClick={() => setTextColor(c)} style={{
+                      width: 28, height: 28, borderRadius: "50%", background: c, cursor: "pointer", padding: 0,
+                      border: textColor === c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.2)", outline: "none",
+                    }} />
+                  ))}
                 </div>
-
-                {!usePerLetter ? (
-                  <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                    <input type="color" value={globalColor} onChange={e => { setGlobalColor(e.target.value); setLetterColors(text.split("").map(() => e.target.value)); }}
-                      style={{ width:48, height:48, border:"2px solid rgba(255,255,255,0.1)", borderRadius:8, cursor:"pointer", background:"none" }} />
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                      {SWATCHES.map(c => (
-                        <button key={c} onClick={() => { setGlobalColor(c); setLetterColors(text.split("").map(() => c)); }} style={{ width:28, height:28, borderRadius:"50%", background:c, border: globalColor===c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.1)", cursor:"pointer" }} />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <p style={{ fontSize:12, color:"var(--muted)", marginBottom:10 }}>Tap a letter to change its color</p>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginBottom:12 }}>
-                      {text.split("").map((char, i) => (
-                        <button key={i} onClick={() => setSelectedLetter(selectedLetter===i ? null : i)} style={{ width:38, height:38, borderRadius:6, border:"2px solid",
-                          borderColor: selectedLetter===i ? "#fff" : "rgba(255,255,255,0.1)",
-                          background:"rgba(255,255,255,0.04)", cursor:"pointer",
-                          fontFamily:`'${font}',cursive`, fontSize:17, color: letterColors[i] ?? globalColor,
-                          display:"flex", alignItems:"center", justifyContent:"center" }}>
-                          {char === " " ? "·" : char}
-                        </button>
-                      ))}
-                    </div>
-                    {selectedLetter !== null && (
-                      <div style={{ background:"rgba(255,255,255,0.03)", borderRadius:8, padding:12 }}>
-                        <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".15em", textTransform:"uppercase", color:"var(--muted)", marginBottom:8 }}>Color for "{text[selectedLetter]}"</p>
-                        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                          <input type="color" value={letterColors[selectedLetter] ?? globalColor} onChange={e => setLetterColor(selectedLetter, e.target.value)}
-                            style={{ width:44, height:44, border:"2px solid rgba(255,255,255,0.1)", borderRadius:6, cursor:"pointer", background:"none" }} />
-                          <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-                            {SWATCHES.map(c => (
-                              <button key={c} onClick={() => setLetterColor(selectedLetter, c)} style={{ width:26, height:26, borderRadius:"50%", background:c, border: letterColors[selectedLetter]===c ? "3px solid #fff" : "2px solid rgba(255,255,255,0.1)", cursor:"pointer" }} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           )}
 
-          {/* Image controls */}
+          {/* Image upload */}
           {mode === "image" && (
-            <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:20 }}>
-              <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:12 }}>Upload your design</p>
-              <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" style={{ display:"none" }} onChange={handleImageUpload} />
-              <button onClick={() => fileRef.current?.click()} style={{ width:"100%", padding:"24px", borderRadius:8, border:"2px dashed rgba(255,255,255,0.15)", background:"rgba(255,255,255,0.02)", color:"var(--muted)", cursor:"pointer", fontSize:14 }}>
-                {imageData ? "✓ Image loaded — click to change" : "Click to upload PNG, JPG, or SVG"}
-              </button>
-              <p style={{ fontSize:12, color:"var(--muted)", marginTop:10, lineHeight:1.6 }}>Best results with PNG on a transparent background. Square images work best on any product.</p>
+            <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 18 }}>
+              <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 10 }}>Upload your design</p>
+              <div
+                onClick={() => fileRef.current?.click()}
+                style={{ border: `2px dashed ${border}`, borderRadius: 6, padding: "40px 24px", textAlign: "center", cursor: "pointer" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(240,180,41,0.3)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = border)}
+              >
+                {imageData
+                  ? <img src={imageData} alt="Design" style={{ maxHeight: 120, maxWidth: "100%", objectFit: "contain" }} />
+                  : <>
+                      <p style={{ fontSize: 32, marginBottom: 8 }}>🖼️</p>
+                      <p style={{ color: muted, fontSize: 13 }}>Drop your PNG here or <span style={{ color: accent }}>click to browse</span></p>
+                      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 6 }}>PNG with transparent background works best</p>
+                    </>
+                }
+              </div>
             </div>
           )}
         </div>
 
         {/* RIGHT — Preview + Save */}
-        <div style={{ display:"flex", flexDirection:"column", gap:3, position:"sticky", top:80 }}>
+        <div style={{ position: "sticky", top: 72, display: "flex", flexDirection: "column", gap: 8 }}>
 
-          {/* Product picker */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16 }}>
-            <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:10 }}>Product</p>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:4, marginBottom:14 }}>
-              {PRODUCTS.map(p => (
-                <button key={p.id} onClick={() => setProductType(p.id)} style={{ padding:"8px 4px", borderRadius:8, border:"1px solid", cursor:"pointer", fontSize:11, textAlign:"center",
-                  background: productType===p.id ? "rgba(240,180,41,0.1)" : "rgba(255,255,255,0.03)",
-                  borderColor: productType===p.id ? "rgba(240,180,41,0.3)" : "var(--border)",
-                  color: productType===p.id ? "var(--accent)" : "var(--muted)" }}>
-                  <div style={{ fontSize:18, marginBottom:2 }}>{p.emoji}</div>
-                  {p.label}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:8 }}>Product color</p>
-            <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-              {PRODUCT_COLORS.map(c => (
-                <button key={c} onClick={() => setProductBg(c)} style={{ width:24, height:24, borderRadius:5, background:c, border: productBg===c ? "3px solid var(--accent)" : "2px solid rgba(255,255,255,0.1)", cursor:"pointer" }} />
-              ))}
-            </div>
-          </div>
+          {/* Product preview */}
+          <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 20 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 14, textAlign: "center" }}>Preview</p>
 
-          {/* Preview */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16 }}>
-            <p style={{ fontFamily:"monospace", fontSize:9, letterSpacing:".18em", textTransform:"uppercase", color:"var(--muted)", marginBottom:12 }}>Preview</p>
-            <div style={{ background:"var(--bg-elevated)", borderRadius:8, padding:24, display:"flex", alignItems:"center", justifyContent:"center", minHeight:220 }}>
-              {/* Simple mockup preview */}
-              <div style={{ position:"relative", width:160, height:160 }}>
-                {/* Product silhouette */}
-                <div style={{ position:"absolute", inset:0, background:productBg, borderRadius:productType==="mug"?4:productType==="poster"?2:0,
-                  clipPath:productType==="tshirt"||productType==="hoodie" ? "polygon(25% 0%, 75% 0%, 85% 12%, 100% 8%, 100% 100%, 0% 100%, 0% 8%, 15% 12%)" :
-                    productType==="tote" ? "polygon(20% 0%, 80% 0%, 95% 100%, 5% 100%)" : "none",
-                  boxShadow:"0 8px 32px rgba(0,0,0,0.4)" }} />
-                {/* Design overlay */}
-                <div style={{ position:"absolute", inset:"25%", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
-                  {previewImage ? (
-                    <img src={previewImage} alt="" style={{ maxWidth:"100%", maxHeight:"100%", objectFit:"contain" }} />
-                  ) : previewText ? (
-                    <div style={{ textAlign:"center", lineHeight:1, overflow:"hidden" }}>
-                      {usePerLetter ? previewText.split("").map((c, i) => (
-                        <span key={i} style={{ fontFamily:`'${font}',cursive`, fontSize:18, color:letterColors[i]??globalColor }}>{c==" "?" ":c}</span>
-                      )) : (
-                        <span style={{ fontFamily:`'${font}',cursive`, fontSize:18, color:globalColor }}>{previewText}</span>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
+            {/* Show real Printful product image if available, with design canvas overlay */}
+            <div style={{ position: "relative", width: "100%", aspectRatio: "1", display: "flex", alignItems: "center", justifyContent: "center", background: selectedColor?.hex ?? "#f5f5f5", borderRadius: 8, overflow: "hidden" }}>
+              {(selectedProduct as any).image ? (
+                <img src={(selectedProduct as any).image} alt={selectedProduct.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              ) : (
+                <div style={{ fontSize: 80, opacity: 0.3 }}>{selectedProduct.emoji}</div>
+              )}
+              {/* Design overlay — canvas preview */}
+              <div style={{ position: "absolute", inset: "20%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <canvas
+                  ref={undefined}
+                  id="preview-canvas"
+                  style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                />
+              </div>
+              <div style={{ position: "absolute", bottom: 8, right: 8 }}>
+                <span style={{ fontFamily: mono, fontSize: 7, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(0,0,0,0.6)", color: "rgba(255,255,255,0.6)", padding: "3px 7px", borderRadius: 2 }}>
+                  Preview
+                </span>
               </div>
             </div>
-            <p style={{ fontSize:11, color:"var(--muted)", marginTop:8, textAlign:"center" }}>
-              {PRODUCTS.find(p => p.id === productType)?.emoji} {PRODUCTS.find(p => p.id === productType)?.label} preview
+
+            <p style={{ fontFamily: mono, fontSize: 10, color: muted, textAlign: "center", marginTop: 10 }}>
+              Real mockup generated when you save →
             </p>
           </div>
 
-          {/* Save */}
-          <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:6, padding:16, display:"flex", flexDirection:"column", gap:10 }}>
-            <div>
-              <label style={{ display:"block", fontFamily:"monospace", fontSize:9, letterSpacing:".15em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Product name</label>
-              <input type="text" value={productName} onChange={e => setProductName(e.target.value)}
-                style={{ width:"100%", background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 14px", color:"#F2F2F0", fontSize:13, outline:"none" }} />
+          {/* Product name */}
+          <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 14 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 8 }}>Product name</p>
+            <input
+              placeholder={`e.g. ${selectedProduct.name} — My Design`}
+              value={productName}
+              onChange={e => setProductName(e.target.value)}
+              style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: `1px solid ${border}`, borderRadius: 4, padding: "9px 12px", color: "#fff", fontSize: 13, outline: "none", boxSizing: "border-box" }}
+            />
+          </div>
+
+          {/* Price */}
+          <div style={{ background: bgSurface, border: `1px solid ${border}`, borderRadius: 6, padding: 14 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 8 }}>Your price (USD)</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: accent, fontSize: 18, fontWeight: 700 }}>$</span>
+              <input
+                type="number" value={price} onChange={e => setPrice(e.target.value)} min="15"
+                style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${border}`, borderRadius: 4, padding: "8px 12px", color: "#fff", fontSize: 18, fontWeight: 700, outline: "none", width: 100 }}
+              />
             </div>
-            <div>
-              <label style={{ display:"block", fontFamily:"monospace", fontSize:9, letterSpacing:".15em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Retail price</label>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ color:"var(--muted)" }}>$</span>
-                <input type="number" value={price} onChange={e => setPrice(e.target.value)} min="9.99" step="0.01"
-                  style={{ flex:1, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.1)", borderRadius:8, padding:"10px 14px", color:"#F2F2F0", fontSize:13, outline:"none" }} />
-              </div>
-              <p style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>
-                You earn ~${(parseFloat(price||"0") * 0.9 - 12.95).toFixed(2)} per sale after Loudcap fulfillment
+            <div style={{ marginTop: 10, padding: "10px 12px", background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", borderRadius: 4 }}>
+              <p style={{ fontFamily: mono, fontSize: 10, color: "#34d399", margin: 0 }}>
+                You earn ~<strong>${creatorEarns}</strong> per sale
+              </p>
+              <p style={{ fontFamily: mono, fontSize: 9, color: muted, margin: "4px 0 0" }}>
+                After Loudcap fulfillment (${baseCost.toFixed(2)}) + 5% Spotlightly
               </p>
             </div>
-            {err && <p style={{ fontSize:12, color:"#F87171" }}>{err}</p>}
-            <button onClick={save} disabled={saving} style={{ width:"100%", background:"var(--accent)", color:"#09090C", fontFamily:"var(--font-mono)", fontWeight:500, fontSize:11, letterSpacing:"0.14em", textTransform:"uppercase", padding:"14px 0", borderRadius:4, border:"none", cursor:"pointer", opacity:saving?0.45:1 }}>
-              {saving ? "Saving to Loudcap…" : "Save to merch page →"}
-            </button>
           </div>
+
+          {err && (
+            <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 4, padding: "10px 14px", color: "#f87171", fontSize: 13 }}>
+              {err}
+            </div>
+          )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving || generatingMockup}
+            style={{
+              width: "100%", padding: "15px", background: saving || generatingMockup ? "rgba(240,180,41,0.4)" : accent,
+              color: "#09090C", border: "none", borderRadius: 6, fontSize: 12, fontFamily: mono,
+              fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", cursor: saving ? "default" : "pointer",
+            }}
+          >
+            {saving ? "Uploading design…" : generatingMockup ? "Generating mockup…" : "Save to Loudcap →"}
+          </button>
+
+          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", fontFamily: mono, letterSpacing: "0.06em" }}>
+            Fulfilled by Loudcap · Ships worldwide
+          </p>
         </div>
       </div>
     </div>

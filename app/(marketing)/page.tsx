@@ -271,6 +271,47 @@ export default function LandingPage() {
       </section>
 
       {/* ── STIGMA — The platform problem */}
+      
+      {/* ── NICHES — Who it's for ── */}
+      <section style={{ padding: "80px 40px", background: "#FAFAF8", borderTop: "1px solid #f0f0f0" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <p className="kicker" style={{ textAlign: "center", marginBottom: 16 }}>Built for your niche</p>
+          <h2 className="section-h" style={{ textAlign: "center", marginBottom: 12 }}>
+            Not just adult creators.<br /><em>Every creator.</em>
+          </h2>
+          <p style={{ textAlign: "center", fontSize: 16, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 580, margin: "0 auto 48px" }}>
+            Fitness coaches. Musicians. 3D print designers. Etsy sellers. Authors. Artists.
+            If you have an audience and something more to share with them, Spotlightly is for you.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 2 }}>
+            {[
+              { slug: "3d-designers",  emoji: "🖨️", name: "3D Print Designers", desc: "Sell your STL files directly. 0% cut on digital downloads. Exclusive designs for subscribers before they go public." },
+              { slug: "etsy-sellers",  emoji: "🧶", name: "Etsy Sellers & Makers", desc: "Etsy raised their fees again. Own your customer relationships. Keep 95% of marketplace sales." },
+              { slug: "authors",       emoji: "📚", name: "Authors & Writers", desc: "Give readers the story behind the story. Exclusive chapters, deleted scenes, ARC distribution." },
+              { slug: "fitness",       emoji: "💪", name: "Fitness & Wellness", desc: "Sell your programming directly. Stop getting $0.03 per 1,000 TikTok views." },
+              { slug: "musicians",     emoji: "🎵", name: "Musicians", desc: "Spotify pays $0.003 per stream. Your fans will pay $7.99/mo for direct access to you." },
+              { slug: "artists",       emoji: "🎨", name: "Visual Artists", desc: "Redbubble keeps 80%. Spotlightly takes 5%. Sell prints, originals, and digital downloads directly." },
+            ].map((n: any) => (
+              <a key={n.slug} href={`/for/${n.slug}`} style={{
+                display: "block", background: "var(--surface, #fff)", border: "1px solid var(--border, #eee)",
+                padding: "28px 28px 24px", textDecoration: "none", color: "inherit",
+                transition: "border-color 0.15s, transform 0.15s",
+              }}
+                onMouseEnter={(e: any) => { e.currentTarget.style.borderColor = "#B8860B"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={(e: any) => { e.currentTarget.style.borderColor = "var(--border, #eee)"; e.currentTarget.style.transform = "none"; }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 12 }}>{n.emoji}</div>
+                <p style={{ fontSize: 15, fontWeight: 600, color: "var(--text, #111)", marginBottom: 8 }}>{n.name}</p>
+                <p style={{ fontSize: 13, color: "var(--text-soft, #666)", lineHeight: 1.65, marginBottom: 16 }}>{n.desc}</p>
+                <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#B8860B" }}>
+                  See how it works →
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <StigmaSection />
 
       {/* ── CREATOR CONTROL — Know your fans, own your space ── */}

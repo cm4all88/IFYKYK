@@ -96,7 +96,7 @@ export default function MerchPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
-  const [loudcapConfigured, setLoudcapConfigured] = useState<boolean | null>(null);
+  const [printfulConfigured, setPrintfulConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -124,7 +124,7 @@ export default function MerchPage() {
       // Check if Loudcap is configured
       const res = await fetch("/api/merch/status");
       const data = await res.json();
-      setLoudcapConfigured(data.configured);
+      setPrintfulConfigured(data.configured);
 
       setLoading(false);
     })();
@@ -154,7 +154,7 @@ export default function MerchPage() {
           Your <em style={{ fontStyle: "italic", color: "var(--accent)" }}>merch.</em>
         </h1>
         <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.75, marginBottom: 28, maxWidth: 520 }}>
-          Upload your design. Pick your products. Loudcap handles printing, packaging, and shipping to your fans worldwide.
+          Upload your design. Pick your products. Loudcap handles printing, packaging, and worldwide shipping.
           You keep {((1 - 0.1) * 100).toFixed(0)}% of profit after fulfillment costs.
         </p>
 
@@ -164,13 +164,13 @@ export default function MerchPage() {
 
         {loading ? (
           <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>
-        ) : loudcapConfigured === false ? (
-          // Loudcap not configured yet
+        ) : printfulConfigured === false ? (
+          // Printful not configured yet
           <div style={{ background: "rgba(240,180,41,0.06)", border: "1px solid rgba(240,180,41,0.2)", borderRadius: 12, padding: "40px 40px" }}>
             <div style={{ fontSize: 32, marginBottom: 16 }}>🤝</div>
             <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 28, fontWeight: 300, color: "#fff", marginBottom: 12 }}>Loudcap is coming.</h2>
             <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 480, marginBottom: 28 }}>
-              Spotlightly merch is fulfilled exclusively by <strong style={{ color: "#fff" }}>Loudcap</strong> — a premium merch partner that handles production, quality control, and worldwide shipping on your behalf.
+              Spotlightly merch is fulfilled through <strong style={{ color: "#fff" }}>Loudcap</strong> — upload your designs, set your prices, and Printful handles production, quality control, and worldwide shipping.
               Merch goes live as soon as the integration is complete.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 360 }}>
@@ -178,7 +178,7 @@ export default function MerchPage() {
                 "No minimum order quantities",
                 "Ships worldwide",
                 "Quality-checked before dispatch",
-                "10% platform fee — you keep the rest",
+                "5% platform fee — you keep the rest",
                 "Your branding on every package",
               ].map((item, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>

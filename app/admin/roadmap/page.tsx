@@ -34,7 +34,7 @@ const ROADMAP: {
       { name: "Campaigns", desc: "Creator fundraising with Stripe." },
       { name: "Wishlist", desc: "Creator wishlist with Stripe checkout for fans." },
       { name: "Live streaming", desc: "BunnyCDN live streaming from creator dashboard." },
-      { name: "Merch (Loudcap/Printful)", desc: "Creator merch via Printful, branded as Loudcap. 10% platform cut." },
+      { name: "Merch (Loudcap)", desc: "Creator merch via Printful, 5% platform fee — you keep the rest." },
       { name: "Backstagely", desc: "Adult content serving domain. CCBill pending approval." },
       { name: "Creator billing tiers", desc: "5 tiers ($29–$3,499/mo). 30-day free trial. Auto-upgrades." },
       { name: "Creator onboarding", desc: "3-step wizard. Profile, Stripe Connect, done." },

@@ -8,7 +8,7 @@
 const PRINTFUL_API = "https://api.printful.com";
 const PRINTFUL_KEY = process.env.PRINTFUL_API_KEY ?? "";
 
-export const MERCH_PLATFORM_CUT = 0.10; // 10% to Spotlightly
+export const MERCH_PLATFORM_CUT = 0.05; // 5% to Spotlightly for hosting
 
 async function pf(path: string, options: RequestInit = {}) {
   if (!PRINTFUL_KEY) throw new Error("PRINTFUL_API_KEY is not set.");

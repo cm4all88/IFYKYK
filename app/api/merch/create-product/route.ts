@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     .from("merch_products")
     .insert({
       creator_profile_id: profile.id,
-      loudcap_product_id: printfulProductId ?? "",
+      printful_product_id: printfulProductId ?? "",
       name,
       design_url: designUrl,
       retail_price: pricing.retailPrice,

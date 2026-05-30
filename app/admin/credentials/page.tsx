@@ -38,8 +38,8 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: "Loudcap Merch (Printful)",
-    description: "Merch fulfillment via Printful, branded as Loudcap. Get your API key from printful.com → Dashboard → API.",
+    title: "Loudcap Merch",
+    description: "Merch fulfillment via Loudcap — powered by Printful. Get your API key from printful.com → Dashboard → API.",
     fields: [
       { key: "PRINTFUL_API_KEY", label: "Printful API Key", type: "password", hint: "From printful.com → Dashboard → API → Generate key" },
     ],
