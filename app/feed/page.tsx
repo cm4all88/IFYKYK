@@ -1,4 +1,5 @@
 "use client";
+import "@/app/design.css";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -384,21 +385,13 @@ function ActDivider({ label }: { label: string }) {
 function EmptyState() {
   const serif = "Cormorant Garamond, Georgia, serif";
   return (
-    <div style={{ textAlign: "center", padding: "80px 24px" }}>
-      <p style={{ fontSize: 48, marginBottom: 24, opacity: 0.3 }}>✦</p>
-      <h2 style={{ fontFamily: serif, fontSize: 32, fontWeight: 300, color: "rgba(255,255,255,0.6)", marginBottom: 12 }}>
-        The stage is empty.
-      </h2>
-      <p style={{ fontSize: 15, color: "#52525b", lineHeight: 1.7, marginBottom: 32, maxWidth: 340, margin: "0 auto 32px" }}>
+    <div className="empty-state">
+      <p className="empty-state-icon">✦</p>
+      <h2 className="empty-state-title">The stage is empty.</h2>
+      <p className="empty-state-body" style={{ maxWidth: 340, margin: "0 auto var(--s-8)" }}>
         Subscribe to creators to see their posts here — your own curated lineup.
       </p>
-      <Link href="/" style={{
-        fontFamily: "DM Mono, monospace", fontSize: 11, letterSpacing: "0.18em",
-        textTransform: "uppercase", color: "#09090C", background: "#F0B429",
-        padding: "14px 28px", borderRadius: 3, textDecoration: "none",
-      }}>
-        Find creators →
-      </Link>
+      <Link href="/explore" className="btn btn--primary">Find creators →</Link>
     </div>
   );
 }
@@ -513,16 +506,12 @@ export default function FeedPage() {
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
           {/* Top bar */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0 0" }}>
-            <Link href="/" style={{ fontFamily: serif, fontSize: 22, fontWeight: 400, color: "#fff", textDecoration: "none", letterSpacing: "-0.01em" }}>
-              Spot<span style={{ color: "#F0B429" }}>light</span>ly
-            </Link>
+            <Link href="/" className="page-logo">Spot<span>light</span>ly</Link>
             <div style={{ textAlign: "center" }}>
               <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#71717a", margin: 0, marginBottom: 4 }}>
                 Your lineup
               </p>
-              <h1 style={{ fontFamily: serif, fontSize: 22, fontWeight: 400, color: "#ffffff", margin: 0, lineHeight: 1 }}>
-                The Feed
-              </h1>
+              <h1 className="feed-title">The Feed</h1>
             </div>
             <Link href="/account" style={{
               fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
@@ -551,16 +540,7 @@ export default function FeedPage() {
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                style={{
-                  flexShrink: 0, padding: "6px 16px",
-                  fontFamily: mono, fontSize: 10, fontWeight: 500, letterSpacing: "0.1em",
-                  background: "transparent",
-                  color: filter === key ? "#fff" : "#a1a1aa",
-                  border: "none",
-                  borderBottom: `2px solid ${filter === key ? "#F0B429" : "transparent"}`,
-                  borderRadius: 0, cursor: "pointer", transition: "color 0.15s",
-                  paddingBottom: 8,
-                }}
+                className={`feed-filter${filter === key ? " feed-filter--active" : ""}`}
               >
                 {label}
               </button>

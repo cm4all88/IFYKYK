@@ -867,3 +867,257 @@ img { max-width: 100%; display: block; }
   .form-row { grid-template-columns:1fr; }
   .quick { grid-template-columns:1fr; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   UTILITY CLASSES — shared across all pages
+   Use these instead of inline styles. Add here, not per-page.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Text utilities ── */
+.text-soft   { color: var(--text-soft); }
+.text-faint  { color: var(--text-faint); }
+.text-muted  { color: var(--muted); }
+.text-muted-faint { color: var(--muted-faint); }
+.text-accent { color: var(--accent); }
+.text-green  { color: var(--accent-open); }
+.text-red    { color: var(--red); }
+.text-serif  { font-family: var(--font-serif); }
+.text-mono   { font-family: var(--font-mono); }
+
+/* ── Page logo ── */
+.page-logo {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.page-logo span { color: var(--accent); }
+
+/* ── Sticky page header ── */
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(23,24,27,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 var(--s-6);
+}
+.page-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  gap: var(--s-4);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  padding: var(--s-6);
+}
+.card--tight { padding: var(--s-4) var(--s-5); }
+.card--accent { border-left: 3px solid var(--accent); background: var(--accent-soft); }
+.card--red    { border-left: 3px solid var(--red); background: var(--red-soft); }
+.card--green  { border-left: 3px solid var(--accent-open); background: rgba(52,211,153,0.06); }
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: var(--r-1);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface-2);
+}
+.badge--green  { color: var(--accent-open); background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); }
+.badge--red    { color: var(--red); background: var(--red-soft); border-color: var(--red-border); }
+.badge--accent { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-border); }
+.badge--purple { color: var(--accent-back); background: rgba(168,85,247,0.08); border-color: rgba(168,85,247,0.2); }
+
+/* ── Empty states ── */
+.empty-state {
+  text-align: center;
+  padding: var(--s-20) var(--s-6);
+}
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: var(--s-5);
+  opacity: 0.25;
+}
+.empty-state-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--text-faint);
+  margin-bottom: var(--s-3);
+}
+.empty-state-body {
+  font-size: 14px;
+  color: var(--muted-faint);
+  line-height: 1.7;
+}
+
+/* ── Form feedback ── */
+.form-success {
+  background: rgba(52,211,153,0.06);
+  border: 1px solid rgba(52,211,153,0.2);
+  border-radius: var(--r-2);
+  padding: var(--s-3) var(--s-4);
+  color: var(--accent-open);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+.form-error {
+  background: var(--red-soft);
+  border: 1px solid var(--red-border);
+  border-radius: var(--r-2);
+  padding: var(--s-3) var(--s-4);
+  color: var(--red);
+  font-size: 13px;
+}
+.field-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted-faint);
+  letter-spacing: 0.04em;
+  margin-top: var(--s-1);
+}
+.field-error {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--red);
+  margin-top: var(--s-1);
+}
+
+/* ── Avatar ── */
+.avatar {
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-initial {
+  font-family: var(--font-serif);
+  color: var(--accent);
+}
+
+/* ── Feed specific ── */
+.feed-header-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 var(--s-6);
+}
+.feed-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.feed-filters {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0 0;
+}
+.feed-filter {
+  padding: 8px 16px 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color var(--t-fast), border-color var(--t-fast);
+}
+.feed-filter--active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.feed-body {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-6) var(--s-20);
+}
+.act-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin: var(--s-3) 0;
+}
+.act-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.act-divider-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--muted-faint);
+}
+
+/* ── Verified badge ── */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-open);
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.2);
+  padding: 3px 8px;
+  border-radius: var(--r-1);
+}
+
+/* ── Toggle switch ── */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background: var(--surface-3);
+  transition: background var(--t-base);
+  flex-shrink: 0;
+}
+.toggle--on { background: var(--accent); }
+.toggle-dot {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--muted-faint);
+  transition: left var(--t-base), background var(--t-base);
+}
+.toggle--on .toggle-dot { left: 23px; background: #17181B; }
