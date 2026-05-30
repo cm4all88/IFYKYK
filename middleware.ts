@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
 
   // ── Not logged in ─────────────────────────────────────────────
   if (!session) {
-    if (pathname === "/dashboard" || pathname === "/onboarding" || pathname === "/feed") {
+    if (pathname === "/dashboard" || pathname === "/onboarding" || pathname === "/feed" || pathname === "/account") {
       return NextResponse.redirect(new URL("/login", req.url));
     }
     return res;
@@ -69,5 +69,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard", "/onboarding", "/feed", "/admin/:path*"],
+  matcher: ["/", "/dashboard", "/onboarding", "/feed", "/account", "/admin/:path*"],
 };
