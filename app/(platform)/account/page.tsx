@@ -53,7 +53,7 @@ function CancelDialog({ sub, onCancel, onClose }: { sub: any; onCancel: () => vo
           Access continues until {fmt(sub.current_period_end)}
         </p>
         <div style={{ display: "flex", gap: "var(--s-2)" }}>
-          <button onClick={onCancel} style={{ padding:"10px 16px", background:"var(--red-soft)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", color:"var(--red)", fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }} style={{ flex: 1 }}>Yes, cancel</button>
+          <button onClick={onCancel} style={{ flex:1, padding:"10px 16px", background:"var(--red-soft)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", color:"var(--red)", fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase" as const, cursor:"pointer" }}>Yes, cancel</button>
           <button onClick={onClose} className="btn btn--secondary" style={{ flex: 1 }}>Keep it</button>
         </div>
       </div>
@@ -276,7 +276,7 @@ export default function AudienceAccountPage() {
               {err && <div style={{ background:"var(--red-soft)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", padding:"12px 16px", color:"var(--red)", fontSize:13, marginBottom:"var(--s-4)" }}>{err}</div>}
 
               {/* Avatar upload */}
-              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ marginBottom: "var(--s-4)" }}>
+              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", marginBottom: "var(--s-4)" }}>
                 <p className="label">Profile photo</p>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--s-5)", marginTop: "var(--s-3)" }}>
                   <Av url={uploadingAvatar ? null : avatarUrl} name={displayName || user?.email} size={80} onClick={() => fileRef.current?.click()} />
@@ -289,7 +289,7 @@ export default function AudienceAccountPage() {
                 </div>
               </div>
 
-              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ marginBottom: "var(--s-4)", display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", marginBottom: "var(--s-4)", display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
                 <div className="form-field" style={{ gap:"var(--s-2)" }}>
                   <p className="label">Display name</p>
                   <input className="input" type="text" value={displayName}
@@ -340,7 +340,7 @@ export default function AudienceAccountPage() {
                     {activeSubs.map((s: any) => {
                       const isCancelling = s.status === "cancelling";
                       return (
-                        <div key={s.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-4) var(--s-5)", borderColor: isCancelling ? "var(--red-border)" : "var(--border)" }}>
+                        <div key={s.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-4) var(--s-5)", borderColor: isCancelling ? "var(--red-border)" : "var(--border)" }}>
                           <Av url={s.creator?.avatar_url} name={s.creator?.display_name} size={48} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <Link href={`/${s.creator?.handle}`} style={{ fontFamily: "var(--font-serif)", fontSize: 20, color: "var(--text)", textDecoration: "none", display: "block", marginBottom: 4 }}>
@@ -362,7 +362,7 @@ export default function AudienceAccountPage() {
                             <Link href={`/${s.creator?.handle}`} className="btn btn--ghost" style={{ padding: "6px 12px", fontSize: 11 }}>Visit</Link>
                             {!isCancelling && (
                               <button onClick={() => setCancelSub(s)} disabled={cancelling === s.id}
-                                style={{ padding:"6px 12px", background:"none", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", color:"var(--red)", fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.08em", cursor:"pointer" }} style={{ padding: "6px 12px", fontSize: 11 }}>
+                                style={{ padding:"6px 12px", background:"none", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", color:"var(--red)", fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.08em", cursor:"pointer" }}>
                                 Cancel
                               </button>
                             )}
@@ -379,7 +379,7 @@ export default function AudienceAccountPage() {
                   <p className="kicker" style={{ marginBottom: "var(--s-3)" }}>Past subscriptions</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {pastSubs.map((s: any) => (
-                      <div key={s.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-3) var(--s-5)", opacity: 0.6 }}>
+                      <div key={s.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-3) var(--s-5)", opacity: 0.6 }}>
                         <Av url={s.creator?.avatar_url} name={s.creator?.display_name} size={36} />
                         <div style={{ flex: 1 }}>
                           <Link href={`/${s.creator?.handle}`} style={{ fontFamily: "var(--font-serif)", fontSize: 16, color: "var(--text-soft)", textDecoration: "none" }}>
@@ -420,7 +420,7 @@ export default function AudienceAccountPage() {
                     const title = isDigital ? (p.product?.title ?? "Digital product") : (p.post?.title || p.post?.caption?.slice(0, 60) + "…" || "Unlocked post");
                     const creator = isDigital ? p.product?.creator : p.post?.creator;
                     return (
-                      <div key={p.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-4) var(--s-5)" }}>
+                      <div key={p.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-4) var(--s-5)" }}>
                         <div style={{ width: 44, height: 44, borderRadius: "var(--r-2)", background: isDigital ? "rgba(52,211,153,0.08)" : "var(--accent-soft)", border: `1px solid ${isDigital ? "rgba(52,211,153,0.2)" : "var(--accent-border)"}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
                           {isDigital ? "📦" : "🔓"}
                         </div>
@@ -464,7 +464,7 @@ export default function AudienceAccountPage() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                     {data.tips.map((t: any) => (
-                      <div key={t.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-4) var(--s-5)" }}>
+                      <div key={t.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", display: "flex", alignItems: "center", gap: "var(--s-4)", padding: "var(--s-4) var(--s-5)" }}>
                         <Av url={t.creator?.avatar_url} name={t.creator?.display_name} size={44} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <Link href={`/${t.creator?.handle}`} style={{ fontFamily: "var(--font-serif)", fontSize: 18, color: "var(--text)", textDecoration: "none" }}>
@@ -495,7 +495,7 @@ export default function AudienceAccountPage() {
 
               {/* Password */}
               <form onSubmit={handleSavePassword}>
-                <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ marginBottom: "var(--s-4)", display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+                <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", marginBottom: "var(--s-4)", display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
                   <p className="kicker">Change password</p>
                   {saved === "password" && <div style={{ background:"rgba(52,211,153,0.06)", border:"1px solid rgba(52,211,153,0.2)", borderRadius:"var(--r-1)", padding:"12px 16px", color:"var(--accent-open)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.12em", marginBottom:"var(--s-4)" }}>✓ Password updated</div>}
                   {err && <div style={{ background:"var(--red-soft)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", padding:"12px 16px", color:"var(--red)", fontSize:13, marginBottom:"var(--s-4)" }}>{err}</div>}
@@ -513,7 +513,7 @@ export default function AudienceAccountPage() {
 
               {/* Notification prefs */}
               {activeSubs.length > 0 && (
-                <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ marginBottom: "var(--s-4)" }}>
+                <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", marginBottom: "var(--s-4)" }}>
                   <p className="kicker" style={{ marginBottom: "var(--s-5)" }}>Email notifications</p>
                   <p className="text-faint" style={{ fontSize: 13, marginBottom: "var(--s-5)" }}>Get emailed when creators you follow post new content or go live.</p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
@@ -544,7 +544,7 @@ export default function AudienceAccountPage() {
               )}
 
               {/* Sign out */}
-              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <p style={{ fontSize: 14, color: "var(--text-soft)", margin: 0 }}>Need help?</p>
                   <a href="mailto:support@spotlightly.app" style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", textDecoration: "none" }}>support@spotlightly.app</a>
