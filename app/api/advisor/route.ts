@@ -19,7 +19,7 @@ SPOTLIGHTLY FEATURES (use these facts exactly):
 - Comment Boosts: Fan pays $1.99–$9.99 to pin their comment 24h. 100% to platform.
 - Campaigns: Creator fundraising with a goal. Great for equipment, projects, albums.
 - Live Streaming: Built-in. Fans with subscriptions watch live. Super tips display in real-time.
-- Merch: Upload a design. Loudcap handles printing and worldwide shipping. Creator keeps retail price minus fulfillment cost minus 10% platform cut.
+- Merch: Upload a design. Loudcap handles printing and worldwide shipping. Creator keeps retail price minus fulfillment cost minus 5% platform cut.
 - Backstage: Optional adult content profile. Completely separate from main profile unless creator chooses to link them.
 
 BILLING (creator pays to Spotlightly — not taken from fan payments):

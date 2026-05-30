@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing designUrl or productType" }, { status: 400 });
   }
 
-  const { PRINTFUL_API_KEY } = await getSecrets(["PRINTFUL_API_KEY"]);
-  if (!PRINTFUL_API_KEY) {
+  const { LOUDCAP_API_KEY } = await getSecrets(["LOUDCAP_API_KEY"]);
+  if (!LOUDCAP_API_KEY) {
     // No API key — return design URL as the mockup
     return NextResponse.json({ mockupUrl: designUrl, status: "no_api_key" });
   }
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${PRINTFUL_API_KEY}`,
+        Authorization: `Bearer ${LOUDCAP_API_KEY}`,
       },
       body: JSON.stringify({
         variant_ids: variantIds ?? [],
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       await new Promise(r => setTimeout(r, 3000)); // wait 3s between polls
 
       const pollRes = await fetch(`${PF}/mockup-generator/task?task_key=${taskKey}`, {
-        headers: { Authorization: `Bearer ${PRINTFUL_API_KEY}` },
+        headers: { Authorization: `Bearer ${LOUDCAP_API_KEY}` },
       });
 
       if (!pollRes.ok) continue;

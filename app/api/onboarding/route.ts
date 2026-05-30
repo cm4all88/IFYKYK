@@ -31,7 +31,7 @@ Key features creators can use:
 - Super Tips: fan pays extra for a badge and pinned recognition
 - Locked posts: one-time purchase to unlock a specific post
 - Live streaming: creators can go live for subscribers
-- Merch: branded products via Loudcap (fulfilled by Printful), 10% platform cut
+- Merch: branded products via Loudcap, 5% platform cut
 - Booking link: add Calendly/Booksy/Square link → fans book directly from creator page (great for hairdressers, trainers, coaches, photographers, tutors)
 - Campaigns: fundraising for projects
 - Early Access Pass: fans pay $2.99/mo to see posts 30 minutes early

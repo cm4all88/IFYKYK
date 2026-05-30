@@ -39,9 +39,9 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Loudcap Merch",
-    description: "Merch fulfillment via Loudcap — powered by Printful. Get your API key from printful.com → Dashboard → API.",
+    description: "Merch fulfillment via Loudcap. Loudcap fulfills through Printful under Loudcap's own account — Spotlightly only ever talks to Loudcap.",
     fields: [
-      { key: "PRINTFUL_API_KEY", label: "Printful API Key", type: "password", hint: "developers.printful.com → Create token → access level: Store → copy the Private Token" },
+      { key: "LOUDCAP_API_KEY", label: "Loudcap API Key", type: "password", hint: "From Loudcap's Printful account: developers.printful.com → Create token → Store access → copy the Private Token" },
     ],
   },
   {

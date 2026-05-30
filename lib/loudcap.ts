@@ -6,17 +6,17 @@
 // ──────────────────────────────────────────────────────────────────
 
 const PRINTFUL_API = "https://api.printful.com";
-const PRINTFUL_KEY = process.env.PRINTFUL_API_KEY ?? "";
+const LOUDCAP_KEY = process.env.LOUDCAP_API_KEY ?? "";
 
 export const MERCH_PLATFORM_CUT = 0.05; // 5% to Spotlightly for hosting
 
 async function pf(path: string, options: RequestInit = {}) {
-  if (!PRINTFUL_KEY) throw new Error("PRINTFUL_API_KEY is not set.");
+  if (!LOUDCAP_KEY) throw new Error("LOUDCAP_API_KEY is not set.");
   const res = await fetch(`${PRINTFUL_API}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${PRINTFUL_KEY}`,
+      "Authorization": `Bearer ${LOUDCAP_KEY}`,
       ...(options.headers ?? {}),
     },
   });

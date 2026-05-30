@@ -22,10 +22,10 @@ export async function GET() {
     return NextResponse.json({ products: catalogCache.data });
   }
 
-  const { PRINTFUL_API_KEY } = await getSecrets(["PRINTFUL_API_KEY"]);
+  const { LOUDCAP_API_KEY } = await getSecrets(["LOUDCAP_API_KEY"]);
 
   // If no API key, return our hardcoded fallback catalog
-  if (!PRINTFUL_API_KEY) {
+  if (!LOUDCAP_API_KEY) {
     return NextResponse.json({
       products: LOUDCAP_PRODUCTS.map(p => ({
         ...p,
@@ -42,7 +42,7 @@ export async function GET() {
     LOUDCAP_PRODUCTS.map(async (p) => {
       try {
         const res = await fetch(`https://api.printful.com/products/${p.id}`, {
-          headers: { Authorization: `Bearer ${PRINTFUL_API_KEY}` },
+          headers: { Authorization: `Bearer ${LOUDCAP_API_KEY}` },
           next: { revalidate: 3600 },
         });
         if (!res.ok) return { ...p, variants: [], colors: [], sizes: [], image: null };

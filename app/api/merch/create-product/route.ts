@@ -39,12 +39,12 @@ export async function POST(req: NextRequest) {
   const pricing = calcMerchPricing(parseFloat(price), variantInfo.baseCost);
 
   // Try Printful if configured
-  const { PRINTFUL_API_KEY } = await getSecrets(["PRINTFUL_API_KEY"]);
+  const { LOUDCAP_API_KEY } = await getSecrets(["LOUDCAP_API_KEY"]);
 
   let printfulProductId: string | null = null;
   let mockupUrl: string | null = null;
 
-  if (PRINTFUL_API_KEY) {
+  if (LOUDCAP_API_KEY) {
     try {
       const body = {
         sync_product: {
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${PRINTFUL_API_KEY}`,
+          "Authorization": `Bearer ${LOUDCAP_API_KEY}`,
         },
         body: JSON.stringify(body),
       });
