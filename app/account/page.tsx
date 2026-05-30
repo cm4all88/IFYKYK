@@ -1,176 +1,196 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase-client";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase-client";
 
 export default function AccountPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [user, setUser] = useState<any>(null);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [unlocks, setUnlocks] = useState<any[]>([]);
-  const [earlyAccess, setEarlyAccess] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isCreator, setIsCreator] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
       setUser(user);
+      setEmail(user.email ?? "");
+      setDisplayName(user.user_metadata?.display_name ?? "");
 
-      const [{ data: subs }, { data: unlock }, { data: ea }] = await Promise.all([
-        (supabase as any).from("subscriptions").select("id, status, created_at, stripe_subscription_id, creator:creator_profile_id(handle, display_name, avatar_url)").eq("fan_user_id", user.id).in("status", ["active", "cancelling"]).order("created_at", { ascending: false }),
-        (supabase as any).from("post_unlocks").select("id, created_at, post:post_id(caption, creator:creator_profile_id(handle, display_name))").eq("fan_user_id", user.id).order("created_at", { ascending: false }).limit(20),
-        (supabase as any).from("early_access_passes").select("id, status, creator:creator_profile_id(handle, display_name, avatar_url)").eq("fan_user_id", user.id).eq("status", "active"),
-      ]);
-
-      setSubscriptions(subs ?? []);
-      setUnlocks(unlock ?? []);
-      setEarlyAccess(ea ?? []);
+      // Check if they have a creator profile
+      const { data: profile } = await (supabase as any)
+        .from("creator_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("kind", "spotlight")
+        .maybeSingle();
+      setIsCreator(!!profile);
       setLoading(false);
-    });
+    }
+    load();
   }, []);
 
-  async function cancelSubscription(id: string) {
-    if (!confirm("Cancel this subscription? You'll keep access until the end of your billing period.")) return;
-    setCancelling(id);
-    const res = await fetch("/api/subscription/cancel", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subscriptionId: id }),
-    });
-    if (res.ok) {
-      setSubscriptions(prev => prev.map(s => s.id === id ? { ...s, status: "cancelling" } : s));
-    }
-    setCancelling(null);
+  async function handleSave(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setErr(null);
+
+    const updates: any = { data: { display_name: displayName } };
+    if (newPassword.length >= 8) updates.password = newPassword;
+
+    const { error } = await supabase.auth.updateUser(updates);
+    if (error) { setErr(error.message); setSaving(false); return; }
+
+    setSaved(true);
+    setNewPassword("");
+    setSaving(false);
+    setTimeout(() => setSaved(false), 3000);
   }
 
-  async function signOut() {
+  async function handleSignOut() {
     await supabase.auth.signOut();
     router.push("/");
   }
 
+  const mono = "DM Mono, monospace";
+  const serif = "Cormorant Garamond, Georgia, serif";
+  const bg = "#09090C";
+  const surface = "#111118";
+  const border = "rgba(255,255,255,0.08)";
+  const muted = "#71717a";
+  const accent = "#F0B429";
+
   if (loading) return (
-    <main style={{ minHeight:"100vh", background:"#09090C", display:"flex", alignItems:"center", justifyContent:"center" }}>
-      <p style={{ color:"rgba(255,255,255,0.3)", fontFamily:"monospace", fontSize:13 }}>Loading…</p>
-    </main>
+    <div style={{ background: bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <p style={{ color: muted, fontFamily: mono, fontSize: 11, letterSpacing: "0.15em" }}>Loading…</p>
+    </div>
   );
 
   return (
-    <main style={{ minHeight:"100vh", background:"#09090C" }}>
-      {/* Simple header */}
-      <header style={{ borderBottom:"1px solid rgba(255,255,255,0.07)", padding:"16px 24px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <Link href="/" style={{ fontFamily:"Georgia,serif", fontSize:20, color:"#fff", textDecoration:"none" }}>
-          Spot<span style={{ color:"#F0B429" }}>light</span>ly
+    <div style={{ background: bg, minHeight: "100vh", color: "#e8e8f0" }}>
+      {/* Header */}
+      <header style={{ borderBottom: `1px solid ${border}`, padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: bg, zIndex: 10 }}>
+        <Link href="/" style={{ fontFamily: serif, fontSize: 22, color: "#fff", textDecoration: "none" }}>
+          Spot<span style={{ color: accent }}>light</span>ly
         </Link>
-        <div style={{ display:"flex", gap:16, alignItems:"center" }}>
-          <Link href="/explore" style={{ fontSize:13, color:"rgba(255,255,255,0.5)", textDecoration:"none" }}>Explore</Link>
-          <button onClick={signOut} style={{ fontSize:13, color:"rgba(248,113,113,0.7)", background:"none", border:"none", cursor:"pointer" }}>Sign out</button>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <Link href="/feed" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, textDecoration: "none" }}>← Feed</Link>
+          {isCreator && (
+            <Link href="/dashboard" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: muted, textDecoration: "none" }}>Dashboard</Link>
+          )}
         </div>
       </header>
 
-      <div style={{ maxWidth:680, margin:"0 auto", padding:"48px 24px 100px" }}>
-        <div style={{ marginBottom:40 }}>
-          <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".2em", textTransform:"uppercase", color:"rgba(255,255,255,0.25)", marginBottom:8 }}>Fan account</p>
-          <h1 style={{ fontFamily:"Georgia,serif", fontSize:40, fontWeight:300, color:"#fff", lineHeight:1.05 }}>
-            Your <em style={{ color:"#F0B429" }}>subscriptions.</em>
-          </h1>
-        </div>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px 80px" }}>
+        <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: muted, marginBottom: 12 }}>Account</p>
+        <h1 style={{ fontFamily: serif, fontSize: 36, fontWeight: 300, color: "#fff", marginBottom: 40, lineHeight: 1.1 }}>
+          Your <em style={{ fontStyle: "italic", color: accent }}>settings.</em>
+        </h1>
 
-        {/* Subscriptions */}
-        <section style={{ marginBottom:40 }}>
-          <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".15em", textTransform:"uppercase", color:"rgba(255,255,255,0.25)", marginBottom:14 }}>
-            Active subscriptions ({subscriptions.length})
-          </p>
-          {subscriptions.length === 0 ? (
-            <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.07)", borderRadius:8, padding:"28px 24px", textAlign:"center" }}>
-              <p style={{ fontSize:14, color:"rgba(255,255,255,0.3)", marginBottom:12 }}>You haven&apos;t subscribed to anyone yet.</p>
-              <Link href="/explore" style={{ color:"#F0B429", fontSize:13, textDecoration:"none" }}>Explore creators →</Link>
-            </div>
-          ) : (
-            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-              {subscriptions.map(s => (
-                <div key={s.id} style={{ display:"flex", alignItems:"center", gap:14, background:"#111115", border:`1px solid ${s.status === "cancelling" ? "rgba(248,113,113,0.2)" : "rgba(255,255,255,0.07)"}`, borderRadius:8, padding:"14px 18px" }}>
-                  <div style={{ width:40, height:40, borderRadius:"50%", background:"rgba(255,255,255,0.06)", overflow:"hidden", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center" }}>
-                    {s.creator?.avatar_url
-                      ? <img src={s.creator.avatar_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
-                      : <span style={{ fontFamily:"Georgia,serif", fontSize:16, color:"#F0B429" }}>{(s.creator?.display_name ?? s.creator?.handle ?? "?").charAt(0).toUpperCase()}</span>
-                    }
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontSize:14, fontWeight:600, color:"#F2F2F0", marginBottom:2 }}>{s.creator?.display_name ?? s.creator?.handle}</p>
-                    <p style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>@{s.creator?.handle}</p>
-                  </div>
-                  {s.status === "cancelling" ? (
-                    <span style={{ fontSize:11, color:"rgba(248,113,113,0.7)", fontFamily:"monospace", letterSpacing:".08em" }}>Cancels at period end</span>
-                  ) : (
-                    <button
-                      onClick={() => cancelSubscription(s.id)}
-                      disabled={cancelling === s.id}
-                      style={{ fontSize:12, color:"rgba(248,113,113,0.6)", background:"none", border:"1px solid rgba(248,113,113,0.2)", borderRadius:99, padding:"5px 12px", cursor:"pointer" }}
-                    >
-                      {cancelling === s.id ? "…" : "Cancel"}
-                    </button>
-                  )}
-                </div>
-              ))}
+        {/* Become a creator CTA — for fans only */}
+        {!isCreator && (
+          <div style={{ background: "rgba(240,180,41,0.06)", border: "1px solid rgba(240,180,41,0.2)", borderLeft: `3px solid ${accent}`, borderRadius: 6, padding: "24px 28px", marginBottom: 28 }}>
+            <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: accent, marginBottom: 10 }}>Want to earn from your audience?</p>
+            <p style={{ fontSize: 14, color: "rgba(232,232,240,0.7)", lineHeight: 1.7, marginBottom: 16 }}>
+              You're currently an audience member. Set up a creator account to start monetizing — subscriptions, tips, marketplace, live streams, and more. 30-day free trial, no card required.
+            </p>
+            <Link href="/signup" style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#09090C", background: accent, padding: "12px 24px", borderRadius: 3, textDecoration: "none", display: "inline-block" }}>
+              Become a creator →
+            </Link>
+          </div>
+        )}
+
+        {/* Profile settings */}
+        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {err && (
+            <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 4, padding: "12px 16px", color: "#f87171", fontSize: 13 }}>
+              {err}
             </div>
           )}
-        </section>
-
-        {/* Early access */}
-        {earlyAccess.length > 0 && (
-          <section style={{ marginBottom:40 }}>
-            <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".15em", textTransform:"uppercase", color:"rgba(255,255,255,0.25)", marginBottom:14 }}>
-              Early access passes ({earlyAccess.length})
-            </p>
-            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-              {earlyAccess.map(e => (
-                <Link key={e.id} href={`/${e.creator?.handle}`} style={{ display:"flex", alignItems:"center", gap:14, background:"#111115", border:"1px solid rgba(240,180,41,0.15)", borderRadius:8, padding:"14px 18px", textDecoration:"none" }}>
-                  <div style={{ flex:1 }}>
-                    <p style={{ fontSize:14, fontWeight:600, color:"#F2F2F0", marginBottom:2 }}>{e.creator?.display_name ?? e.creator?.handle}</p>
-                    <p style={{ fontSize:11, color:"rgba(255,255,255,0.3)" }}>See posts 30 minutes early</p>
-                  </div>
-                  <span style={{ fontFamily:"monospace", fontSize:10, color:"#F0B429", background:"rgba(240,180,41,0.08)", border:"1px solid rgba(240,180,41,0.2)", padding:"3px 10px", borderRadius:99 }}>Early Access</span>
-                </Link>
-              ))}
+          {saved && (
+            <div style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.2)", borderRadius: 4, padding: "12px 16px", color: "#34d399", fontSize: 13, fontFamily: mono, letterSpacing: "0.08em" }}>
+              ✓ Saved
             </div>
-          </section>
-        )}
+          )}
 
-        {/* Unlocked posts */}
-        {unlocks.length > 0 && (
-          <section style={{ marginBottom:40 }}>
-            <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".15em", textTransform:"uppercase", color:"rgba(255,255,255,0.25)", marginBottom:14 }}>
-              Unlocked posts ({unlocks.length})
-            </p>
-            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-              {unlocks.map(u => (
-                <Link key={u.id} href={`/${u.post?.creator?.handle}`} style={{ display:"flex", alignItems:"center", gap:14, background:"#111115", border:"1px solid rgba(255,255,255,0.07)", borderRadius:8, padding:"14px 18px", textDecoration:"none" }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <p style={{ fontSize:11, color:"rgba(255,255,255,0.35)", marginBottom:3 }}>@{u.post?.creator?.handle}</p>
-                    <p style={{ fontSize:13, color:"#F2F2F0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.post?.caption?.slice(0, 80) ?? "Unlocked post"}</p>
-                  </div>
-                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.25)", flexShrink:0 }}>{new Date(u.created_at).toLocaleDateString()}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Account info */}
-        <section style={{ borderTop:"1px solid rgba(255,255,255,0.07)", paddingTop:28 }}>
-          <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".15em", textTransform:"uppercase", color:"rgba(255,255,255,0.25)", marginBottom:14 }}>Account</p>
-          <div style={{ background:"#111115", border:"1px solid rgba(255,255,255,0.07)", borderRadius:8, padding:"16px 20px", marginBottom:2 }}>
-            <p style={{ fontSize:11, color:"rgba(255,255,255,0.3)", marginBottom:4 }}>Signed in as</p>
-            <p style={{ fontSize:14, color:"#F2F2F0" }}>{user?.email}</p>
+          {/* Display name */}
+          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 6, padding: "22px 24px" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted }}>Display name</span>
+              <input
+                type="text" value={displayName} onChange={e => setDisplayName(e.target.value)}
+                style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${border}`, borderRadius: 4, padding: "11px 14px", color: "#fff", fontSize: 15, outline: "none", fontFamily: "inherit" }}
+                onFocus={e => (e.currentTarget.style.borderColor = accent)}
+                onBlur={e => (e.currentTarget.style.borderColor = border)}
+              />
+            </label>
           </div>
-          <button onClick={signOut} style={{ width:"100%", textAlign:"left", background:"#111115", border:"1px solid rgba(255,255,255,0.07)", borderRadius:8, padding:"16px 20px", color:"rgba(248,113,113,0.7)", fontSize:14, cursor:"pointer" }}>
+
+          {/* Email */}
+          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 6, padding: "22px 24px" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted }}>Email</span>
+              <input
+                type="email" value={email} disabled
+                style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${border}`, borderRadius: 4, padding: "11px 14px", color: muted, fontSize: 15, outline: "none", fontFamily: "inherit", cursor: "not-allowed" }}
+              />
+              <span style={{ fontFamily: mono, fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em" }}>Email cannot be changed here — contact support@spotlightly.app</span>
+            </label>
+          </div>
+
+          {/* Password */}
+          <div style={{ background: surface, border: `1px solid ${border}`, borderRadius: 6, padding: "22px 24px" }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted }}>New password</span>
+              <input
+                type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                placeholder="Leave blank to keep current"
+                style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${border}`, borderRadius: 4, padding: "11px 14px", color: "#fff", fontSize: 15, outline: "none", fontFamily: "inherit" }}
+                onFocus={e => (e.currentTarget.style.borderColor = accent)}
+                onBlur={e => (e.currentTarget.style.borderColor = border)}
+              />
+              {newPassword.length > 0 && newPassword.length < 8 && (
+                <span style={{ fontFamily: mono, fontSize: 9, color: "#f87171", letterSpacing: "0.08em" }}>Must be at least 8 characters</span>
+              )}
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            style={{ padding: "14px", background: saving ? "rgba(240,180,41,0.4)" : accent, color: "#09090C", border: "none", borderRadius: 4, fontFamily: mono, fontSize: 11, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", cursor: saving ? "default" : "pointer" }}
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </form>
+
+        {/* Subscriptions section */}
+        <div style={{ marginTop: 36, background: surface, border: `1px solid ${border}`, borderRadius: 6, padding: "22px 24px" }}>
+          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: muted, marginBottom: 14 }}>Your subscriptions</p>
+          <p style={{ fontSize: 14, color: "rgba(232,232,240,0.5)", lineHeight: 1.7 }}>
+            To manage or cancel a subscription, contact the creator directly or email <a href="mailto:support@spotlightly.app" style={{ color: accent, textDecoration: "none" }}>support@spotlightly.app</a>
+          </p>
+        </div>
+
+        {/* Sign out */}
+        <div style={{ marginTop: 12, display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={handleSignOut}
+            style={{ background: "none", border: "none", fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#3f3f46", cursor: "pointer", padding: "8px 0" }}
+          >
             Sign out
           </button>
-        </section>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

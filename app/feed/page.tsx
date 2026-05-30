@@ -521,6 +521,13 @@ export default function FeedPage() {
                 The Feed
               </h1>
             </div>
+            <Link href="/account" style={{
+              fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
+              color: "#52525b", textDecoration: "none", padding: "8px 14px",
+              border: "1px solid rgba(255,255,255,0.07)", borderRadius: 3,
+            }}>
+              Account
+            </Link>
             {isCreator && (
               <Link href="/dashboard" style={{
                 fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
