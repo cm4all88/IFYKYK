@@ -247,7 +247,7 @@ function PostCard({ post }: { post: Post }) {
               {post.isUnlocked ? "Unlocked" : "Premium"}
             </span>
           )}
-          <span style={{ fontFamily: mono, fontSize: 9, color: "#3f3f46" }}>
+          <span style={{ fontFamily: mono, fontSize: 9, color: "#71717a" }}>
             {timeAgo(post.created_at)}
           </span>
         </div>
@@ -512,12 +512,15 @@ export default function FeedPage() {
       }}>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
           {/* Top bar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0 0" }}>
-            <div>
-              <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#52525b", margin: 0, marginBottom: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0 0" }}>
+            <Link href="/" style={{ fontFamily: serif, fontSize: 22, fontWeight: 400, color: "#fff", textDecoration: "none", letterSpacing: "-0.01em" }}>
+              Spot<span style={{ color: "#F0B429" }}>light</span>ly
+            </Link>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#71717a", margin: 0, marginBottom: 4 }}>
                 Your lineup
               </p>
-              <h1 style={{ fontFamily: serif, fontSize: 28, fontWeight: 400, color: "#ffffff", margin: 0, lineHeight: 1, letterSpacing: "-0.01em" }}>
+              <h1 style={{ fontFamily: serif, fontSize: 22, fontWeight: 400, color: "#ffffff", margin: 0, lineHeight: 1 }}>
                 The Feed
               </h1>
             </div>
@@ -552,7 +555,7 @@ export default function FeedPage() {
                   flexShrink: 0, padding: "6px 16px",
                   fontFamily: mono, fontSize: 10, fontWeight: 500, letterSpacing: "0.1em",
                   background: "transparent",
-                  color: filter === key ? "#fff" : "#52525b",
+                  color: filter === key ? "#fff" : "#a1a1aa",
                   border: "none",
                   borderBottom: `2px solid ${filter === key ? "#F0B429" : "transparent"}`,
                   borderRadius: 0, cursor: "pointer", transition: "color 0.15s",
@@ -618,7 +621,7 @@ export default function FeedPage() {
 
             {!hasMore && posts.length > 0 && (
               <div style={{ textAlign: "center", padding: "40px 0" }}>
-                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#3f3f46" }}>
+                <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "#71717a" }}>
                   — End of tonight's show —
                 </p>
               </div>
