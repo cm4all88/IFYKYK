@@ -44,7 +44,7 @@ function Av({ url, name, size = 40, onClick }: { url?: string | null; name?: str
 function CancelDialog({ sub, onCancel, onClose }: { sub: any; onCancel: () => void; onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }} style={{ maxWidth: 420, width: "100%", padding: "var(--s-8)" }}>
+      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-8)", maxWidth: 420, width: "100%" }}>
         <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 26, fontWeight: 300, color: "var(--text)", marginBottom: 12 }}>Cancel subscription?</h2>
         <p className="text-soft" style={{ fontSize: 14, lineHeight: 1.75, marginBottom: 6 }}>
           You'll lose access to <strong style={{ color: "var(--text)" }}>{sub.creator?.display_name}</strong>'s subscriber content at the end of your billing period.
