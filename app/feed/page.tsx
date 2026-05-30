@@ -42,10 +42,10 @@ interface Post {
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all",    label: "All" },
-  { key: "video",  label: "▶ Video" },
-  { key: "image",  label: "⬜ Photo" },
-  { key: "text",   label: "✦ Text" },
-  { key: "locked", label: "🔒 Locked" },
+  { key: "video",  label: "Video" },
+  { key: "image",  label: "Photos" },
+  { key: "text",   label: "Written" },
+  { key: "locked", label: "Subscriber" },
 ];
 
 function timeAgo(iso: string) {
@@ -441,8 +441,17 @@ export default function FeedPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
+  const [isCreator, setIsCreator] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [cursor, setCursor] = useState<string | null>(null);
+
+  // Check if this user is a creator (has a creator_profile)
+  useEffect(() => {
+    fetch("/api/profile/me")
+      .then(r => r.json())
+      .then(d => setIsCreator(!!d?.profile))
+      .catch(() => {});
+  }, []);
 
   async function load(f: Filter, cur: string | null, append = false) {
     if (!append) setLoading(true);
@@ -503,27 +512,29 @@ export default function FeedPage() {
       }}>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
           {/* Top bar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0 0" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0 0" }}>
             <div>
-              <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "#3f3f46", margin: 0, marginBottom: 4 }}>
+              <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#52525b", margin: 0, marginBottom: 6 }}>
                 Your lineup
               </p>
-              <h1 style={{ fontFamily: serif, fontSize: 26, fontWeight: 300, color: "#fff", margin: 0, lineHeight: 1 }}>
+              <h1 style={{ fontFamily: serif, fontSize: 28, fontWeight: 400, color: "#ffffff", margin: 0, lineHeight: 1, letterSpacing: "-0.01em" }}>
                 The Feed
               </h1>
             </div>
-            <Link href="/dashboard" style={{
-              fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
-              color: "#52525b", textDecoration: "none", padding: "8px 14px",
-              border: "1px solid rgba(255,255,255,0.07)", borderRadius: 3,
-            }}>
-              Dashboard
-            </Link>
+            {isCreator && (
+              <Link href="/dashboard" style={{
+                fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
+                color: "#52525b", textDecoration: "none", padding: "8px 14px",
+                border: "1px solid rgba(255,255,255,0.07)", borderRadius: 3,
+              }}>
+                Dashboard
+              </Link>
+            )}
           </div>
 
           {/* Filter pills */}
           <div style={{
-            display: "flex", gap: 6, overflowX: "auto", padding: "14px 0",
+            display: "flex", gap: 0, borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "8px 0 0",
             scrollbarWidth: "none",
           }}>
             {FILTERS.map(({ key, label }) => (
@@ -531,12 +542,14 @@ export default function FeedPage() {
                 key={key}
                 onClick={() => setFilter(key)}
                 style={{
-                  flexShrink: 0, padding: "6px 14px",
-                  fontFamily: mono, fontSize: 10, letterSpacing: "0.08em",
-                  background: filter === key ? "#F0B429" : "rgba(255,255,255,0.04)",
-                  color: filter === key ? "#09090C" : "#71717a",
-                  border: `1px solid ${filter === key ? "#F0B429" : "rgba(255,255,255,0.08)"}`,
-                  borderRadius: 3, cursor: "pointer", transition: "all 0.15s",
+                  flexShrink: 0, padding: "6px 16px",
+                  fontFamily: mono, fontSize: 10, fontWeight: 500, letterSpacing: "0.1em",
+                  background: "transparent",
+                  color: filter === key ? "#fff" : "#52525b",
+                  border: "none",
+                  borderBottom: `2px solid ${filter === key ? "#F0B429" : "transparent"}`,
+                  borderRadius: 0, cursor: "pointer", transition: "color 0.15s",
+                  paddingBottom: 8,
                 }}
               >
                 {label}
