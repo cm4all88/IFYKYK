@@ -505,30 +505,20 @@ export default function FeedPage() {
       }}>
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
           {/* Top bar */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 0 0" }}>
-            <Link href="/" className="page-logo">Spot<span>light</span>ly</Link>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "16px 0 0" }}>
+            <Link href="/" className="page-logo" style={{ justifySelf: "start" }}>Spot<span>light</span>ly</Link>
             <div style={{ textAlign: "center" }}>
               <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#71717a", margin: 0, marginBottom: 4 }}>
                 Your lineup
               </p>
               <h1 className="feed-title">The Feed</h1>
             </div>
-            <Link href="/account" style={{
-              fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
-              color: "#52525b", textDecoration: "none", padding: "8px 14px",
-              border: "1px solid rgba(255,255,255,0.07)", borderRadius: 3,
-            }}>
-              Account
-            </Link>
-            {isCreator && (
-              <Link href="/dashboard" style={{
-                fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase",
-                color: "#52525b", textDecoration: "none", padding: "8px 14px",
-                border: "1px solid rgba(255,255,255,0.07)", borderRadius: 3,
-              }}>
-                Dashboard
-              </Link>
-            )}
+            <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
+              {isCreator && (
+                <Link href="/dashboard" className="nav-pill nav-pill--secondary">Dashboard</Link>
+              )}
+              <Link href="/account" className="nav-pill nav-pill--primary">Account</Link>
+            </div>
           </div>
 
           {/* Filter pills */}

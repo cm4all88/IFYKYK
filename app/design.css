@@ -895,6 +895,41 @@ img { max-width: 100%; display: block; }
 }
 .page-logo span { color: var(--accent); }
 
+/* nav pills (shared header buttons) */
+.nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: var(--r-2);
+  border: 1px solid transparent;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+.nav-pill--primary {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+.nav-pill--primary:hover {
+  background: var(--accent-border);
+  border-color: var(--accent);
+}
+.nav-pill--secondary {
+  color: var(--text-faint);
+  border-color: var(--border-strong);
+}
+.nav-pill--secondary:hover {
+  color: var(--text);
+  border-color: var(--text-faint);
+  background: rgba(255,255,255,0.04);
+}
+
 /* ── Sticky page header ── */
 .page-header {
   position: sticky;

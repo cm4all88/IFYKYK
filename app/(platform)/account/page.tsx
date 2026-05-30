@@ -198,9 +198,9 @@ export default function AudienceAccountPage() {
             Spot<span>light</span>ly
           </Link>
           <div className="db-top-right">
-            <Link href="/feed" className="db-view-link">← Feed</Link>
+            <Link href="/feed" className="nav-pill nav-pill--primary">← Feed</Link>
             {data?.creatorProfile && (
-              <Link href="/dashboard" className="db-view-link">Dashboard</Link>
+              <Link href="/dashboard" className="nav-pill nav-pill--secondary">Dashboard</Link>
             )}
             <span className="db-email">{user?.email}</span>
           </div>
