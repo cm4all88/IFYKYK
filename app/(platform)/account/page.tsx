@@ -86,6 +86,7 @@ export default function AudienceAccountPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Settings fields
+  const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({});
@@ -103,6 +104,7 @@ export default function AudienceAccountPage() {
       if (!user) { router.push("/login"); return; }
       setUser(user);
       setDisplayName(user.user_metadata?.display_name ?? "");
+      setNewEmail(user.email ?? "");
       setBio(user.user_metadata?.bio ?? "");
       setAvatarUrl(user.user_metadata?.avatar_url ?? null);
       setNotifPrefs(user.user_metadata?.notif_prefs ?? {});
@@ -132,9 +134,9 @@ export default function AudienceAccountPage() {
   async function handleSaveProfile(e: FormEvent) {
     e.preventDefault();
     setSaving(true); setErr(null);
-    const { error } = await supabase.auth.updateUser({
-      data: { display_name: displayName, bio, avatar_url: avatarUrl, notif_prefs: notifPrefs },
-    });
+    const updates: any = { data: { display_name: displayName, bio, avatar_url: avatarUrl, notif_prefs: notifPrefs } };
+    if (newEmail && newEmail !== user?.email) updates.email = newEmail;
+    const { error } = await supabase.auth.updateUser(updates);
     if (error) { setErr(error.message); setSaving(false); return; }
     setSaved("profile"); setSaving(false);
     setTimeout(() => setSaved(null), 3000);
@@ -142,8 +144,12 @@ export default function AudienceAccountPage() {
 
   async function handleSavePassword(e: FormEvent) {
     e.preventDefault();
-    if (newPassword.length < 8) { setErr("Password must be at least 8 characters."); return; }
+    if (!currentPassword) { setErr("Enter your current password."); return; }
+    if (newPassword.length < 8) { setErr("New password must be at least 8 characters."); return; }
     setSaving(true); setErr(null);
+    // Re-authenticate first
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
+    if (signInErr) { setErr("Current password is incorrect."); setSaving(false); return; }
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) { setErr(error.message); setSaving(false); return; }
     setCurrentPassword(""); setNewPassword("");
@@ -305,8 +311,10 @@ export default function AudienceAccountPage() {
 
                 <div className="form-field" style={{ gap:"var(--s-2)" }}>
                   <p className="label">Email</p>
-                  <input className="input" type="email" value={user?.email ?? ""} disabled style={{ opacity:0.45, cursor:"not-allowed" }} />
-                  <p style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted-faint)", letterSpacing:"0.05em", marginTop:4 }}>To change your email contact support@spotlightly.app</p>
+                  <input className="input" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder={user?.email ?? ""} />
+                  {newEmail && newEmail !== user?.email && (
+                    <p style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent)", marginTop:4 }}>A confirmation link will be sent to your new address.</p>
+                  )}
                 </div>
               </div>
 
@@ -500,9 +508,13 @@ export default function AudienceAccountPage() {
                   {saved === "password" && <div style={{ background:"rgba(52,211,153,0.06)", border:"1px solid rgba(52,211,153,0.2)", borderRadius:"var(--r-1)", padding:"12px 16px", color:"var(--accent-open)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.12em", marginBottom:"var(--s-4)" }}>✓ Password updated</div>}
                   {err && <div style={{ background:"var(--red-soft)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", padding:"12px 16px", color:"var(--red)", fontSize:13, marginBottom:"var(--s-4)" }}>{err}</div>}
 
+                      <div className="form-field" style={{ gap:"var(--s-2)" }}>
+                    <p className="label">Current password</p>
+                    <input className="input" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Enter your current password" autoComplete="current-password" />
+                  </div>
                   <div className="form-field" style={{ gap:"var(--s-2)" }}>
                     <p className="label">New password</p>
-                    <input className="input" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 8 characters" />
+                    <input className="input" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" />
                     {newPassword.length > 0 && newPassword.length < 8 && <p style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--red)", marginTop:4 }}>Must be at least 8 characters</p>}
                   </div>
                 </div>
