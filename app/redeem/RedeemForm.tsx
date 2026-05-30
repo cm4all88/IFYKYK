@@ -32,8 +32,7 @@ export default function RedeemForm() {
       alignItems: "center", justifyContent: "center",
       padding: "40px 24px",
     }}>
-      <Link href="/" style={{ fontFamily: "Georgia,serif", fontSize: 28, fontWeight: 400, color: "#fff", letterSpacing: "-.01em", marginBottom: 48, textDecoration: "none" }}>
-        Spot<span style={{ color: "#F0B429" }}>light</span>ly
+      <Link href="/" className="brand-logo" style={{ fontSize: 28, marginBottom: 48 }}>Spot<span>light</span>ly
       </Link>
 
       <div style={{

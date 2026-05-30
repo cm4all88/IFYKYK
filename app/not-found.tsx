@@ -3,8 +3,7 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <main style={{ minHeight:"100vh", background:"#09090C", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px", textAlign:"center" }}>
-      <Link href="/" style={{ fontFamily:"Georgia,serif", fontSize:24, color:"#fff", textDecoration:"none", marginBottom:64 }}>
-        Spot<span style={{ color:"#F0B429" }}>light</span>ly
+      <Link href="/" className="brand-logo" style={{ fontSize: 24, marginBottom: 64 }}>Spot<span>light</span>ly
       </Link>
       <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".25em", textTransform:"uppercase", color:"rgba(255,255,255,0.25)", marginBottom:16 }}>404</p>
       <h1 style={{ fontFamily:"Georgia,serif", fontSize:48, fontWeight:300, color:"#fff", marginBottom:16, lineHeight:1.1 }}>

@@ -75,7 +75,7 @@ export default function MessagesPage() {
     <div style={s.page}>
       <header style={s.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <a href="/" style={s.brand}>Spot<span style={{ color: "var(--accent)" }}>light</span>ly</a>
+          <a href="/" className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly</a>
           <span style={{ color: "var(--muted)", fontSize: 13 }}>/ Messages</span>
         </div>
         <a href="/dashboard" style={s.back}>← Dashboard</a>

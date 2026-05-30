@@ -138,8 +138,7 @@ export default function GuidePage() {
 
       {/* Header */}
       <header style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "16px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link href="/" style={{ fontFamily: serif, fontSize: 24, color: "#fff", textDecoration: "none" }}>
-          Spot<span style={{ color: "#F0B429" }}>light</span>ly
+        <Link href="/" className="brand-logo" style={{ fontSize: 24 }}>Spot<span>light</span>ly
         </Link>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
           <Link href="/help" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#71717a", textDecoration: "none" }}>Help</Link>

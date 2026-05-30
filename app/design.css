@@ -693,7 +693,7 @@ img { max-width: 100%; display: block; }
 .db-loading { min-height:60vh; display:flex; align-items:center; justify-content:center; }
 .db-top { border-bottom:1px solid var(--border); background:var(--bg-elevated); position:sticky; top:0; z-index:40; }
 .db-top-inner { max-width:var(--container-wide); margin:0 auto; padding:var(--s-3) var(--s-6); display:flex; align-items:center; justify-content:space-between; gap:var(--s-4); }
-.db-brand { font-family:var(--font-display); font-size:20px; font-weight:800; letter-spacing:-0.03em; color:var(--text); }
+.db-brand { font-family:var(--font-serif); font-size:20px; font-weight:400; letter-spacing:-0.01em; color:var(--text); }
 .db-brand span { color:var(--accent); }
 .db-top-right { display:flex; align-items:center; gap:var(--s-4); }
 .db-view-link { font-family:var(--font-mono); font-size:11px; letter-spacing:.1em; color:var(--accent); }
@@ -827,7 +827,7 @@ img { max-width: 100%; display: block; }
 /* AUTH PAGES */
 .lg { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:var(--s-6); background:radial-gradient(ellipse 60% 40% at 50% 30%,rgba(240,180,41,0.06) 0%,transparent 70%),var(--bg); }
 .lg-shell { width:100%; max-width:440px; display:flex; flex-direction:column; align-items:center; gap:var(--s-8); }
-.lg-brand { font-family:var(--font-display); font-size:28px; font-weight:800; letter-spacing:-0.03em; color:var(--text); }
+.lg-brand { font-family:var(--font-serif); font-size:28px; font-weight:400; letter-spacing:-0.01em; color:var(--text); }
 .lg-brand span { color:var(--accent); }
 .lg-card { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-4); padding:var(--s-10); }
 .lg-title { font-family:var(--font-display); font-size:36px; font-weight:800; letter-spacing:-0.04em; line-height:1.05; color:#fff; margin:var(--s-3) 0 var(--s-8); }
@@ -894,6 +894,19 @@ img { max-width: 100%; display: block; }
   letter-spacing: -0.01em;
 }
 .page-logo span { color: var(--accent); }
+
+/* canonical brand wordmark — the only logo treatment, used on every page */
+.brand-logo {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.brand-logo span { color: var(--accent); }
+.brand-logo--light { color: #1A1A1E; }
+.brand-logo--light span { color: #C8920E; }
 
 /* nav pills (shared header buttons) */
 .nav-pill {

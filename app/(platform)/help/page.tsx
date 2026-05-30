@@ -160,7 +160,7 @@ export default function HelpPage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)" }}>
       <header style={{ borderBottom: "1px solid var(--border)", padding: "16px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10, background: "var(--bg)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/" style={{ fontFamily: serif, fontSize: 22, color: "var(--text)", textDecoration: "none" }}>Spot<span style={{ color: "var(--accent)" }}>light</span>ly</Link>
+          <Link href="/" className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly</Link>
           <span style={{ color: "var(--muted)", fontSize: 13 }}>/ Help</span>
         </div>
         <Link href="/dashboard" style={{ fontFamily: mono, fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none" }}>← Dashboard</Link>

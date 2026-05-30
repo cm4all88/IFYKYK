@@ -35,8 +35,7 @@ export default function LoginPage() {
   return (
     <main className="lg">
       <div className="lg-shell">
-        <Link href="/" className="lg-brand">
-          Spot<span>light</span>ly
+        <Link href="/" className="brand-logo" style={{ fontSize: 28 }}>Spot<span>light</span>ly
         </Link>
 
         <div className="lg-card">

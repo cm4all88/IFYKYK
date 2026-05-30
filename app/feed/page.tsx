@@ -506,7 +506,7 @@ export default function FeedPage() {
         <div style={{ maxWidth: 640, margin: "0 auto", padding: "0 24px" }}>
           {/* Top bar */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "16px 0 0" }}>
-            <Link href="/" className="page-logo" style={{ justifySelf: "start" }}>Spot<span>light</span>ly</Link>
+            <Link href="/" className="brand-logo" style={{ justifySelf: "start", fontSize: 22 }}>Spot<span>light</span>ly</Link>
             <div style={{ textAlign: "center" }}>
               <p style={{ fontFamily: mono, fontSize: 9, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "#71717a", margin: 0, marginBottom: 4 }}>
                 Your lineup

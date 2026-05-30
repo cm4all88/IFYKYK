@@ -210,8 +210,7 @@ export default function MerchCreatePage() {
       {/* Header */}
       <header style={{ borderBottom: `1px solid ${border}`, padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 10, background: "#09090C" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/" style={{ fontFamily: serif, fontSize: 20, color: "#fff", textDecoration: "none" }}>
-            Spot<span style={{ color: accent }}>light</span>ly
+          <Link href="/" className="brand-logo" style={{ fontSize: 20 }}>Spot<span>light</span>ly
           </Link>
           <span style={{ color: muted, fontSize: 13 }}>/ Loudcap Designer</span>
         </div>

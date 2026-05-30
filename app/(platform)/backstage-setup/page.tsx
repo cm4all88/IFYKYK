@@ -147,7 +147,7 @@ export default function BackstageSetupPage() {
   return (
     <div style={{ minHeight:"100vh", background:"var(--bg)", color:"var(--text)", fontFamily:"var(--font-sans)" }}>
       <header style={{ borderBottom:"1px solid var(--border)", padding:"15px 28px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <Link href="/" style={{ fontFamily:"var(--font-serif)", fontSize:22, color:"var(--text)", textDecoration:"none" }}>Spot<span style={{ color:"var(--accent)" }}>light</span>ly</Link>
+        <Link href="/" className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly</Link>
         <Link href="/dashboard" style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".15em", textTransform:"uppercase" as const, color:"var(--muted)", textDecoration:"none" }}>← Dashboard</Link>
       </header>
 

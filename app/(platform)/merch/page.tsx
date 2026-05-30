@@ -140,8 +140,7 @@ export default function MerchPage() {
     <div style={s.page}>
       <header style={s.header}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link href="/" style={{ fontFamily: "var(--font-serif)", fontSize: 22, color: "var(--text)", textDecoration: "none" }}>
-            Spot<span style={{ color: "var(--accent)" }}>light</span>ly
+          <Link href="/" className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly
           </Link>
           <span style={{ color: "var(--muted)", fontSize: 13 }}>/ Merch</span>
         </div>

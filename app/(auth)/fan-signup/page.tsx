@@ -60,8 +60,7 @@ export default function FanSignupPage() {
 
         {/* Brand */}
         <Link href="/" style={{ display: "block", textAlign: "center", marginBottom: 40, textDecoration: "none" }}>
-          <span style={{ fontFamily: serif, fontSize: 28, fontWeight: 300, color: "#fff" }}>
-            Spot<span style={{ color: "#f5c842" }}>light</span>ly
+          <span className="brand-logo" style={{ fontSize: 28 }}>Spot<span>light</span>ly
           </span>
         </Link>
 

@@ -62,7 +62,7 @@ export default function OnesheetPage() {
 
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 44 }}>
-          <span className="os-brand">Spot<span>light</span>ly</span>
+          <span className="brand-logo brand-logo--light" style={{ fontSize: 24 }}>Spot<span>light</span>ly</span>
           <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, letterSpacing: "0.15em", textTransform: "uppercase", color: "#999", border: "1px solid #ddd", padding: "5px 12px", borderRadius: 2 }}>
             Creator platform
           </span>

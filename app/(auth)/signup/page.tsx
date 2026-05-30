@@ -217,7 +217,7 @@ export default function SignupPage() {
     <main className="signup">
       <div className="frame">
         <header className="topbar">
-          <div className="brand">Spot<span>light</span>ly</div>
+          <div className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly</div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <a href="/fan-signup" style={{ fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.1em", color: "#6b6b80", textDecoration: "none" }}>
               Join as a fan instead

@@ -189,8 +189,7 @@ export default function DashboardPage() {
       {/* TOP BAR */}
       <header className="db-top">
         <div className="db-top-inner">
-          <Link href="/" className="db-brand">
-            Spot<span>light</span>ly
+          <Link href="/" className="brand-logo" style={{ fontSize: 20 }}>Spot<span>light</span>ly
           </Link>
 
           <div className="db-top-right">

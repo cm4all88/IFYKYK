@@ -393,14 +393,7 @@ export default function OnboardingPage() {
         }} />
 
         {/* Logo */}
-        <Link href="/" style={{
-          position: "absolute", top: 32, left: "50%", transform: "translateX(-50%)",
-          fontFamily: "Cormorant Garamond, Georgia, serif",
-          fontSize: 22, fontWeight: 300, color: "rgba(255,255,255,0.5)",
-          textDecoration: "none", letterSpacing: "0.02em",
-          whiteSpace: "nowrap",
-        }}>
-          Spot<span style={{ color: "rgba(242,184,75,0.7)" }}>light</span>ly
+        <Link href="/" className="brand-logo" style={{ position: "absolute", top: 32, left: "50%", transform: "translateX(-50%)", fontSize: 22 }}>Spot<span>light</span>ly
         </Link>
 
         <div style={{
@@ -524,13 +517,7 @@ export default function OnboardingPage() {
           pointerEvents: "none",
         }} />
 
-        <Link href="/" style={{
-          position: "absolute", top: 28, left: "50%", transform: "translateX(-50%)",
-          fontFamily: "Cormorant Garamond, Georgia, serif",
-          fontSize: 20, fontWeight: 300, color: "rgba(255,255,255,0.4)",
-          textDecoration: "none", whiteSpace: "nowrap",
-        }}>
-          Spot<span style={{ color: "rgba(242,184,75,0.5)" }}>light</span>ly
+        <Link href="/" className="brand-logo" style={{ position: "absolute", top: 28, left: "50%", transform: "translateX(-50%)", fontSize: 20 }}>Spot<span>light</span>ly
         </Link>
 
         <div style={{ width: "100%", maxWidth: aiResponse ? 580 : 480, position: "relative", zIndex: 1 }}>
@@ -716,12 +703,7 @@ export default function OnboardingPage() {
         }}
           className="onb-split"
         >
-          <Link href="/" style={{
-            fontFamily: "Cormorant Garamond, Georgia, serif",
-            fontSize: 20, fontWeight: 300, color: "rgba(255,255,255,0.4)",
-            textDecoration: "none", display: "block", marginBottom: 40,
-          }}>
-            Spot<span style={{ color: "rgba(242,184,75,0.5)" }}>light</span>ly
+          <Link href="/" className="brand-logo" style={{ display: "block", marginBottom: 40, fontSize: 20 }}>Spot<span>light</span>ly
           </Link>
 
           <span style={{
@@ -889,13 +871,7 @@ export default function OnboardingPage() {
           pointerEvents: "none",
         }} />
 
-        <Link href="/" style={{
-          position: "absolute", top: 28, left: "50%", transform: "translateX(-50%)",
-          fontFamily: "Cormorant Garamond, Georgia, serif",
-          fontSize: 20, fontWeight: 300, color: "rgba(255,255,255,0.4)",
-          textDecoration: "none", whiteSpace: "nowrap",
-        }}>
-          Spot<span style={{ color: "rgba(242,184,75,0.5)" }}>light</span>ly
+        <Link href="/" className="brand-logo" style={{ position: "absolute", top: 28, left: "50%", transform: "translateX(-50%)", fontSize: 20 }}>Spot<span>light</span>ly
         </Link>
 
         <div style={{ width: "100%", maxWidth: 460, position: "relative", zIndex: 1 }}>

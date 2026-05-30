@@ -69,7 +69,7 @@ export default function ForCreatorsPage() {
 
       <div className="os-body">
         <div className="os-top">
-          <Link href="/" className="os-brand">Spot<span>light</span>ly</Link>
+          <Link href="/" className="brand-logo brand-logo--light" style={{ fontSize: 24 }}>Spot<span>light</span>ly</Link>
           <span className="os-badge">Creator platform</span>
         </div>
         <div className="os-rule" />

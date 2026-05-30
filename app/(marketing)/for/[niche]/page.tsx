@@ -37,8 +37,7 @@ export default function NichePage({ params }: { params: { niche: string } }) {
 
       {/* Nav */}
       <nav style={{ borderBottom: "1px solid #f0f0f0", padding: "16px 40px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: "#fff", zIndex: 10 }}>
-        <Link href="/" style={{ fontFamily: serif, fontSize: 22, color: "#111", textDecoration: "none", fontWeight: 700 }}>
-          Spot<span style={{ color: "#B8860B" }}>light</span>ly
+        <Link href="/" className="brand-logo brand-logo--light" style={{ fontSize: 22 }}>Spot<span>light</span>ly
         </Link>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
           <Link href="/guide" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#888", textDecoration: "none" }}>Creator Guide</Link>

@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="lg">
       <div className="lg-shell">
-        <Link href="/" className="lg-brand">Spot<span>light</span>ly</Link>
+        <Link href="/" className="brand-logo" style={{ fontSize: 28 }}>Spot<span>light</span>ly</Link>
         <div className="lg-card">
           <p className="kicker">Account recovery</p>
           <h1 className="lg-title">New <em>password.</em></h1>
