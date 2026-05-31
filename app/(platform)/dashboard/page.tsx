@@ -3729,7 +3729,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
 function PaymentsPane({ profile }: { profile: Profile }) {
   const [connecting, setConnecting] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
-  const stripeConnected = !!(profile as any).stripe_account_id;
+  const stripeConnected = !!(profile as any).stripe_onboarded;
 
   async function connectStripe() {
     setConnecting(true);
@@ -3749,7 +3749,7 @@ function PaymentsPane({ profile }: { profile: Profile }) {
 
   return (
     <div className="pane">
-      <PaneTooltip pane="payments" />
+      <PaneTooltip pane="payments" hide={stripeConnected} />
       <div className="pane-head">
         <p className="kicker">Payments</p>
         <h1 className="pane-title">Get <em>paid.</em></h1>

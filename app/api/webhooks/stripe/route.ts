@@ -46,6 +46,20 @@ export async function POST(req: NextRequest) {
   const event = JSON.parse(rawBody);
   const supabase = await createClient();
 
+  // ── Connected account became ready → mark the creator onboarded ──
+  // Reliable fallback: fires whenever the account's status changes, so the
+  // dashboard updates even if the post-onboarding return redirect never ran.
+  if (event.type === "account.updated") {
+    const acct = event.data.object;
+    if (acct?.id && acct.details_submitted && acct.charges_enabled) {
+      await (supabase as any)
+        .from("creator_profiles")
+        .update({ stripe_onboarded: true })
+        .eq("stripe_account_id", acct.id);
+    }
+    return NextResponse.json({ received: true });
+  }
+
   if (event.type === "checkout.session.completed") {
     const s = event.data.object;
     const meta = s.metadata ?? {};

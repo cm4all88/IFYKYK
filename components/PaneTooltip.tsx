@@ -66,7 +66,7 @@ const TIPS: Record<string, { title: string; body: string; cta?: string; ctaHref?
   },
 };
 
-export default function PaneTooltip({ pane }: { pane: string }) {
+export default function PaneTooltip({ pane, hide }: { pane: string; hide?: boolean }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export default function PaneTooltip({ pane }: { pane: string }) {
   }
 
   const tip = TIPS[pane];
-  if (!visible || !tip) return null;
+  if (!visible || !tip || hide) return null;
 
   const mono = "var(--font-mono, DM Mono, monospace)";
   const serif = "var(--font-serif, Cormorant Garamond, Georgia, serif)";
