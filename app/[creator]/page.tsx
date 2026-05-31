@@ -16,7 +16,7 @@ import TipButton from "./TipButton";
 import UnlockButton from "./UnlockButton";
 import SuperTipButton from "./SuperTipButton";
 import CommentSection from "./CommentSection";
-import LivePlayer from "./LivePlayer";
+import LiveStreamView from "@/components/LiveStreamView";
 import CreatorStageClient from "./CreatorStageClient";
 import SocialAddbacks from "./SocialAddbacks";
 import CreatorMarketplace from "./CreatorMarketplace";
@@ -193,7 +193,7 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers } = data;
+  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   return (
@@ -228,6 +228,17 @@ export default async function CreatorPage(props: {
             </a>
           )}
         </CreatorStageClient>
+        {liveStream && (
+          <div className="cp-live-banner">
+            <LiveStreamView
+              streamId={liveStream.bunny_stream_id}
+              playbackUrl={liveStream.playback_url}
+              isCreator={false}
+              creatorHandle={spotlight.handle}
+              isBackstage={false}
+            />
+          </div>
+        )}
         <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
         <CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} />
 
