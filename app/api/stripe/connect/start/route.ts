@@ -45,7 +45,9 @@ export async function POST(req: NextRequest) {
       const link = await stripe.accountLinks.create({
         account: accountId,
         refresh_url: `${base}/dashboard?pane=payments`,
-        return_url: `${base}/dashboard?pane=payments`,
+        // Route the return through the handler that marks stripe_onboarded=true,
+        // then it redirects to the dashboard using the real request origin.
+        return_url: `${base}/api/stripe/connect/return`,
         type: "account_onboarding",
       });
       console.log("Onboarding link created:", link.url);
