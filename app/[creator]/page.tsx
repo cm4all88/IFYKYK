@@ -238,6 +238,7 @@ export default async function CreatorPage(props: {
               isCreator={false}
               creatorHandle={spotlight.handle}
               isBackstage={false}
+              embedded
             />
           </div>
         )}
@@ -433,7 +434,7 @@ export default async function CreatorPage(props: {
           .cp-bs-arrow { color:var(--accent-back); font-size:16px; margin-left:auto; }
 
           /* ── Live player ── */
-          .cp-live-banner { margin:0 auto; max-width:900px; padding:0 var(--s-6) var(--s-6); }
+          .cp-live-banner { margin:0 auto; max-width:1100px; padding:0 var(--s-6) var(--s-6); border-radius:12px; overflow:hidden; }
 
           /* ── Content area ── */
           .cp-content {

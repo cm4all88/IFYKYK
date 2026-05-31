@@ -28,10 +28,11 @@ interface Props {
   creatorHandle?: string;
   isBackstage?: boolean;
   children?: React.ReactNode; // stream video/controls slot
+  embedded?: boolean; // bounded height for embedding on a content page
 }
 
 export default function LiveStreamView({
-  streamId, playbackUrl, isCreator, creatorHandle, isBackstage, children
+  streamId, playbackUrl, isCreator, creatorHandle, isBackstage, children, embedded
 }: Props) {
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -170,7 +171,7 @@ export default function LiveStreamView({
       display: "grid",
       gridTemplateColumns: "1fr 380px",
       gap: 2,
-      height: "calc(100vh - 60px)",
+      height: embedded ? "min(70vh, 620px)" : "calc(100vh - 60px)",
       background: "var(--bg)",
     }}>
 
