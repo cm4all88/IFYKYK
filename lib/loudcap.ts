@@ -141,6 +141,26 @@ export async function createMerchProduct(params: {
 
 // ── Orders ────────────────────────────────────────────────────────
 
+// Quote live shipping from Printful for a recipient + items. Called at
+// checkout so the fan always pays exact shipping on top of the product price.
+export async function getShippingRates(params: {
+  recipient: { address1: string; city: string; state_code: string; zip: string; country_code: string };
+  items: { variant_id: number; quantity: number }[];
+}): Promise<{ id: string; name: string; rate: string; currency: string; minDays?: number; maxDays?: number }[]> {
+  const { result } = await pf("/shipping/rates", {
+    method: "POST",
+    body: JSON.stringify({ recipient: params.recipient, items: params.items }),
+  });
+  return (result ?? []).map((r: any) => ({
+    id: r.id,
+    name: r.name,
+    rate: r.rate,
+    currency: r.currency ?? "USD",
+    minDays: r.minDeliveryDays,
+    maxDays: r.maxDeliveryDays,
+  }));
+}
+
 export async function createMerchOrder(params: {
   productId: string;
   variantId: string;
@@ -176,7 +196,9 @@ export async function createMerchOrder(params: {
     ],
   };
 
-  const { result } = await pf("/orders", {
+  // confirm=1 sends the order straight to fulfillment (charges Loudcap).
+  // Only ever called after the fan's Stripe payment has succeeded.
+  const { result } = await pf("/orders?confirm=1", {
     method: "POST",
     body: JSON.stringify(body),
   });
