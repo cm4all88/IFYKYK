@@ -401,6 +401,9 @@ export default function DashboardPage() {
           {pane === "channels" && active && (
             <ChannelsPane profile={active} />
           )}
+          {pane === "tiers" && active && (
+            <PricingPane profile={active} setErr={setErrMsg} />
+          )}
           {pane === "fans" && active && (
             <FansPane profile={active} />
           )}
