@@ -200,6 +200,7 @@ export default async function CreatorPage(props: {
     <>
       <SiteHeader />
       <SuccessBanner />
+      <ReferralTracker creatorHandle={spotlight.handle} />
       <main className="cp">
         <CreatorStageClient
           posts={posts as any}
@@ -222,6 +223,7 @@ export default async function CreatorPage(props: {
           <SubscribeButton creatorProfileId={spotlight.id} />
           <TipButton creatorProfileId={spotlight.id} />
           <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
+          <MessageButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
           {(spotlight as any).booking_url && (
             <a href={(spotlight as any).booking_url} target="_blank" rel="noopener noreferrer" className="btn btn--secondary">
               📅 {(spotlight as any).booking_label || "Book"}
@@ -241,6 +243,51 @@ export default async function CreatorPage(props: {
         )}
         <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
         <CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} />
+
+        {campaigns.length > 0 && (
+          <section className="cp-campaigns">
+            <h2 className="cp-section-title">Campaigns</h2>
+            <div className="cp-campaign-list">
+              {campaigns.map((c: any) => {
+                const goal = Number(c.goal_amount) || 0;
+                const pct = goal > 0 ? Math.min(100, Math.round((Number(c.raised) / goal) * 100)) : 0;
+                return (
+                  <div key={c.id} className="cp-campaign">
+                    <div className="cp-campaign-head">
+                      <h3>{c.title}</h3>
+                      <CampaignDonateButton campaignId={c.id} campaignTitle={c.title} />
+                    </div>
+                    {c.description && <p className="cp-campaign-desc">{c.description}</p>}
+                    <div className="cp-campaign-bar"><span style={{ width: `${pct}%` }} /></div>
+                    <div className="cp-campaign-meta">${Number(c.raised).toLocaleString()} raised{goal > 0 ? ` of $${goal.toLocaleString()} · ${pct}%` : ""}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {digitalProducts.length > 0 && (
+          <section className="cp-digital">
+            <h2 className="cp-section-title">Digital products</h2>
+            <div className="cp-card-grid">
+              {digitalProducts.map((pr: any) => (
+                <DigitalProductCard key={pr.id} product={pr} creatorProfileId={spotlight.id} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {wishlistItems.length > 0 && (
+          <section className="cp-wishlist">
+            <h2 className="cp-section-title">Wishlist</h2>
+            <div className="cp-card-grid">
+              {wishlistItems.map((i: any) => (
+                <WishlistItemCard key={i.id} item={i} />
+              ))}
+            </div>
+          </section>
+        )}
 
         <style>{`
           /* ── Base ── */
@@ -406,7 +453,17 @@ export default async function CreatorPage(props: {
           .cp-supporters { padding:0 var(--s-6) var(--s-8); }
 
           /* ── Campaigns ── */
-          .cp-campaigns { padding:0 var(--s-6) var(--s-8); }
+          .cp-campaigns, .cp-digital, .cp-wishlist { padding:0 var(--s-6) var(--s-8); }
+          .cp-section-title { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:300; color:#fff; max-width:900px; margin:0 auto 16px; }
+          .cp-card-grid { max-width:900px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+          .cp-campaign-list { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+          .cp-campaign { background:#111115; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:24px; }
+          .cp-campaign-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:8px; }
+          .cp-campaign-head h3 { font-size:18px; color:#fff; font-weight:600; margin:0; }
+          .cp-campaign-desc { font-size:14px; color:rgba(255,255,255,0.6); margin:0 0 14px; line-height:1.6; }
+          .cp-campaign-bar { height:6px; border-radius:3px; background:rgba(255,255,255,0.08); overflow:hidden; }
+          .cp-campaign-bar span { display:block; height:100%; background:var(--accent); }
+          .cp-campaign-meta { font-size:12px; color:rgba(255,255,255,0.5); margin-top:8px; font-family:'DM Mono',monospace; }
 
           /* ── Digital products ── */
           .cp-digital { padding:0 var(--s-6) var(--s-8); }

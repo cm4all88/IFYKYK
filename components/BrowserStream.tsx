@@ -75,6 +75,7 @@ export default function BrowserStream({ profileId, title, onEnd }: Props) {
       if (!startRes.ok) throw new Error(startData.error);
 
       const vid = startData.streamId;
+      const whipUrl = startData.whipUrl;
       setVideoId(vid);
       setPlaybackUrl(startData.playbackUrl);
 
@@ -102,19 +103,20 @@ export default function BrowserStream({ profileId, title, onEnd }: Props) {
         setTimeout(resolve, 3000); // fallback timeout
       });
 
-      // 4. Send offer to BunnyCDN via our proxy
-      const whipRes = await fetch(`/api/live/whip?videoId=${vid}`, {
+      // 4. Publish the offer straight to Cloudflare's WHIP endpoint for this input
+      if (!whipUrl) throw new Error("No WHIP URL returned — is Cloudflare Stream configured?");
+      const whipRes = await fetch(whipUrl, {
         method: "POST",
         headers: { "Content-Type": "application/sdp" },
         body: pc.localDescription!.sdp,
       });
 
       if (!whipRes.ok) {
-        const whipErr = await whipRes.json().catch(() => ({ error: "WHIP connection failed" }));
-        throw new Error(whipErr.error || "Failed to connect to stream");
+        const whipErr = await whipRes.text().catch(() => "");
+        throw new Error(`WHIP failed (${whipRes.status})${whipErr ? ": " + whipErr.slice(0, 120) : ""}`);
       }
 
-      // 5. Set remote description from BunnyCDN answer
+      // 5. Set remote description from the WHIP answer
       const sdpAnswer = await whipRes.text();
       await pc.setRemoteDescription({ type: "answer", sdp: sdpAnswer });
 
@@ -136,7 +138,6 @@ export default function BrowserStream({ profileId, title, onEnd }: Props) {
   async function endStream() {
     cleanup();
     if (videoId) {
-      await fetch(`/api/live/whip?videoId=${videoId}`, { method: "DELETE" });
       await fetch("/api/live/end", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

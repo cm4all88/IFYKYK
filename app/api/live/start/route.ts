@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { createLiveStream } from "@/lib/bunny";
+import { createCloudflareLiveInput } from "@/lib/cloudflare-stream";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -27,26 +27,24 @@ export async function POST(req: NextRequest) {
     .eq("status", "live");
 
   try {
-    const stream = await createLiveStream(title || "Live Stream");
-    const rtmpUrl = `rtmp://live.bunnycdn.com/live/${stream.guid}`;
-    const playbackUrl = `https://iframe.mediadelivery.net/embed/${process.env.BUNNY_STREAM_LIBRARY_ID}/${stream.guid}`;
+    const live = await createCloudflareLiveInput(title || "Live Stream");
 
-    // Save to DB so fans can see the live stream
+    // Save to DB so fans can see the live stream (bunny_stream_id now holds the Cloudflare input uid)
     await (supabase as any).from("live_streams").insert({
       creator_profile_id: creatorProfileId,
-      bunny_stream_id: stream.guid,
+      bunny_stream_id: live.uid,
       title: title || "Live Stream",
       status: "live",
-      playback_url: playbackUrl,
-      rtmp_url: rtmpUrl,
-      stream_key: stream.guid,
+      playback_url: live.playbackUrl,
+      rtmp_url: null,
+      stream_key: live.uid,
     });
 
+    // whipUrl is the per-input ingest credential — only returned to the broadcasting creator here.
     return NextResponse.json({
-      streamId: stream.guid,
-      rtmpUrl,
-      streamKey: stream.guid,
-      playbackUrl,
+      streamId: live.uid,
+      whipUrl: live.whipUrl,
+      playbackUrl: live.playbackUrl,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
