@@ -1,171 +1,77 @@
--- ──────────────────────────────────────────────────────────────────
--- Spotlightly v3 — Database migrations
--- Run this entire file in Supabase SQL Editor.
--- Idempotent — safe to run multiple times.
--- ──────────────────────────────────────────────────────────────────
+# Spotlightly Deploy Tool
 
--- ━━━ platform_settings: key/value store for credentials ━━━━━━━━━
+One-time setup, then every batch deploys with one command.
 
-create table if not exists public.platform_settings (
-  key text primary key,
-  value text,
-  updated_at timestamptz default now(),
-  updated_by uuid references auth.users(id)
-);
+## One-time setup
 
-alter table public.platform_settings enable row level security;
+1. Save `deploy.ps1` to your repo at `tools/deploy.ps1`:
+   ```powershell
+   New-Item -ItemType Directory -Force -Path ".\tools" | Out-Null
+   # then move deploy.ps1 from Downloads into .\tools\
+   ```
 
--- Only the designated admin can read or write
-drop policy if exists "Admin can read settings" on public.platform_settings;
-create policy "Admin can read settings"
-on public.platform_settings
-for select
-to authenticated
-using (auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid);
+2. Allow scripts to run (PowerShell defaults block local scripts). Run ONCE in any PowerShell:
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+   ```
+   Answer `Y` when asked. This lets you run scripts you wrote, but still blocks unsigned scripts from the internet.
 
-drop policy if exists "Admin can write settings" on public.platform_settings;
-create policy "Admin can write settings"
-on public.platform_settings
-for all
-to authenticated
-using (auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid)
-with check (auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid);
+3. Done. You only do steps 1–2 once.
 
--- Seed the expected keys (with empty values) so the admin page knows what to render
-insert into public.platform_settings (key, value) values
-  ('STRIPE_SECRET_KEY', ''),
-  ('STRIPE_PUBLISHABLE_KEY', ''),
-  ('STRIPE_WEBHOOK_SECRET', ''),
-  ('STRIPE_CONNECT_CLIENT_ID', ''),
-  ('CCBILL_ACCOUNT_NUMBER', ''),
-  ('CCBILL_SUBACCOUNT', ''),
-  ('CCBILL_FLEXFORM_ID', ''),
-  ('CCBILL_SALT', ''),
-  ('BUNNY_STORAGE_ZONE', ''),
-  ('BUNNY_STORAGE_KEY', ''),
-  ('BUNNY_CDN_HOST', ''),
-  ('BUNNY_STREAM_LIBRARY_ID', ''),
-  ('BUNNY_STREAM_KEY', ''),
-  ('VERIFF_API_KEY', ''),
-  ('VERIFF_SECRET', ''),
-  ('RESEND_API_KEY', ''),
-  ('RESEND_FROM_EMAIL', 'noreply@spotlightly.app'),
-  ('CRON_SECRET', '')
-on conflict (key) do nothing;
+## How to deploy a batch (every time)
 
--- ━━━ posts: ensure RLS policies exist ━━━━━━━━━━━━━━━━━━━━━━━━━━
+When I send you a batch, it'll be a folder of files including a `manifest.json`. Drop the whole folder into your `Downloads`. Then:
 
-alter table public.posts enable row level security;
+```powershell
+cd C:\Users\cmm2s\OneDrive\Documents\GitHub\IFYKYK
+.\tools\deploy.ps1
+```
 
-drop policy if exists "Posts publicly readable" on public.posts;
-create policy "Posts publicly readable"
-on public.posts
-for select
-using (status = 'live');
+That's it. The script:
+- Finds the newest folder in Downloads with a `manifest.json`
+- Places every file at its correct destination (creates folders as needed)
+- Forces UTF-8-no-BOM encoding (avoids the encoding bug we hit before)
+- Applies any post-deploy text patches the manifest specifies
+- Reports what it did
+- Tells you what to do next (usually `npm run build`)
 
-drop policy if exists "Creators insert their own posts" on public.posts;
-create policy "Creators insert their own posts"
-on public.posts
-for insert
-to authenticated
-with check (
-  creator_profile_id in (
-    select id from public.creator_profiles where user_id = auth.uid()
-  )
-);
+Optional flags:
 
-drop policy if exists "Creators update their own posts" on public.posts;
-create policy "Creators update their own posts"
-on public.posts
-for update
-to authenticated
-using (
-  creator_profile_id in (
-    select id from public.creator_profiles where user_id = auth.uid()
-  )
-)
-with check (
-  creator_profile_id in (
-    select id from public.creator_profiles where user_id = auth.uid()
-  )
-);
+- `-From "C:\path\to\folder"` — deploy from a specific folder instead of auto-finding
+- `-DryRun` — show what would happen without changing any files
 
-drop policy if exists "Creators delete their own posts" on public.posts;
-create policy "Creators delete their own posts"
-on public.posts
-for delete
-to authenticated
-using (
-  creator_profile_id in (
-    select id from public.creator_profiles where user_id = auth.uid()
-  )
-);
+## For v3 specifically (your current batch)
 
--- ━━━ channels: RLS policies ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The v3 batch I sent you didn't include a `manifest.json` because the deploy tool didn't exist yet. To deploy v3 with this tool:
 
-alter table public.channels enable row level security;
+1. Put all 16 v3 files PLUS the `manifest.json` from this bundle into a single folder, e.g. `Downloads\spotlightly-v3\`
+2. From your repo root:
+   ```powershell
+   cd C:\Users\cmm2s\OneDrive\Documents\GitHub\IFYKYK
+   .\tools\deploy.ps1
+   ```
+3. Run the SQL migration manually in Supabase SQL Editor (`01-migrations.sql` doesn't go in the repo)
+4. `npm run build` to verify
+5. `git add -A && git commit -m "feat: v3 batch" && git push`
 
-drop policy if exists "Channels publicly readable" on public.channels;
-create policy "Channels publicly readable"
-on public.channels
-for select
-using (is_visible is not false);
+If any file is missing, the script tells you exactly which one. If a patch can't find its target text, it skips and tells you (means it's already applied or the file changed).
 
-drop policy if exists "Creators manage own channels" on public.channels;
-create policy "Creators manage own channels"
-on public.channels
-for all
-to authenticated
-using (
-  creator_profile_id in (
-    select id from public.creator_profiles where user_id = auth.uid()
-  )
-)
-with check (
-  creator_profile_id in (
-    select id from public.creator_profiles where user_id = auth.uid()
-  )
-);
+## What goes in future batches
 
--- ━━━ Parental access tokens for Opening Act ━━━━━━━━━━━━━━━━━━━
+Every batch from here will be a folder containing:
+- All the `.ts` / `.tsx` / `.css` / `.json` source files
+- A `manifest.json` that knows where each one goes
+- Optionally `01-migrations.sql` or similar — these you still run manually in Supabase, they don't go in the repo
+- A `README.md` for context
 
-create table if not exists public.parental_tokens (
-  token uuid primary key default gen_random_uuid(),
-  child_user_id uuid not null references auth.users(id) on delete cascade,
-  parent_email text not null,
-  created_at timestamptz default now(),
-  revoked_at timestamptz
-);
+Drop the folder in Downloads, run `.\tools\deploy.ps1`, you're done in 5 seconds.
 
-alter table public.parental_tokens enable row level security;
+## What it doesn't do
 
--- Public can SELECT by token (the URL itself is the auth)
-drop policy if exists "Token holders can read" on public.parental_tokens;
-create policy "Token holders can read"
-on public.parental_tokens
-for select
-using (revoked_at is null);
+- Doesn't run SQL — that's still on you, paste into Supabase
+- Doesn't `npm run build` — runs after, you call it
+- Doesn't `git push` — you decide when to push
+- Doesn't manage env vars — that's `vercel env` and the `/admin` page
+- Doesn't deploy to production — Vercel does that on git push
 
--- Only the child can create one for themselves
-drop policy if exists "Child creates own parental token" on public.parental_tokens;
-create policy "Child creates own parental token"
-on public.parental_tokens
-for insert
-to authenticated
-with check (auth.uid() = child_user_id);
-
--- ━━━ Tip events ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
--- The tips table already exists per the handoff. Just ensure RLS.
-alter table public.tips enable row level security;
-
-drop policy if exists "Tips publicly readable" on public.tips;
-create policy "Tips publicly readable"
-on public.tips
-for select
-using (true);
-
--- ━━━ Done ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-select 'Migration complete. ' || count(*) || ' platform_settings keys seeded.'
-from public.platform_settings;
+It's a file-placer, not a CI/CD pipeline. The thing that was eating an hour per batch was placing files. That's the part it solves.
