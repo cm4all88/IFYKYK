@@ -391,7 +391,7 @@ export default function FeedPage() {
 
   return (
     <main className="spotlight-stage" style={{ minHeight: "100vh", paddingBottom: 96 }}>
-      <div className="spotlight-beam" aria-hidden="true" />
+      <div className="hero-bg-img" aria-hidden="true" />
 
       {/* Header */}
       <header style={{
