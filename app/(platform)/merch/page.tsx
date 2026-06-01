@@ -45,7 +45,7 @@ function ComingSoonOverlay() {
             margin: 0,
             textShadow: "0 0 30px rgba(242,184,75,0.4)",
           }}>
-            Coming June 2025
+            Coming soon
           </p>
         </div>
 

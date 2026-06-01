@@ -336,7 +336,6 @@ export default function AudienceAccountPage() {
                   <p style={{ fontSize:48, marginBottom:16, opacity:0.2 }}>✦</p>
                   <p style={{ fontFamily:"var(--font-serif)", fontSize:26, fontWeight:300, color:"var(--text-faint)", marginBottom:8 }}>No subscriptions yet.</p>
                   <p style={{ fontSize:14, color:"var(--muted-faint)" }}>Subscribe to a creator and they'll show up here.</p>
-                  <Link href="/explore" className="btn btn--primary" style={{ marginTop: "var(--s-5)" }}>Find creators →</Link>
                 </div>
               ) : null}
 

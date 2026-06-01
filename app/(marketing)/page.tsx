@@ -419,7 +419,7 @@ export default function LandingPage() {
           <div className="extras-note">
             <p className="kicker" style={{ marginBottom: 12 }}>How Spotlightly earns alongside you</p>
             <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 680 }}>
-              Our revenue comes from optional fan features — Front Row Messages (50/50 split with you), Super Tips (85% to you), Comment Boosts, and Early Access Passes — rolling out through 2025.
+              Our revenue comes from optional fan features — Front Row Messages (50/50 split with you), Super Tips (85% to you), Comment Boosts, and Early Access Passes — rolling out through 2026.
               <strong style={{ color: "var(--text)" }}> We make money when your fans want to do more, not by taxing what you already earn.</strong>
             </p>
           </div>

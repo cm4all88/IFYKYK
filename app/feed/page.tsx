@@ -286,7 +286,6 @@ function EmptyState() {
       <p className="empty-state-body" style={{ maxWidth: 360, margin: "0 auto var(--s-8)" }}>
         Subscribe to a few creators and their work fills this space — your own curated lineup, no algorithm deciding for you.
       </p>
-      <Link href="/explore" className="btn btn--primary">Find creators →</Link>
     </div>
   );
 }
