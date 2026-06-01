@@ -4,6 +4,7 @@ import "@/app/design.css";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import InterestPicker from "@/app/(auth)/fan-signup/InterestPicker";
 
 type Filter = "all" | "video" | "image" | "text" | "locked";
 
@@ -326,12 +327,17 @@ export default function FeedPage() {
   const [isCreator, setIsCreator] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [cursor, setCursor] = useState<string | null>(null);
+  const [needsInterests, setNeedsInterests] = useState<boolean | null>(null);
 
   useEffect(() => {
-    fetch("/api/profile/me")
-      .then(r => r.json())
-      .then(d => setIsCreator(!!d?.profile))
-      .catch(() => {});
+    (async () => {
+      const me = await fetch("/api/profile/me").then(r => r.json()).catch(() => null);
+      const creator = !!me?.profile;
+      setIsCreator(creator);
+      if (creator) { setNeedsInterests(false); return; }
+      const ints = await fetch("/api/fan/interests").then(r => r.json()).catch(() => ({ interests: [] }));
+      setNeedsInterests(((ints?.interests ?? []).length === 0));
+    })();
   }, []);
 
   async function load(f: Filter, cur: string | null, append = false) {
@@ -356,7 +362,7 @@ export default function FeedPage() {
     setLoadingMore(false);
   }
 
-  useEffect(() => { load(filter, null, false); }, [filter]);
+  useEffect(() => { if (needsInterests === false) load(filter, null, false); }, [filter, needsInterests]);
 
   function loadMore() {
     if (!posts.length) return;
@@ -372,6 +378,15 @@ export default function FeedPage() {
     const last = grouped[grouped.length - 1];
     if (last && last.label === label) last.posts.push(post);
     else grouped.push({ label, posts: [post] });
+  }
+
+  if (needsInterests === true) {
+    return (
+      <InterestPicker
+        returnUrl="/feed"
+        onDone={() => { setNeedsInterests(false); load(filter, null, false); }}
+      />
+    );
   }
 
   return (

@@ -5,9 +5,10 @@ import { CREATOR_CATEGORIES } from "@/lib/categories";
 
 interface Props {
   returnUrl: string;
+  onDone?: () => void;
 }
 
-export default function InterestPicker({ returnUrl }: Props) {
+export default function InterestPicker({ returnUrl, onDone }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -25,6 +26,7 @@ export default function InterestPicker({ returnUrl }: Props) {
         body: JSON.stringify({ categories: selected }),
       });
     }
+    if (onDone) { onDone(); return; }
     router.push(returnUrl);
   }
 
