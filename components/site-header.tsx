@@ -17,6 +17,16 @@ export default async function SiteHeader({
 
   const isAdmin = user?.id === ADMIN_ID;
 
+  let isCreator = false;
+  if (user) {
+    const { data: prof } = await supabase
+      .from("creator_profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    isCreator = !!prof;
+  }
+
   return (
     <header className={`sh sh--${variant}`}>
       <div className="sh-inner">
@@ -36,9 +46,15 @@ export default async function SiteHeader({
                 Account
               </Link>
               <NotificationBell userId={user.id} />
-              <Link href="/dashboard" className="sh-link">
-                Dashboard
-              </Link>
+              {isCreator ? (
+                <Link href="/dashboard" className="sh-link">
+                  Dashboard
+                </Link>
+              ) : (
+                <Link href="/feed" className="sh-link">
+                  Feed
+                </Link>
+              )}
               {isAdmin && (
                 <Link href="/admin" className="sh-link" style={{ color: "var(--accent)" }}>
                   Admin

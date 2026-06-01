@@ -523,10 +523,12 @@ export default function AudienceAccountPage() {
               </form>
 
               {/* Notification prefs */}
-              {activeSubs.length > 0 && (
-                <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", marginBottom: "var(--s-4)" }}>
+              <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", marginBottom: "var(--s-4)" }}>
                   <p className="kicker" style={{ marginBottom: "var(--s-5)" }}>Email notifications</p>
                   <p className="text-faint" style={{ fontSize: 13, marginBottom: "var(--s-5)" }}>Get emailed when creators you follow post new content or go live.</p>
+                  {activeSubs.length === 0 ? (
+                    <p className="text-faint" style={{ fontSize: 13 }}>You&apos;re not following anyone yet — once you subscribe to a creator, you can switch their new-post and live emails on or off right here.</p>
+                  ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
                     {activeSubs.map((s: any) => {
                       const key = s.creator?.handle;
@@ -551,8 +553,8 @@ export default function AudienceAccountPage() {
                       );
                     })}
                   </div>
+                  )}
                 </div>
-              )}
 
               {/* Sign out */}
               <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

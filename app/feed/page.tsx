@@ -430,9 +430,6 @@ export default function FeedPage() {
           <h1 className="feed-hero" style={{ fontSize: "clamp(38px, 7vw, 60px)", marginBottom: 14 }}>
             Tonight's <em>lineup.</em>
           </h1>
-          <p style={{ fontSize: 15, color: "var(--text-faint)", margin: "0 auto", maxWidth: 420, lineHeight: 1.6 }}>
-            Everyone you follow, in one place — on their terms, not an algorithm's.
-          </p>
         </div>
 
         <LiveNowSection streams={liveStreams} />

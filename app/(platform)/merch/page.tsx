@@ -194,7 +194,7 @@ export default function MerchPage() {
               <div style={{ fontSize: 40, marginBottom: 16 }}>👕</div>
               <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 26, fontWeight: 300, color: "#fff", marginBottom: 10 }}>No merch yet.</h2>
               <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 24 }}>Upload your first design and go live in minutes.</p>
-              <Link href="/merch/new" style={{ display: "inline-block", background: "var(--accent)", color: "#09090C", fontWeight: 700, fontSize: 13, padding: "12px 28px", borderRadius: 999, textDecoration: "none" }}>
+              <Link href="/merch/create" style={{ display: "inline-block", background: "var(--accent)", color: "#09090C", fontWeight: 700, fontSize: 13, padding: "12px 28px", borderRadius: 999, textDecoration: "none" }}>
                 Create your first product →
               </Link>
             </div>
@@ -215,7 +215,7 @@ export default function MerchPage() {
               <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)" }}>
                 {products.length} product{products.length !== 1 ? "s" : ""} live
               </p>
-              <Link href="/merch/new" style={{ background: "var(--accent)", color: "#09090C", fontWeight: 700, fontSize: 12, padding: "8px 18px", borderRadius: 999, textDecoration: "none", fontFamily: "var(--font-mono)", letterSpacing: ".05em" }}>
+              <Link href="/merch/create" style={{ background: "var(--accent)", color: "#09090C", fontWeight: 700, fontSize: 12, padding: "8px 18px", borderRadius: 999, textDecoration: "none", fontFamily: "var(--font-mono)", letterSpacing: ".05em" }}>
                 + Add product
               </Link>
             </div>

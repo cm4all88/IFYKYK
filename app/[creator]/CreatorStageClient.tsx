@@ -259,16 +259,23 @@ export default function CreatorStageClient({
               <img src={activePost.media_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
             )}
             {activePost?.media_url && activePost.media_type === "video" && (
-              <iframe
-                src={activePost.media_url.includes("iframe.mediadelivery.net")
-                  ? `${activePost.media_url}&responsive=true&autoplay=false`
-                  : `https://iframe.mediadelivery.net/embed/placeholder?src=${encodeURIComponent(activePost.media_url)}`
-                }
-                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                allowFullScreen
-                onClick={e => { e.stopPropagation(); }}
-              />
+              activePost.media_url.includes("iframe.mediadelivery.net") ? (
+                <iframe
+                  src={`${activePost.media_url}&responsive=true&autoplay=false`}
+                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  onClick={e => { e.stopPropagation(); }}
+                />
+              ) : (
+                <video
+                  src={activePost.media_url}
+                  controls
+                  playsInline
+                  style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: "block" }}
+                  onClick={e => { e.stopPropagation(); }}
+                />
+              )
             )}
             {(!activePost?.media_url) && (
               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
