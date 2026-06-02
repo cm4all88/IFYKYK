@@ -192,7 +192,6 @@ export default function SignupPage() {
       if (insertErr) throw insertErr;
 
       fetch("/api/email/welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email }) }).catch(() => {});
-      fetch("/api/billing", { method: "POST" }).catch(() => {});
 
       const refHandle = typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")
@@ -206,6 +205,12 @@ export default function SignupPage() {
         localStorage.removeItem("spotlightly_creator_ref");
       }
 
+      // Card required: send them to Stripe to add a card (starts the 30-day free trial).
+      try {
+        const bRes = await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+        const bJson = await bRes.json().catch(() => ({} as any));
+        if (bJson?.url) { window.location.href = bJson.url; return; }
+      } catch { /* fall through */ }
       router.push("/onboarding");
     } catch (e: any) {
       setFormErr(e?.message ?? "Something went wrong creating your account.");

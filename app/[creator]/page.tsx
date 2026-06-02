@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
+import { isCreatorProfileLocked } from "@/lib/billing";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
@@ -520,6 +521,10 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
+
+  if (await isCreatorProfileLocked(supabase, creatorProfileId)) {
+    return <p style={{ fontSize: 13, color: "var(--muted)", textAlign: "center" }}>This creator is currently unavailable.</p>;
+  }
 
   // Load tiers
   const { data: tiers } = await (supabase as any)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { isCreatorProfileLocked } from "@/lib/billing";
 import { getSecrets } from "@/lib/settings";
 import { createHash } from "crypto";
 
@@ -24,6 +25,12 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = await createClient();
+
+  if (await isCreatorProfileLocked(supabase, creatorProfileId)) {
+    const { data: cp } = await (supabase as any).from("creator_profiles").select("handle").eq("id", creatorProfileId).maybeSingle();
+    return NextResponse.redirect(new URL(`/${cp?.handle ?? ""}?unavailable=1`, req.url));
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { isCreatorProfileLocked } from "@/lib/billing";
 import { getSecrets } from "@/lib/settings";
 
 export async function POST(req: NextRequest) {
@@ -24,6 +25,10 @@ export async function POST(req: NextRequest) {
   if (!tier) return NextResponse.json({ error: "Tier not found" }, { status: 404 });
   if (!tier.creator?.stripe_account_id) {
     return NextResponse.json({ error: "Creator has not connected Stripe yet" }, { status: 400 });
+  }
+
+  if (await isCreatorProfileLocked(supabase, tier.creator.id)) {
+    return NextResponse.json({ error: "This creator is currently unavailable." }, { status: 403 });
   }
 
   // Validate yearly is offered

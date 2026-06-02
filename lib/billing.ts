@@ -84,3 +84,88 @@ export async function getPriceId(tier: TierKey, secretKey: string): Promise<stri
   const prices = await getOrCreateStripePrices(secretKey);
   return prices[tier];
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Lock + fairness helpers (card-required billing)
+// ─────────────────────────────────────────────────────────────────────────
+
+export type BillingLockRow = {
+  status?: string | null;
+  trial_ends_at?: string | null;
+  grace_ends_at?: string | null;
+} | null | undefined;
+
+/**
+ * Is a creator locked out for non-payment?
+ *  - active                       → unlocked
+ *  - trial (not expired)          → unlocked
+ *  - past_due within grace window → unlocked (grace)
+ *  - past_due, grace expired      → locked
+ *  - cancelled / incomplete / no row → locked
+ */
+export function isBillingLocked(b: BillingLockRow): boolean {
+  if (!b || !b.status) return true;
+  const now = Date.now();
+  if (b.status === "active") return false;
+  if (b.status === "trial") {
+    if (b.trial_ends_at && new Date(b.trial_ends_at).getTime() < now) return true;
+    return false;
+  }
+  if (b.status === "past_due") {
+    if (b.grace_ends_at && new Date(b.grace_ends_at).getTime() > now) return false; // in grace
+    return true; // grace expired
+  }
+  return true; // cancelled, incomplete, anything else
+}
+
+/** Lock state for the owner of a given creator profile. */
+export async function isCreatorProfileLocked(supabase: any, creatorProfileId: string): Promise<boolean> {
+  const { data: prof } = await supabase
+    .from("creator_profiles").select("user_id").eq("id", creatorProfileId).maybeSingle();
+  if (!prof?.user_id) return false; // unknown owner — don't block
+  const { data: billing } = await supabase
+    .from("creator_billing").select("status, trial_ends_at, grace_ends_at").eq("user_id", prof.user_id).maybeSingle();
+  return isBillingLocked(billing);
+}
+
+/**
+ * Fair-to-fans: when a creator is locked, stop FUTURE charges on their fans'
+ * subscriptions (cancel at period end) so nobody pays for a dark creator —
+ * but fans keep the period they already paid for and anything they already bought.
+ */
+export async function pauseFanSubscriptionsForCreator(supabase: any, stripeSecretKey: string, userId: string) {
+  const { data: profiles } = await supabase.from("creator_profiles").select("id").eq("user_id", userId);
+  const ids = (profiles ?? []).map((p: any) => p.id);
+  if (ids.length === 0) return;
+  const { data: subs } = await supabase
+    .from("subscriptions").select("id, stripe_subscription_id").in("creator_profile_id", ids).eq("status", "active");
+  for (const s of subs ?? []) {
+    if (s.stripe_subscription_id) {
+      await fetch(`https://api.stripe.com/v1/subscriptions/${s.stripe_subscription_id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${stripeSecretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ cancel_at_period_end: "true" }).toString(),
+      }).catch(() => {});
+    }
+    await supabase.from("subscriptions").update({ status: "cancelling" }).eq("id", s.id);
+  }
+}
+
+/** Reverse of the above — when a creator reactivates, let fan subs renew again. */
+export async function resumeFanSubscriptionsForCreator(supabase: any, stripeSecretKey: string, userId: string) {
+  const { data: profiles } = await supabase.from("creator_profiles").select("id").eq("user_id", userId);
+  const ids = (profiles ?? []).map((p: any) => p.id);
+  if (ids.length === 0) return;
+  const { data: subs } = await supabase
+    .from("subscriptions").select("id, stripe_subscription_id").in("creator_profile_id", ids).eq("status", "cancelling");
+  for (const s of subs ?? []) {
+    if (s.stripe_subscription_id) {
+      await fetch(`https://api.stripe.com/v1/subscriptions/${s.stripe_subscription_id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${stripeSecretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ cancel_at_period_end: "false" }).toString(),
+      }).catch(() => {});
+    }
+    await supabase.from("subscriptions").update({ status: "active" }).eq("id", s.id);
+  }
+}

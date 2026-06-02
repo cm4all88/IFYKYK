@@ -82,6 +82,17 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // ── Billing lock — bounce a locked creator to the Billing pane ──
+  const [billingLock, setBillingLock] = useState<{ locked: boolean; graceDaysLeft: number | null; status?: string } | null>(null);
+  useEffect(() => {
+    fetch("/api/billing").then(r => r.json()).then(d => {
+      setBillingLock({ locked: !!d.locked, graceDaysLeft: d.graceDaysLeft ?? null, status: d.billing?.status });
+    }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (billingLock?.locked && pane !== "billing") setPane("billing");
+  }, [billingLock, pane]);
+
   const [linkedToggle, setLinkedToggle] = useState(false);
   const [savingLink, setSavingLink] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -2008,16 +2019,7 @@ function BillingPane() {
     async function loadBilling() {
       const res = await fetch("/api/billing");
       const d = await res.json();
-      // Auto-create billing record if none exists
-      if (!d.billing) {
-        const createRes = await fetch("/api/billing", { method: "POST" });
-        const created = await createRes.json();
-        const refetch = await fetch("/api/billing");
-        const fresh = await refetch.json();
-        setData(fresh);
-      } else {
-        setData(d);
-      }
+      setData(d);
       setLoading(false);
     }
     loadBilling();
@@ -2039,6 +2041,15 @@ function BillingPane() {
     else { alert(d.error ?? "Could not open payment setup"); setOpeningPortal(false); }
   }
 
+  // Start the trial (card-required Checkout) or reactivate after a lock.
+  async function startOrReactivate() {
+    setOpeningPortal(true);
+    const res = await fetch("/api/billing", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    const d = await res.json();
+    if (d.url) { window.location.href = d.url; return; }
+    const r = await fetch("/api/billing"); setData(await r.json()); setOpeningPortal(false);
+  }
+
   const TIER_ORDER = ["starter", "growth", "pro", "scale", "legend"];
   const TIER_INFO: Record<string, { name: string; maxSubs: number; priceUsd: number; label: string }> = {
     starter: { name: "Starter",  maxSubs: 100,      priceUsd: 29,    label: "Up to 100 subscribers" },
@@ -2058,9 +2069,40 @@ function BillingPane() {
       {loading ? (
         <p style={{ fontSize: 13, color: "var(--muted)" }}>Loading…</p>
       ) : !data?.billing ? (
-        <p style={{ fontSize: 13, color: "var(--muted)" }}>Setting up your account…</p>
+        <div style={{ maxWidth: 560 }}>
+          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6) var(--s-7)" }}>
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 24, fontWeight: 400, color: "#fff", margin: "0 0 8px" }}>Start your free trial</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.7, margin: "0 0 16px" }}>
+              30 days free. Add a card to unlock your dashboard — you won&apos;t be charged until the trial ends, and you can cancel anytime.
+            </p>
+            <button onClick={startOrReactivate} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 13 }}>
+              {openingPortal ? "Opening…" : "Add payment method →"}
+            </button>
+          </div>
+        </div>
       ) : (
         <div style={{ maxWidth: 560 }}>
+
+          {data.locked && (
+            <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "var(--r-3)", padding: "var(--s-5) var(--s-6)", marginBottom: 2 }}>
+              <p style={{ fontSize: 14, color: "rgba(248,113,113,0.95)", margin: "0 0 10px", lineHeight: 1.6 }}>
+                <strong>Your account is paused.</strong> Add a working card to post and accept subscriptions again — your posts and subscribers are safe.
+              </p>
+              <button onClick={startOrReactivate} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 12 }}>
+                {openingPortal ? "Opening…" : "Reactivate →"}
+              </button>
+            </div>
+          )}
+          {!data.locked && data.billing.status === "past_due" && (
+            <div style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: "var(--r-3)", padding: "var(--s-5) var(--s-6)", marginBottom: 2 }}>
+              <p style={{ fontSize: 14, color: "rgba(248,113,113,0.9)", margin: "0 0 10px", lineHeight: 1.6 }}>
+                <strong>Your card was declined.</strong> You have {data.graceDaysLeft ?? 0} day{(data.graceDaysLeft ?? 0) === 1 ? "" : "s"} to update it before your account is paused.
+              </p>
+              <button onClick={openPortal} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 12 }}>
+                {openingPortal ? "Opening…" : "Update card →"}
+              </button>
+            </div>
+          )}
 
           {/* Status card */}
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6) var(--s-7)", marginBottom: 2 }}>

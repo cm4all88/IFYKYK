@@ -1,44 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
-import { tierForCount, getPriceId, TIERS, type TierKey, getOrCreateStripePrices } from "@/lib/billing";
+import { tierForCount, getPriceId, getOrCreateStripePrices, TIERS, type TierKey, isBillingLocked } from "@/lib/billing";
 
-// GET — return current billing status for the logged-in creator
+// GET — current billing status for the logged-in creator
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: billing } = await (supabase as any)
-    .from("creator_billing")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .from("creator_billing").select("*").eq("user_id", user.id).maybeSingle();
 
-  if (!billing) return NextResponse.json({ billing: null });
+  if (!billing) return NextResponse.json({ billing: null, locked: true });
 
-  // Get current subscriber count across all profiles
+  // Current subscriber count across all of this creator's profiles
   const { data: profiles } = await (supabase as any)
-    .from("creator_profiles")
-    .select("id")
-    .eq("user_id", user.id);
-
+    .from("creator_profiles").select("id").eq("user_id", user.id);
   const profileIds = (profiles ?? []).map((p: any) => p.id);
   let subscriberCount = 0;
-
   if (profileIds.length > 0) {
     const { count } = await (supabase as any)
-      .from("subscriptions")
-      .select("id", { count: "exact", head: true })
-      .in("creator_profile_id", profileIds)
-      .eq("status", "active");
+      .from("subscriptions").select("id", { count: "exact", head: true })
+      .in("creator_profile_id", profileIds).eq("status", "active");
     subscriberCount = count ?? 0;
   }
 
   const correctTier = tierForCount(subscriberCount);
-  const trialDaysLeft = billing.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(billing.trial_ends_at).getTime() - Date.now()) / 86400000))
-    : null;
+  const days = (iso: string | null) => iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)) : null;
 
   return NextResponse.json({
     billing,
@@ -46,86 +35,101 @@ export async function GET() {
     correctTier,
     tierInfo: TIERS[billing.tier as TierKey],
     correctTierInfo: TIERS[correctTier],
-    trialDaysLeft,
+    trialDaysLeft: days(billing.trial_ends_at),
+    graceDaysLeft: billing.status === "past_due" ? days(billing.grace_ends_at) : null,
+    locked: isBillingLocked(billing),
     needsUpgrade: correctTier !== billing.tier && billing.status === "active",
   });
 }
 
-// POST — start trial subscription (called on first creator signup)
+// POST — start (or reactivate) the platform subscription.
+// Card required: redirects to Stripe Checkout (30-day trial, auto-bills after).
+// Body { session_id } confirms a returned Checkout session into a billing row.
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Already has billing?
-  const { data: existing } = await (supabase as any)
-    .from("creator_billing")
-    .select("id, status")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (existing) return NextResponse.json({ billing: existing, alreadyExists: true });
+  let body: any = {};
+  try { body = await req.json(); } catch { /* empty body is fine */ }
 
   const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
+
+  // ── Confirm path: turn a completed Checkout session into a billing row ──
+  if (body?.session_id && STRIPE_SECRET_KEY) {
+    const sRes = await fetch(`https://api.stripe.com/v1/checkout/sessions/${body.session_id}`, {
+      headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+    });
+    const session = await sRes.json();
+    if (session?.subscription && session?.customer) {
+      const subRes = await fetch(`https://api.stripe.com/v1/subscriptions/${session.subscription}`, {
+        headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+      });
+      const sub = await subRes.json();
+      const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString();
+      const status = sub.status === "trialing" ? "trial" : sub.status === "active" ? "active" : "trial";
+      await (supabase as any).from("creator_billing").upsert({
+        user_id: user.id,
+        stripe_customer_id: session.customer,
+        stripe_subscription_id: session.subscription,
+        status,
+        tier: "starter",
+        trial_ends_at: trialEnd,
+        current_period_end: trialEnd,
+        grace_ends_at: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+    }
+    const { data: billing } = await (supabase as any).from("creator_billing").select("*").eq("user_id", user.id).maybeSingle();
+    return NextResponse.json({ billing });
+  }
+
+  // Already set up and in good standing? Nothing to do.
+  const { data: existing } = await (supabase as any)
+    .from("creator_billing").select("id, status").eq("user_id", user.id).maybeSingle();
+  if (existing && existing.status !== "cancelled" && existing.status !== "incomplete") {
+    return NextResponse.json({ billing: existing, alreadyExists: true });
+  }
+
+  // No Stripe configured (local/dev) — create a trial record so the app is usable.
   if (!STRIPE_SECRET_KEY) {
-    // No Stripe configured — create a trial record without Stripe
     const trialEnd = new Date(Date.now() + 30 * 86400000).toISOString();
     const { data: billing } = await (supabase as any)
       .from("creator_billing")
-      .insert({ user_id: user.id, status: "trial", tier: "starter", trial_ends_at: trialEnd })
+      .upsert({ user_id: user.id, status: "trial", tier: "starter", trial_ends_at: trialEnd }, { onConflict: "user_id" })
       .select().single();
     return NextResponse.json({ billing });
   }
 
-  // Ensure Stripe prices exist for all tiers (creates them if missing)
+  // ── Card-required Checkout: subscription mode, 30-day trial, auto-bills ──
   try { await getOrCreateStripePrices(STRIPE_SECRET_KEY); } catch { /* non-fatal */ }
-
-  // Create Stripe customer
-  const customerParams = new URLSearchParams({
-    email: user.email ?? "",
-    "metadata[user_id]": user.id,
-    "metadata[platform]": "spotlightly",
-  });
-  const custRes = await fetch("https://api.stripe.com/v1/customers", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: customerParams.toString(),
-  });
-  const customer = await custRes.json();
-
-  // Get starter price ID
   const priceId = await getPriceId("starter", STRIPE_SECRET_KEY);
+  const origin = new URL(req.url).origin;
 
-  // Create subscription with 30-day trial, no card required upfront
-  const subParams = new URLSearchParams({
-    customer: customer.id,
-    "items[0][price]": priceId,
-    trial_period_days: "30",
-    "trial_settings[end_behavior][missing_payment_method]": "cancel",
-    "metadata[user_id]": user.id,
-    "metadata[tier]": "starter",
-  });
-  const subRes = await fetch("https://api.stripe.com/v1/subscriptions", {
+  const params = new URLSearchParams();
+  params.set("mode", "subscription");
+  params.set("payment_method_collection", "always");          // card required even during trial
+  params.set("line_items[0][price]", priceId);
+  params.set("line_items[0][quantity]", "1");
+  params.set("subscription_data[trial_period_days]", "30");
+  params.set("subscription_data[metadata][user_id]", user.id);
+  params.set("subscription_data[metadata][platform]", "spotlightly");
+  params.set("subscription_data[metadata][tier]", "starter");
+  params.set("metadata[user_id]", user.id);
+  params.set("metadata[platform]", "spotlightly");
+  params.set("metadata[type]", "platform_subscription");
+  params.set("customer_email", user.email ?? "");
+  params.set("success_url", `${origin}/onboarding?billing={CHECKOUT_SESSION_ID}`);
+  params.set("cancel_url", `${origin}/dashboard?pane=billing&billing=cancelled`);
+
+  const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: subParams.toString(),
+    body: params.toString(),
   });
-  const subscription = await subRes.json();
-
-  const trialEnd = new Date(subscription.trial_end * 1000).toISOString();
-
-  const { data: billing } = await (supabase as any)
-    .from("creator_billing")
-    .insert({
-      user_id: user.id,
-      stripe_customer_id: customer.id,
-      stripe_subscription_id: subscription.id,
-      status: "trial",
-      tier: "starter",
-      trial_ends_at: trialEnd,
-      current_period_end: trialEnd,
-    })
-    .select().single();
-
-  return NextResponse.json({ billing });
+  const session = await res.json();
+  if (!session?.url) {
+    return NextResponse.json({ error: session?.error?.message ?? "Could not start billing setup" }, { status: 500 });
+  }
+  return NextResponse.json({ url: session.url, checkout: true });
 }

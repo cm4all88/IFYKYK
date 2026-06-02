@@ -65,6 +65,35 @@ export async function POST(req: NextRequest) {
     const meta = s.metadata ?? {};
     const type = meta.type;
 
+    // ── Platform subscription (creator's monthly fee) ───────────────
+    if (type === "platform_subscription" && s.subscription && meta.user_id) {
+      let trialEnd = new Date(Date.now() + 30 * 86400000).toISOString();
+      let billingStatus = "trial";
+      try {
+        const { getSecrets } = await import("@/lib/settings");
+        const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
+        if (STRIPE_SECRET_KEY) {
+          const subRes = await fetch(`https://api.stripe.com/v1/subscriptions/${s.subscription}`, {
+            headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+          });
+          const sub = await subRes.json();
+          if (sub.trial_end) trialEnd = new Date(sub.trial_end * 1000).toISOString();
+          billingStatus = sub.status === "trialing" ? "trial" : sub.status === "active" ? "active" : "trial";
+        }
+      } catch { /* defaults are fine */ }
+      await (supabase as any).from("creator_billing").upsert({
+        user_id: meta.user_id,
+        stripe_customer_id: s.customer,
+        stripe_subscription_id: s.subscription,
+        status: billingStatus,
+        tier: "starter",
+        trial_ends_at: trialEnd,
+        current_period_end: trialEnd,
+        grace_ends_at: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
+    }
+
     // ── Tip ─────────────────────────────────────────────────────────
     if (type === "tip") {
       const amount = (s.amount_total ?? 0) / 100;
@@ -409,6 +438,12 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
 
       // If cancelled — send retention email
       if (sub.status === "canceled" && meta.user_id) {
+        try {
+          const { getSecrets } = await import("@/lib/settings");
+          const { pauseFanSubscriptionsForCreator } = await import("@/lib/billing");
+          const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
+          if (STRIPE_SECRET_KEY) await pauseFanSubscriptionsForCreator(supabase, STRIPE_SECRET_KEY, meta.user_id);
+        } catch { /* non-fatal */ }
         const { data: au } = await supabase.auth.admin.getUserById(meta.user_id);
         if (au?.user?.email) {
           fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
@@ -478,6 +513,18 @@ Add a payment method before then to keep your creator account active. If you don
         .maybeSingle();
 
       if (billing) {
+        // Real payment cleared — lift any past-due/grace and reactivate.
+        if ((invoice.amount_paid ?? 0) > 0) {
+          await (supabase as any).from("creator_billing")
+            .update({ status: "active", grace_ends_at: null, last_dunning_warned_at: null, updated_at: new Date().toISOString() })
+            .eq("stripe_subscription_id", invoice.subscription);
+          try {
+            const { getSecrets } = await import("@/lib/settings");
+            const { resumeFanSubscriptionsForCreator } = await import("@/lib/billing");
+            const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
+            if (STRIPE_SECRET_KEY) await resumeFanSubscriptionsForCreator(supabase, STRIPE_SECRET_KEY, billing.user_id);
+          } catch { /* non-fatal */ }
+        }
         // Count current subscribers
         const { data: profiles } = await (supabase as any)
           .from("creator_profiles").select("id").eq("user_id", billing.user_id);
@@ -536,11 +583,17 @@ Add a payment method before then to keep your creator account active. If you don
     if (invoice.subscription) {
       const { data: billing } = await (supabase as any)
         .from("creator_billing")
-        .select("user_id")
+        .select("user_id, grace_ends_at")
         .eq("stripe_subscription_id", invoice.subscription)
         .maybeSingle();
 
       if (billing) {
+        // Declined card → past_due with a 7-day grace window (set once per cycle).
+        const graceEnds = billing.grace_ends_at ?? new Date(Date.now() + 7 * 86400000).toISOString();
+        await (supabase as any).from("creator_billing")
+          .update({ status: "past_due", grace_ends_at: graceEnds, last_dunning_warned_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq("stripe_subscription_id", invoice.subscription);
+
         const { data: au } = await supabase.auth.admin.getUserById(billing.user_id);
         if (au?.user?.email) {
           fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
