@@ -720,7 +720,7 @@ function ProfilePane({
       .eq("kind", profile.kind);
 
     // Save tags and location separately (new columns may not be in generated types)
-    await (supabase as any).from("creator_profiles").update({
+    const { error: error2 } = await (supabase as any).from("creator_profiles").update({
       tags,
       location_city: locationCity.trim() || null,
       location_country: locationCountry.trim() || null,
@@ -730,7 +730,7 @@ function ProfilePane({
       social_links: socialLinks,
     }).eq("user_id", profile.user_id).eq("kind", profile.kind);
 
-    if (error) setErr(error.message);
+    if (error || error2) setErr((error || error2).message);
     else {
       setSavedAt(Date.now());
       onSaved();
@@ -842,6 +842,7 @@ function ProfilePane({
               { key:"social_youtube",   label:"YouTube",     ph:"https://youtube.com/@you" },
               { key:"social_twitter",   label:"X / Twitter", ph:"https://x.com/you" },
               { key:"social_twitch",    label:"Twitch",      ph:"https://twitch.tv/you" },
+              { key:"social_snapchat",  label:"Snapchat",    ph:"https://snapchat.com/add/you" },
               { key:"social_discord",   label:"Discord",     ph:"https://discord.gg/server" },
               { key:"social_substack",  label:"Substack",    ph:"https://you.substack.com" },
               { key:"social_website",   label:"Website",     ph:"https://yoursite.com" },

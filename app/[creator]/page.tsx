@@ -21,6 +21,7 @@ import LiveStreamView from "@/components/LiveStreamView";
 import CreatorStageClient from "./CreatorStageClient";
 import SocialAddbacks from "./SocialAddbacks";
 import CreatorMarketplace from "./CreatorMarketplace";
+import SocialPostCard from "@/components/SocialPostCard";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -90,6 +91,13 @@ async function fetchEverything(handle: string) {
     .limit(12);
 
   // Fetch active campaigns
+  const { data: socialPosts } = await (supabase as any)
+    .from("social_posts")
+    .select("*")
+    .eq("creator_id", spotlight.id)
+    .order("pinned", { ascending: false })
+    .order("original_posted_at", { ascending: false, nullsFirst: false });
+
   const { data: campaigns } = await (supabase as any)
     .from("campaigns")
     .select("*, donations:campaign_donations(amount)")
@@ -166,6 +174,7 @@ async function fetchEverything(handle: string) {
     subscriptionTiers: subscriptionTiers ?? [],
     liveStream: liveStream ?? null,
     superTips: superTips ?? [],
+    socialPosts: socialPosts ?? [],
   };
 }
 
@@ -194,7 +203,7 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream } = data;
+  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream, socialPosts } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   return (
@@ -275,6 +284,17 @@ export default async function CreatorPage(props: {
             <div className="cp-card-grid">
               {digitalProducts.map((pr: any) => (
                 <DigitalProductCard key={pr.id} product={pr} creatorProfileId={spotlight.id} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {socialPosts.length > 0 && (
+          <section className="cp-digital">
+            <h2 className="cp-section-title">From around the web</h2>
+            <div className="cp-social-grid">
+              {socialPosts.map((sp: any) => (
+                <SocialPostCard key={sp.id} post={sp} />
               ))}
             </div>
           </section>
@@ -458,6 +478,7 @@ export default async function CreatorPage(props: {
           .cp-campaigns, .cp-digital, .cp-wishlist { padding:0 var(--s-6) var(--s-8); }
           .cp-section-title { font-family:'Cormorant Garamond',serif; font-size:28px; font-weight:300; color:#fff; max-width:900px; margin:0 auto 16px; }
           .cp-card-grid { max-width:900px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+          .cp-social-grid { max-width:900px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; align-items:start; }
           .cp-campaign-list { max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
           .cp-campaign { background:#111115; border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:24px; }
           .cp-campaign-head { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:8px; }

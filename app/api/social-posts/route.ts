@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
     .from('creator_profiles')
     .select('id')
     .eq('user_id', session.user.id)
-    .single()
+    .eq('kind', 'spotlight')
+    .maybeSingle()
 
   if (!profile) return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
 
@@ -85,7 +86,8 @@ export async function DELETE(req: NextRequest) {
     .from('creator_profiles')
     .select('id')
     .eq('user_id', session.user.id)
-    .single()
+    .eq('kind', 'spotlight')
+    .maybeSingle()
 
   if (!profile) return NextResponse.json({ error: 'Creator profile not found' }, { status: 404 })
 
