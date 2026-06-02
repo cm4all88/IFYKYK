@@ -21,6 +21,10 @@ export default function SocialPostsManager() {
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<Partial<SocialPost> | null>(null)
+  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkText, setBulkText] = useState('')
+  const [bulkRunning, setBulkRunning] = useState(false)
+  const [bulkStatus, setBulkStatus] = useState<string | null>(null)
 
   useEffect(() => {
     loadPosts()
@@ -77,6 +81,53 @@ export default function SocialPostsManager() {
     }
   }
 
+  async function handleBulkAdd() {
+    const urls = Array.from(new Set(
+      bulkText.split(/[\n,]+/).map(u => u.trim()).filter(Boolean)
+    ))
+    if (urls.length === 0) return
+    setBulkRunning(true)
+    setError(null)
+    let added = 0
+    const failed: string[] = []
+
+    for (let i = 0; i < urls.length; i++) {
+      const u = urls[i]
+      setBulkStatus(`Adding ${i + 1} of ${urls.length}…`)
+      try {
+        const oe = await fetch('/api/social-posts/fetch-oembed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: u }),
+        })
+        const oeData = await oe.json()
+        if (!oe.ok) throw new Error(oeData.error || 'fetch failed')
+
+        const add = await fetch('/api/social-posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...oeData, url: u }),
+        })
+        const addData = await add.json()
+        if (!add.ok) throw new Error(addData.error || 'add failed')
+        setPosts(prev => [addData.post, ...prev])
+        added++
+      } catch {
+        failed.push(u)
+      }
+    }
+
+    setBulkRunning(false)
+    setBulkStatus(null)
+    setBulkText(failed.join('\n'))
+    if (failed.length === 0) {
+      setError(null)
+      setBulkMode(false)
+    } else {
+      setError(`Added ${added}. ${failed.length} couldn't be added (left in the box) — these are usually private posts or unsupported links.`)
+    }
+  }
+
   async function handleDelete(id: string) {
     const res = await fetch(`/api/social-posts?id=${id}`, { method: 'DELETE' })
     if (res.ok) setPosts(prev => prev.filter(p => p.id !== id))
@@ -110,7 +161,25 @@ export default function SocialPostsManager() {
         </p>
       </div>
 
+      {/* Single / bulk toggle */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+        {(['single', 'bulk'] as const).map(m => {
+          const active = (m === 'bulk') === bulkMode
+          return (
+            <button key={m} onClick={() => { setBulkMode(m === 'bulk'); setError(null) }} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              fontFamily: 'DM Mono, monospace', fontSize: '10px', letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: active ? '#F0B429' : 'rgba(242,242,240,0.45)',
+              borderBottom: active ? '1px solid #F0B429' : '1px solid transparent', paddingBottom: 3,
+            }}>
+              {m === 'single' ? 'One at a time' : 'Add many'}
+            </button>
+          )
+        })}
+      </div>
+
       {/* URL input */}
+      {!bulkMode && (
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <input
           type="url"
@@ -151,6 +220,41 @@ export default function SocialPostsManager() {
           {fetching ? 'Fetching...' : 'Preview'}
         </button>
       </div>
+      )}
+
+      {/* Bulk input */}
+      {bulkMode && (
+      <div style={{ marginBottom: '16px' }}>
+        <textarea
+          value={bulkText}
+          onChange={e => setBulkText(e.target.value)}
+          placeholder={"Paste one link per line…\nhttps://tiktok.com/@you/video/123\nhttps://youtube.com/watch?v=abc\nhttps://x.com/you/status/456"}
+          rows={6}
+          disabled={bulkRunning}
+          style={{
+            width: '100%', background: '#0a0a0f', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '6px', padding: '12px 16px', color: '#F2F2F0', fontSize: '13px',
+            outline: 'none', fontFamily: 'DM Mono, monospace', lineHeight: 1.7, resize: 'vertical',
+          }}
+        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginTop: '10px' }}>
+          <button
+            onClick={handleBulkAdd}
+            disabled={!bulkText.trim() || bulkRunning}
+            style={{
+              background: '#F0B429', color: '#09090C', border: 'none', borderRadius: '6px',
+              padding: '12px 20px', fontFamily: 'DM Mono, monospace', fontSize: '11px',
+              letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500,
+              cursor: bulkText.trim() && !bulkRunning ? 'pointer' : 'not-allowed',
+              opacity: bulkText.trim() && !bulkRunning ? 1 : 0.5,
+            }}
+          >
+            {bulkRunning ? 'Adding…' : 'Add all'}
+          </button>
+          {bulkStatus && <span style={{ fontSize: '12px', color: 'rgba(242,242,240,0.6)', fontFamily: 'DM Mono, monospace' }}>{bulkStatus}</span>}
+        </div>
+      </div>
+      )}
 
       {error && (
         <p style={{ color: '#EF4444', fontSize: '13px', marginBottom: '16px', fontFamily: 'DM Mono, monospace' }}>

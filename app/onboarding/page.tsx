@@ -83,7 +83,7 @@ function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
           }}>
             {avatarUrl
               ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <span style={{ fontSize: 20, opacity: 0.4 }}>✦</span>
+              : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(242,184,75,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
             }
           </div>
 
@@ -114,7 +114,7 @@ function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
               {bio}
             </p>
           ) : (
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.1)", marginBottom: 12, fontStyle: "italic" }}>
+            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 12, fontStyle: "italic" }}>
               Your bio will appear here
             </p>
           )}
@@ -317,7 +317,7 @@ export default function OnboardingPage() {
     fontSize: 10,
     letterSpacing: "0.18em",
     textTransform: "uppercase" as const,
-    color: "rgba(247,243,236,0.4)",
+    color: "rgba(247,243,236,0.72)",
     marginBottom: 8,
   };
 
@@ -340,7 +340,7 @@ export default function OnboardingPage() {
   const ghostBtn: React.CSSProperties = {
     width: "100%",
     background: "transparent",
-    color: "rgba(247,243,236,0.35)",
+    color: "rgba(247,243,236,0.55)",
     fontFamily: "DM Mono, monospace",
     fontSize: 10,
     letterSpacing: "0.14em",
@@ -709,7 +709,7 @@ export default function OnboardingPage() {
           <span style={{
             fontFamily: "DM Mono, monospace", fontSize: 9,
             letterSpacing: "0.2em", textTransform: "uppercase",
-            color: "rgba(247,243,236,0.3)", display: "block", marginBottom: 12,
+            color: "rgba(247,243,236,0.55)", display: "block", marginBottom: 12,
           }}>
             Building your page
           </span>
@@ -720,7 +720,7 @@ export default function OnboardingPage() {
           }}>
             Make it yours.
           </h2>
-          <p style={{ fontSize: 14, color: "rgba(247,243,236,0.4)", marginBottom: 36, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 14, color: "rgba(247,243,236,0.62)", marginBottom: 36, lineHeight: 1.7 }}>
             Your audience sees this the moment they arrive. Watch it come together on the right.
           </p>
 
@@ -768,7 +768,7 @@ export default function OnboardingPage() {
                       padding: "6px 12px", borderRadius: 4, border: "1px solid",
                       cursor: "pointer", fontSize: 12, fontFamily: "inherit",
                       background: active ? "rgba(242,184,75,0.1)" : "#2A2D33",
-                      color: active ? "#F2B84B" : "rgba(247,243,236,0.4)",
+                      color: active ? "#F2B84B" : "rgba(247,243,236,0.6)",
                       borderColor: active ? "rgba(242,184,75,0.35)" : "rgba(255,255,255,0.07)",
                       transition: "all 0.12s",
                     }}>
@@ -799,7 +799,7 @@ export default function OnboardingPage() {
             <input type="url" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)}
               placeholder="https://calendly.com/you"
               style={{ ...inputBase, fontFamily: "DM Mono, monospace", fontSize: 12 }} />
-            <p style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "rgba(255,255,255,0.2)", marginTop: 6, letterSpacing: "0.04em" }}>
+            <p style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 6, letterSpacing: "0.04em" }}>
               Hairdressers, trainers, coaches — audience members book directly from your page.
             </p>
           </div>

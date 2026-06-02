@@ -89,10 +89,17 @@ export default function ImageUpload({
       }}>
         {value ? (
           <img src={value} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : shape === "circle" ? (
+          <svg width="42%" height="42%" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
         ) : (
-          <span style={{ fontSize: shape === "circle" ? 28 : 22, color: "rgba(255,255,255,0.2)" }}>
-            {shape === "circle" ? "👤" : "🖼️"}
-          </span>
+          <svg width="38%" height="38%" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+          </svg>
         )}
       </div>
 
@@ -137,7 +144,7 @@ export default function ImageUpload({
             </button>
           )}
         </div>
-        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: 6, lineHeight: 1.5 }}>
+        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 6, lineHeight: 1.5 }}>
           {hint}
         </p>
         {error && (

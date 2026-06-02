@@ -224,7 +224,7 @@ export default function SignupPage() {
         <header className="topbar">
           <div className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly</div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <a href="/fan-signup" style={{ fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.1em", color: "#6b6b80", textDecoration: "none" }}>
+            <a href="/fan-signup" style={{ fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.1em", color: "rgba(232,232,240,0.6)", textDecoration: "none" }}>
               Join as a fan instead
             </a>
             <PhaseDots phase={phase} hasReferral={!!referrerHandle} />
@@ -630,7 +630,7 @@ function SignupStyles() {
       @keyframes typing { 0%,60%,100% { opacity: 0.3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
       .chat-input { display: flex; border-top: 1px solid var(--border); }
       .chat-input input { flex: 1; background: transparent; border: none; padding: 16px 20px; color: var(--text); font-family: inherit; font-size: 14px; outline: none; }
-      .chat-input input::placeholder { color: var(--muted); }
+      .chat-input input::placeholder { color: rgba(232,232,240,0.5); }
       .chat-input button { background: var(--accent-spot); color: #0a0a0f; border: none; padding: 0 28px; font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
       .chat-input button:disabled { opacity: 0.3; cursor: not-allowed; }
       .continue { display: block; width: 100%; background: transparent; border: none; border-top: 1px solid var(--border); padding: 18px; color: var(--muted); font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; transition: all 0.15s; }
@@ -642,11 +642,11 @@ function SignupStyles() {
       .account-form { display: flex; flex-direction: column; gap: 20px; max-width: 540px; }
       .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
       .account-form label { display: flex; flex-direction: column; gap: 8px; }
-      .account-form label > span { font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: baseline; }
-      .account-form label .hint { font-style: normal; text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--muted); font-family: "DM Sans", sans-serif; font-weight: 300; }
+      .account-form label > span { font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(232,232,240,0.82); display: flex; justify-content: space-between; align-items: baseline; }
+      .account-form label .hint { font-style: normal; text-transform: none; letter-spacing: 0; font-size: 11px; color: rgba(232,232,240,0.62); font-family: "DM Sans", sans-serif; font-weight: 300; }
       .account-form input[type="text"], .account-form input[type="email"], .account-form input[type="password"] { background: var(--surface-2); border: 1px solid var(--border); padding: 14px 16px; color: var(--text); font-family: inherit; font-size: 14px; border-radius: 3px; outline: none; transition: border-color 0.15s; }
       .account-form input:focus { border-color: var(--accent-spot); }
-      .account-form input::placeholder { color: var(--muted); }
+      .account-form input::placeholder { color: rgba(232,232,240,0.5); }
       .form-err { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); padding: 12px 16px; color: var(--red); font-size: 13px; border-radius: 3px; }
       .submit { background: var(--accent-spot); color: #0a0a0f; border: none; padding: 16px 24px; font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 500; cursor: pointer; border-radius: 3px; margin-top: 12px; transition: opacity 0.15s; }
       .submit:disabled { opacity: 0.5; cursor: not-allowed; }

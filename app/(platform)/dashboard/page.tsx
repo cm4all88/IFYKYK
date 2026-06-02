@@ -727,6 +727,7 @@ function ProfilePane({
       booking_url: bookingUrl.trim() || null,
       booking_label: bookingLabel.trim() || null,
       offers_services: !!bookingUrl.trim(),
+      social_links: socialLinks,
     }).eq("user_id", profile.user_id).eq("kind", profile.kind);
 
     if (error) setErr(error.message);
@@ -3310,6 +3311,7 @@ function SocialPane({ profile }: { profile: Profile }) {
     { id: "twitch",    label: "Twitch",    emoji: "💜" },
     { id: "discord",   label: "Discord",   emoji: "🎮" },
     { id: "spotify",   label: "Spotify",   emoji: "🎧" },
+    { id: "snapchat",  label: "Snapchat",  emoji: "👻" },
   ];
 
   async function loadAddbacks() {
