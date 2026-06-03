@@ -18,6 +18,7 @@ interface Post {
   tags?: string[];
   is_pinned?: boolean;
   post_type?: string;
+  required_tier_id?: string | null;
 }
 
 interface Props {
@@ -37,6 +38,8 @@ interface Props {
   backstageHandle: string | null;
   bookingUrl: string | null;
   bookingLabel: string | null;
+  viewerTierRank: number | null;
+  tierRanks: Record<string, number>;
   children: React.ReactNode; // subscribe/tip/supertip buttons
 }
 
@@ -44,9 +47,17 @@ export default function CreatorStageClient({
   posts, isSubscribed, hasEarlyAccess, unlockedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
   creatorProfileId, subscriptionPrice, backstageHandle,
-  bookingUrl, bookingLabel, children,
+  bookingUrl, bookingLabel, viewerTierRank, tierRanks, children,
 }: Props) {
   const now = new Date();
+
+  // A subscriber on too low a tier can't see a post locked to a higher tier.
+  const tierLockedFor = (p: Post) => {
+    if (p.lock_type !== "subscription" || !p.required_tier_id) return false;
+    if (!isSubscribed) return false; // handled by the subscriber gate
+    const need = tierRanks[p.required_tier_id] ?? 0;
+    return viewerTierRank === null || viewerTierRank < need;
+  };
 
   // Filter expired, sort pinned first
   const visiblePosts = useMemo(() => {
@@ -293,13 +304,14 @@ export default function CreatorStageClient({
             {activePost && (() => {
               const subLocked = activePost.lock_type === "subscription" && !isSubscribed;
               const purchaseLocked = activePost.lock_type === "purchase" && !unlockedPostIds.includes(activePost.id);
+              const tierLocked = tierLockedFor(activePost);
               const locked = subLocked || (activePost.tier === "premium" && activePost.lock_type !== "purchase" && !isSubscribed);
-              if (!locked && !purchaseLocked) return null;
+              if (!locked && !purchaseLocked && !tierLocked) return null;
               return (
                 <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(16px)", background: "rgba(9,9,12,0.7)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
                   <div style={{ fontSize: 40 }}>{purchaseLocked ? "🔓" : "🔒"}</div>
                   <p style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(242,184,75,0.8)", margin: 0 }}>
-                    {purchaseLocked ? "Unlock to view" : "Subscribers only"}
+                    {tierLocked ? "Higher tier only" : purchaseLocked ? "Unlock to view" : "Subscribers only"}
                   </p>
                   {activePost.caption && (
                     <p style={{ fontFamily: serif, fontSize: 18, fontStyle: "italic", color: "rgba(255,255,255,0.5)", maxWidth: 400, lineHeight: 1.6, margin: 0 }}>
@@ -367,11 +379,12 @@ export default function CreatorStageClient({
                 const subLocked = p.lock_type === "subscription" && !isSubscribed;
                 const earlyAccessLocked = p.lock_type === "subscription" && isSubscribed && !hasEarlyAccess && !!earlyAccessAt && !visibleToRegular;
                 const purchaseLocked = p.lock_type === "purchase" && !unlockedPostIds.includes(p.id);
+                const tierLocked = tierLockedFor(p);
                 const locked = subLocked || (p.tier === "premium" && p.lock_type !== "purchase" && !isSubscribed);
                 const isActive = activeIdx === i;
                 const expiresIn = p.expires_at ? Math.max(0, new Date(p.expires_at).getTime() - now.getTime()) : null;
                 const expiresHours = expiresIn ? Math.ceil(expiresIn / 3600000) : null;
-                const canView = !(locked || earlyAccessLocked || purchaseLocked);
+                const canView = !(locked || earlyAccessLocked || purchaseLocked || tierLocked);
 
                 return (
                   <div key={p.id}
@@ -421,7 +434,7 @@ export default function CreatorStageClient({
                           <div style={{ position: "relative", zIndex: 1, textAlign: "center", padding: "0 20px" }}>
                             <div style={{ fontSize: 28, marginBottom: 8 }}>{purchaseLocked ? "🔓" : "🔒"}</div>
                             <p style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(242,184,75,0.8)", marginBottom: 8 }}>
-                              {purchaseLocked ? "Unlock to view" : "Subscribers only"}
+                              {tierLocked ? "Higher tier only" : purchaseLocked ? "Unlock to view" : "Subscribers only"}
                             </p>
                             {p.caption && <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.5, fontStyle: "italic", marginBottom: 12 }}>&ldquo;{p.caption.slice(0, 80)}{p.caption.length > 80 ? "…" : ""}&rdquo;</p>}
                             <div onClick={e => e.stopPropagation()}>

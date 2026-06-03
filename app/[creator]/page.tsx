@@ -118,12 +118,13 @@ async function fetchEverything(handle: string) {
   let isSubscribed = false;
   let unlockedPostIds: Set<string> = new Set();
   let hasEarlyAccess = false;
+  let viewerTierId: string | null = null;
 
   if (user) {
     const [{ data: sub }, { data: unlocks }, { data: earlyPass }] = await Promise.all([
       (supabase as any)
         .from("subscriptions")
-        .select("id")
+        .select("id, tier_id")
         .eq("fan_user_id", user.id)
         .eq("creator_profile_id", spotlight.id)
         .eq("status", "active")
@@ -141,6 +142,7 @@ async function fetchEverything(handle: string) {
         .maybeSingle(),
     ]);
     isSubscribed = !!sub;
+    viewerTierId = sub?.tier_id ?? null;
     unlockedPostIds = new Set((unlocks ?? []).map((u: any) => u.post_id));
     hasEarlyAccess = !!earlyPass;
   }
@@ -171,6 +173,7 @@ async function fetchEverything(handle: string) {
     hasEarlyAccess,
     unlockedPostIds: Array.from(unlockedPostIds),
     viewerUserId: user?.id ?? null,
+    viewerTierId,
     campaigns: campaignsWithProgress,
     wishlistItems: wishlistItems ?? [],
     digitalProducts: digitalProducts ?? [],
@@ -209,6 +212,12 @@ export default async function CreatorPage(props: {
   const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream, socialPosts } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
+  // Tier-gating: map each tier to its rank (sort_order). A post locked to a tier
+  // is visible to subscribers at that rank or higher.
+  const tierRanks: Record<string, number> = {};
+  (subscriptionTiers ?? []).forEach((t: any) => { tierRanks[t.id] = t.sort_order ?? 0; });
+  const viewerTierRank = data.viewerTierId != null ? (tierRanks[data.viewerTierId] ?? null) : null;
+
   return (
     <>
       <SiteHeader />
@@ -241,6 +250,8 @@ export default async function CreatorPage(props: {
               backstageHandle={backstageHandle}
               bookingUrl={(spotlight as any).booking_url ?? null}
               bookingLabel={(spotlight as any).booking_label ?? null}
+              viewerTierRank={viewerTierRank}
+              tierRanks={tierRanks}
             >
               <></>
             </CreatorStageClient>

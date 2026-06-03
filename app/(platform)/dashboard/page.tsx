@@ -3025,6 +3025,10 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
+  // Audience targeting: "free" (everyone), "subscribers" (any active sub),
+  // or a specific subscription_tiers id (that tier and above).
+  const [audience, setAudience] = useState<string>("free");
+  const [tiers, setTiers] = useState<{ id: string; name: string; sort_order: number }[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -3048,6 +3052,19 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     else setLoading(false);
   }, [load, profile.id]);
 
+  useEffect(() => {
+    if (!profile.id) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("subscription_tiers")
+        .select("id, name, sort_order")
+        .eq("creator_profile_id", profile.id)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      setTiers(data ?? []);
+    })();
+  }, [profile.id, supabase]);
+
   async function publish(e: FormEvent) {
     e.preventDefault();
     if (!profile.id) {
@@ -3059,6 +3076,11 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     setPosting(true);
     setErr(null);
 
+    // Map the audience choice to lock + tier targeting.
+    const lockType = audience === "free" ? "free" : "subscription";
+    const tier = audience === "free" ? "free" : "premium";
+    const requiredTierId = audience !== "free" && audience !== "subscribers" ? audience : null;
+
     const res = await fetch("/api/posts/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3066,8 +3088,15 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
         caption: body.trim() || null,
         mediaUrl: mediaUrl || null,
         mediaType: mediaType || null,
-        tier: "free",
         creatorProfileId: profile.id,
+        tier,
+        lockType,
+        requiredTierId,
+        tags: postTags,
+        postType,
+        expiresAt: expiresAt || null,
+        scheduledAt: scheduledAt || null,
+        isPinned,
       }),
     });
     const data = await res.json();
@@ -3078,6 +3107,14 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     }
 
     setBody("");
+    setMediaUrl("");
+    setMediaType("");
+    setPostTags([]);
+    setPostType("post");
+    setExpiresAt("");
+    setScheduledAt("");
+    setIsPinned(false);
+    setAudience("free");
     setComposing(false);
     setPosting(false);
     void load();
@@ -3111,7 +3148,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
             autoFocus
           />
           {mediaUrl && (
-            <div style={{ padding:"0 var(--s-4) var(--s-3)", position:"relative", display:"inline-block" }}>
+            <div style={{ padding:"0 0 var(--s-3)", position:"relative", display:"inline-block" }}>
               {mediaType === "video" ? (
                 mediaUrl.includes("iframe.mediadelivery.net") ? (
                   <div style={{ position:"relative", paddingTop:"56.25%", borderRadius:"var(--r-1)", overflow:"hidden", maxWidth:320 }}>
@@ -3128,18 +3165,20 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
             </div>
           )}
           {/* Tags */}
-          <div style={{ padding:"0 var(--s-4) var(--s-3)" }}>
-            <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
-              {postTags.map(tag => (
-                <span key={tag} style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:3, background:"rgba(242,184,75,0.08)", border:"1px solid rgba(242,184,75,0.15)", fontFamily:"var(--font-mono)", fontSize:10, color:"rgba(242,184,75,0.8)", letterSpacing:"0.08em", textTransform:"uppercase" }}>
-                  {tag}
-                  <button type="button" onClick={() => setPostTags(t => t.filter(x => x !== tag))} style={{ background:"none", border:"none", color:"rgba(242,184,75,0.5)", cursor:"pointer", padding:0, fontSize:12, lineHeight:1 }}>×</button>
-                </span>
-              ))}
-            </div>
-            <div style={{ display:"flex", gap:6 }}>
+          <div className="composer-field">
+            {postTags.length > 0 && (
+              <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:8 }}>
+                {postTags.map(tag => (
+                  <span key={tag} style={{ display:"inline-flex", alignItems:"center", gap:4, padding:"3px 8px", borderRadius:3, background:"var(--accent-soft)", border:"1px solid var(--accent-border)", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent)", letterSpacing:"0.08em", textTransform:"uppercase" }}>
+                    {tag}
+                    <button type="button" onClick={() => setPostTags(t => t.filter(x => x !== tag))} style={{ background:"none", border:"none", color:"var(--accent)", opacity:0.6, cursor:"pointer", padding:0, fontSize:12, lineHeight:1 }}>×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div style={{ display:"flex", gap:8 }}>
               <input
-                type="text" placeholder="Add tag…" value={tagInput}
+                type="text" placeholder="Add a tag…" value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => {
                   if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
@@ -3149,7 +3188,8 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                     setTagInput("");
                   }
                 }}
-                style={{ flex:1, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", padding:"6px 10px", color:"var(--text)", fontSize:12, outline:"none", fontFamily:"inherit" }}
+                className="composer-input"
+                style={{ flex:1 }}
               />
               <button type="button" disabled={suggestingTags || !body.trim()} onClick={async () => {
                 setSuggestingTags(true);
@@ -3157,26 +3197,51 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                 const data = await res.json();
                 if (data.tags) setPostTags(prev => Array.from(new Set([...prev, ...data.tags])).slice(0, 8));
                 setSuggestingTags(false);
-              }} style={{ padding:"6px 12px", background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer", opacity:suggestingTags||!body.trim()?0.45:1 }}>
+              }} className="composer-chip" style={{ opacity:suggestingTags||!body.trim()?0.45:1 }}>
                 {suggestingTags ? "…" : "✦ AI"}
               </button>
             </div>
           </div>
 
+          {/* Audience — who can see this post */}
+          <div className="composer-field">
+            <p className="composer-label">Who can see this?</p>
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              <button type="button" onClick={() => setAudience("free")} className={`composer-chip${audience==="free"?" composer-chip--on":""}`}>
+                Everyone
+              </button>
+              <button type="button" onClick={() => setAudience("subscribers")} className={`composer-chip${audience==="subscribers"?" composer-chip--on":""}`}>
+                Subscribers
+              </button>
+              {tiers.map(t => (
+                <button key={t.id} type="button" onClick={() => setAudience(t.id)} className={`composer-chip${audience===t.id?" composer-chip--on":""}`}>
+                  {t.name}
+                </button>
+              ))}
+            </div>
+            <p className="composer-help">
+              {audience === "free"
+                ? "Visible to everyone, subscriber or not."
+                : audience === "subscribers"
+                ? "Locked to your active subscribers."
+                : `Locked to ${tiers.find(t => t.id === audience)?.name ?? "this tier"} and higher tiers.`}
+            </p>
+          </div>
+
           {/* Advanced options toggle */}
-          <div style={{ padding:"0 var(--s-4) var(--s-3)" }}>
-            <button type="button" onClick={() => setShowAdvanced(a => !a)} style={{ background:"none", border:"none", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer", padding:0 }}>
+          <div className="composer-field">
+            <button type="button" onClick={() => setShowAdvanced(a => !a)} style={{ background:"none", border:"none", color:"var(--muted)", fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.12em", textTransform:"uppercase", cursor:"pointer", padding:0 }}>
               {showAdvanced ? "▾" : "▸"} More options
             </button>
 
             {showAdvanced && (
-              <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:10 }}>
+              <div style={{ marginTop:16, display:"flex", flexDirection:"column", gap:18 }}>
                 {/* Post type */}
                 <div>
-                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Post type</p>
-                  <div style={{ display:"flex", gap:6 }}>
+                  <p className="composer-label">Post type</p>
+                  <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
                     {[["post","Post"],["campaign_update","Campaign Update"],["vod","Live Replay"]].map(([val, label]) => (
-                      <button key={val} type="button" onClick={() => setPostType(val)} style={{ padding:"5px 12px", borderRadius:3, border:"1px solid", borderColor:postType===val?"rgba(242,184,75,0.4)":"var(--border)", background:postType===val?"rgba(242,184,75,0.08)":"transparent", color:postType===val?"var(--accent)":"var(--muted)", fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.1em", textTransform:"uppercase", cursor:"pointer" }}>
+                      <button key={val} type="button" onClick={() => setPostType(val)} className={`composer-chip${postType===val?" composer-chip--on":""}`}>
                         {label}
                       </button>
                     ))}
@@ -3185,54 +3250,58 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
 
                 {/* Expiry */}
                 <div>
-                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Expires (leave blank = never)</p>
+                  <p className="composer-label">Expires <span className="composer-label-note">— leave blank to keep forever</span></p>
                   <input type="datetime-local" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
-                    style={{ background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", padding:"7px 10px", color:"var(--text)", fontSize:12, outline:"none", colorScheme:"dark" }} />
+                    className="composer-input" style={{ colorScheme:"dark", maxWidth:240 }} />
                 </div>
 
                 {/* Schedule */}
                 <div>
-                  <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:"0.16em", textTransform:"uppercase", color:"var(--muted)", marginBottom:6 }}>Schedule for later (leave blank = publish now)</p>
+                  <p className="composer-label">Schedule <span className="composer-label-note">— leave blank to publish now</span></p>
                   <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)}
-                    style={{ background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", padding:"7px 10px", color:"var(--text)", fontSize:12, outline:"none", colorScheme:"dark" }} />
+                    className="composer-input" style={{ colorScheme:"dark", maxWidth:240 }} />
                 </div>
 
                 {/* Pin */}
                 <label style={{ display:"flex", alignItems:"center", gap:10, cursor:"pointer" }}>
-                  <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} style={{ accentColor:"var(--accent)", width:14, height:14 }} />
-                  <span style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--muted)" }}>📌 Pin to top of page</span>
+                  <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} style={{ accentColor:"var(--accent)", width:15, height:15 }} />
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"var(--text-faint)" }}>📌 Pin to top of page</span>
                 </label>
               </div>
             )}
           </div>
 
           <div className="composer-actions">
-            <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:11, fontWeight:600, color:"var(--muted)", padding:"7px 12px", border:"1px solid var(--border)", borderRadius:"var(--r-1)" }}>
-              {uploading ? "Uploading…" : "🖼️ Image"}
-              <input type="file" accept="image/*" style={{ display:"none" }} disabled={uploading}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]; if (!file) return;
-                  setUploading(true);
-                  const fd = new FormData(); fd.append("file", file);
-                  const res = await fetch("/api/upload", { method:"POST", body:fd });
-                  const data = await res.json();
-                  if (data.url) { setMediaUrl(data.url); setMediaType("image"); }
-                  setUploading(false); e.target.value = "";
-                }} />
-            </label>
-            <div style={{ display:"inline-block" }}>
-              <VideoUpload
-                label="🎬 Video"
-                onUpload={({ cdnUrl }) => {
-                  setMediaUrl(cdnUrl);
-                  setMediaType("video");
-                }}
-              />
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:12, fontWeight:600, color:"var(--text-faint)", padding:"8px 14px", border:"1px solid var(--border)", borderRadius:"var(--r-2)" }}>
+                {uploading ? "Uploading…" : "🖼️ Image"}
+                <input type="file" accept="image/*" style={{ display:"none" }} disabled={uploading}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return;
+                    setUploading(true);
+                    const fd = new FormData(); fd.append("file", file);
+                    const res = await fetch("/api/upload", { method:"POST", body:fd });
+                    const data = await res.json();
+                    if (data.url) { setMediaUrl(data.url); setMediaType("image"); }
+                    setUploading(false); e.target.value = "";
+                  }} />
+              </label>
+              <div style={{ display:"inline-block" }}>
+                <VideoUpload
+                  label="🎬 Video"
+                  onUpload={({ cdnUrl }) => {
+                    setMediaUrl(cdnUrl);
+                    setMediaType("video");
+                  }}
+                />
+              </div>
             </div>
-            <p className="hint">{body.length} chars</p>
-            <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
-              {posting ? (scheduledAt ? "Scheduling..." : "Publishing...") : (scheduledAt ? `Schedule for ${new Date(scheduledAt).toLocaleDateString()}` : "Publish")}
-            </button>
+            <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+              <p className="hint" style={{ margin:0 }}>{body.length} chars</p>
+              <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
+                {posting ? (scheduledAt ? "Scheduling…" : "Publishing…") : (scheduledAt ? `Schedule for ${new Date(scheduledAt).toLocaleDateString()}` : "Publish")}
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -4572,8 +4641,66 @@ function DashboardStyles() {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-top: var(--s-3);
+        gap: var(--s-3);
+        flex-wrap: wrap;
+        padding-top: var(--s-4);
+        margin-top: var(--s-2);
         border-top: 1px solid var(--border);
+      }
+
+      /* Composer fields — single shared left edge, readable labels */
+      .composer-field { display: flex; flex-direction: column; }
+      .composer-label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+        margin: 0 0 10px;
+      }
+      .composer-label-note {
+        letter-spacing: 0.04em;
+        text-transform: none;
+        color: var(--muted-faint);
+      }
+      .composer-help {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--muted-faint);
+        margin: 10px 0 0;
+        letter-spacing: 0.02em;
+      }
+      .composer-input {
+        background: var(--surface-3);
+        border: 1px solid var(--border);
+        border-radius: var(--r-2);
+        padding: 9px 12px;
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+        font-family: inherit;
+        transition: border-color var(--t-fast);
+      }
+      .composer-input:focus { border-color: var(--accent-border); }
+      .composer-input::placeholder { color: var(--muted-faint); }
+      .composer-chip {
+        padding: 7px 14px;
+        border-radius: var(--r-2);
+        border: 1px solid var(--border);
+        background: var(--surface-3);
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: all var(--t-fast);
+      }
+      .composer-chip:hover:not(:disabled) { color: var(--text); border-color: var(--border-strong); }
+      .composer-chip--on {
+        border-color: var(--accent-border);
+        background: var(--accent-soft);
+        color: var(--accent);
       }
 
       /* POSTS */

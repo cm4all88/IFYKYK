@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Add a payment method in Billing to publish.", billingLocked: true }, { status: 402 });
   }
 
-  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt, tags, postType, expiresAt, scheduledAt, isPinned, campaignId } = await req.json();
+  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt, tags, postType, expiresAt, scheduledAt, isPinned, campaignId, requiredTierId } = await req.json();
 
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
@@ -155,6 +155,7 @@ export async function POST(req: NextRequest) {
       tier: resolvedTier,
       lock_type: resolvedLockType,
       unlock_price: lockType === "purchase" ? (unlockPrice ?? null) : null,
+      required_tier_id: resolvedLockType === "subscription" ? (requiredTierId ?? null) : null,
       early_access_at: earlyAccessAt ?? null,
       tags: Array.isArray(tags) ? tags : [],
       post_type: postType ?? "post",
