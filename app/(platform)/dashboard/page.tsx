@@ -480,6 +480,7 @@ function OverviewPane({
 }) {
   const supabase = createClient();
   const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
+  const [medals, setMedals] = React.useState<{ total: number; monthPoints: number; rank: number | null }>({ total: 0, monthPoints: 0, rank: null });
   const [checklistDismissed, setChecklistDismissed] = React.useState(false);
 
   React.useEffect(() => {
@@ -495,6 +496,16 @@ function OverviewPane({
       const thisMonth = allTips.filter((t: any) => t.created_at >= monthStart).reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
       const lifetime = allTips.reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
       setStats({ audience: audience ?? 0, posts: posts ?? 0, thisMonth, lifetime });
+
+      // Medal standing
+      const { data: board } = await (supabase as any).from("creator_medal_month").select("creator_profile_id, points");
+      const list = board ?? [];
+      const idx = list.findIndex((r: any) => r.creator_profile_id === profile.id);
+      setMedals({
+        total: Number((profile as any).medal_count_total ?? 0),
+        monthPoints: idx >= 0 ? Number(list[idx].points) : 0,
+        rank: idx >= 0 ? idx + 1 : null,
+      });
     }
     load();
   }, [profile.id]);
@@ -552,6 +563,13 @@ function OverviewPane({
           <p className="stat-label">Posts</p>
           <p className="stat-num">{stats.posts.toLocaleString()}</p>
           <p className="stat-meta">{stats.posts === 0 ? "Get something out there" : "Live on your page"}</p>
+        </div>
+        <div className="stat">
+          <p className="stat-label">🏅 Medals</p>
+          <p className="stat-num">{medals.total.toLocaleString()}</p>
+          <p className="stat-meta">
+            {medals.rank ? `#${medals.rank} on the Wall this month` : medals.total > 0 ? "Earned all-time" : "Awarded by your audience"}
+          </p>
         </div>
       </div>
 
@@ -1094,6 +1112,7 @@ function CampaignsPane({ profile }: { profile: Profile }) {
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
   const [form, setForm] = React.useState({
     title: "", description: "", goal_amount: "",
     deadline: "", reward_description: "",
@@ -1118,6 +1137,7 @@ function CampaignsPane({ profile }: { profile: Profile }) {
   async function createCampaign() {
     if (!form.title.trim() || !form.goal_amount) return;
     setSaving(true);
+    setErr(null);
     const { data, error } = await (supabase as any).from("campaigns").insert({
       creator_profile_id: profile.id,
       title: form.title.trim(),
@@ -1127,7 +1147,7 @@ function CampaignsPane({ profile }: { profile: Profile }) {
       reward_description: form.reward_description.trim() || null,
       status: "active",
     }).select().single();
-    if (error) { setSaving(false); return; }
+    if (error) { setErr(error.message); setSaving(false); return; }
     setCampaigns(prev => [{ ...data, raised: 0 }, ...prev]);
     setForm({ title:"", description:"", goal_amount:"", deadline:"", reward_description:"" });
     setCreating(false);
@@ -1241,6 +1261,7 @@ function CampaignsPane({ profile }: { profile: Profile }) {
                   value={form.deadline} onChange={e => setForm(f => ({...f, deadline:e.target.value}))} />
               </div>
             </div>
+            {err && <p style={{ color:"var(--red)", fontSize:13, margin:"0 0 var(--s-3)" }}>{err}</p>}
             <div style={{ display:"flex", gap:"var(--s-3)" }}>
               <button className="btn btn--primary" onClick={createCampaign}
                 disabled={saving || !form.title.trim() || !form.goal_amount}>
@@ -1804,8 +1825,8 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
           </div>
           {price && (
             <div style={{ background:"rgba(240,180,41,0.06)", border:"1px solid rgba(240,180,41,0.15)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-4)", marginBottom:"var(--s-5)", fontSize:13 }}>
-              At ${parseFloat(price||"0").toFixed(2)}: <strong style={{ color:"var(--text)" }}>You earn ${(parseFloat(price||"0") * 0.90).toFixed(2)}</strong>
-              <span style={{ color:"var(--muted)" }}> · Platform fee ${(parseFloat(price||"0") * 0.10).toFixed(2)}</span>
+              At ${parseFloat(price||"0").toFixed(2)}: <strong style={{ color:"var(--text)" }}>You earn ${(parseFloat(price||"0") * 0.95).toFixed(2)}</strong>
+              <span style={{ color:"var(--muted)" }}> · Platform fee ${(parseFloat(price||"0") * 0.05).toFixed(2)}</span>
             </div>
           )}
           <button type="submit" className="btn btn--primary" disabled={saving || !fileUrl || !title || !price}>
@@ -2614,6 +2635,7 @@ function WishlistPane({ profile }: { profile: Profile }) {
     shipping_country: (profile as any).shipping_country ?? "US",
   });
   const [form, setForm] = React.useState({ name:"", description:"", price:"", store_url:"", store_name:"", image_url:"" });
+  const [err, setErr] = React.useState<string | null>(null);
   const [confirming, setConfirming] = React.useState<string|null>(null);
 
   React.useEffect(() => {
@@ -2645,6 +2667,7 @@ function WishlistPane({ profile }: { profile: Profile }) {
   async function addItem() {
     if (!form.name.trim() || !form.price) return;
     setSaving(true);
+    setErr(null);
     const { data, error } = await (supabase as any).from("wishlist_items").insert({
       creator_profile_id: profile.id,
       name: form.name.trim(),
@@ -2658,6 +2681,8 @@ function WishlistPane({ profile }: { profile: Profile }) {
       setItems(prev => [data, ...prev]);
       setForm({ name:"", description:"", price:"", store_url:"", store_name:"", image_url:"" });
       setAdding(false);
+    } else {
+      setErr(error.message);
     }
     setSaving(false);
   }
@@ -2788,6 +2813,7 @@ function WishlistPane({ profile }: { profile: Profile }) {
                 <div><label className="label">Product URL</label><input className="input" type="url" placeholder="Paste the product link from the store" value={form.store_url} onChange={e => setForm(f => ({...f, store_url:e.target.value}))} /></div>
                 <div><label className="label">Product image URL (optional)</label><input className="input" type="url" placeholder="Right-click the product image → Copy image address" value={form.image_url} onChange={e => setForm(f => ({...f, image_url:e.target.value}))} /></div>
                 <div><label className="label">Note (optional)</label><input className="input" placeholder="Why you want it, what it's for" value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} /></div>
+                {err && <p style={{ color:"var(--red)", fontSize:13, margin:0 }}>{err}</p>}
                 <div style={{ display:"flex", gap:"var(--s-3)" }}>
                   <button className="btn btn--primary btn--small" onClick={addItem} disabled={saving || !form.name.trim() || !form.price}>{saving ? "Adding…" : "Add to list"}</button>
                   <button className="btn btn--ghost btn--small" onClick={() => setAdding(false)}>Cancel</button>
@@ -3028,6 +3054,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
   // Audience targeting: "free" (everyone), "subscribers" (any active sub),
   // or a specific subscription_tiers id (that tier and above).
   const [audience, setAudience] = useState<string>("free");
+  const [unlockPrice, setUnlockPrice] = useState("4.99");
   const [tiers, setTiers] = useState<{ id: string; name: string; sort_order: number }[]>([]);
 
   const load = useCallback(async () => {
@@ -3077,9 +3104,10 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     setErr(null);
 
     // Map the audience choice to lock + tier targeting.
-    const lockType = audience === "free" ? "free" : "subscription";
-    const tier = audience === "free" ? "free" : "premium";
-    const requiredTierId = audience !== "free" && audience !== "subscribers" ? audience : null;
+    const isUnlock = audience === "unlock";
+    const lockType = audience === "free" ? "free" : isUnlock ? "purchase" : "subscription";
+    const tier = (audience === "free" || isUnlock) ? "free" : "premium";
+    const requiredTierId = (!isUnlock && audience !== "free" && audience !== "subscribers") ? audience : null;
 
     const res = await fetch("/api/posts/publish", {
       method: "POST",
@@ -3092,6 +3120,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
         tier,
         lockType,
         requiredTierId,
+        unlockPrice: isUnlock ? parseFloat(unlockPrice) || null : null,
         tags: postTags,
         postType,
         expiresAt: expiresAt || null,
@@ -3115,6 +3144,7 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
     setScheduledAt("");
     setIsPinned(false);
     setAudience("free");
+    setUnlockPrice("4.99");
     setComposing(false);
     setPosting(false);
     void load();
@@ -3218,12 +3248,28 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                   {t.name}
                 </button>
               ))}
+              <button type="button" onClick={() => setAudience("unlock")} className={`composer-chip${audience==="unlock"?" composer-chip--on":""}`}>
+                Pay to unlock
+              </button>
             </div>
+            {audience === "unlock" && (
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:10 }}>
+                <span style={{ color:"var(--muted)", fontSize:14 }}>$</span>
+                <input
+                  type="number" min="0.99" step="0.01" value={unlockPrice}
+                  onChange={e => setUnlockPrice(e.target.value)}
+                  className="composer-input" style={{ maxWidth:120 }}
+                />
+                <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--muted-faint)" }}>one-time, per fan</span>
+              </div>
+            )}
             <p className="composer-help">
               {audience === "free"
                 ? "Visible to everyone, subscriber or not."
                 : audience === "subscribers"
                 ? "Locked to your active subscribers."
+                : audience === "unlock"
+                ? "Anyone can buy this single post — they keep access after paying."
                 : `Locked to ${tiers.find(t => t.id === audience)?.name ?? "this tier"} and higher tiers.`}
             </p>
           </div>
@@ -3735,14 +3781,17 @@ function MarketplacePane({ profile }: { profile: Profile }) {
 function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: string | null }) {
   const [subPrice, setSubPrice] = React.useState(Number((profile as any).subscription_price || 9.99).toFixed(2));
   const [priceSaved, setPriceSaved] = React.useState(false);
+  const [priceErr, setPriceErr] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteConfirm, setDeleteConfirm] = React.useState("");
   const supabase = createClient();
 
   async function savePrice() {
     const val = parseFloat(subPrice);
-    if (!val || val < 1) return;
-    await (supabase as any).from("creator_profiles").update({ subscription_price: val }).eq("id", profile.id);
+    if (!val || val < 1) { setPriceErr("Enter a price of at least $1."); return; }
+    setPriceErr(null);
+    const { error } = await (supabase as any).from("creator_profiles").update({ subscription_price: val }).eq("id", profile.id);
+    if (error) { setPriceErr(error.message); return; }
     setPriceSaved(true);
     setTimeout(() => setPriceSaved(false), 2000);
   }
@@ -3795,6 +3844,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
             {priceSaved ? "✓ Saved" : "Save"}
           </button>
         </div>
+        {priceErr && <p style={{ color:"var(--red)", fontSize:12, margin:"var(--s-2) 0 0" }}>{priceErr}</p>}
       </div>
 
       <div className="settings-block">

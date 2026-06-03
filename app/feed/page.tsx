@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import InterestPicker from "@/app/(auth)/fan-signup/InterestPicker";
+import LikeButton from "@/components/LikeButton";
+import MedalButton from "@/components/MedalButton";
 
 type Filter = "all" | "video" | "image" | "text" | "locked";
 
@@ -35,6 +37,8 @@ interface Post {
   content_rating: string;
   likes_count: number;
   views_count: number;
+  liked?: boolean;
+  medal_count?: number;
   created_at: string;
   is_pinned: boolean;
   isUnlocked: boolean;
@@ -263,11 +267,19 @@ function PostCard({ post }: { post: Post }) {
           )}
         </div>
       )}
+      {/* Actions */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4,
+        padding: "6px 14px 10px",
+        borderTop: (hasMedia || post.caption) ? "1px solid rgba(255,255,255,0.04)" : "none",
+        marginTop: post.caption ? -6 : 0,
+      }}>
+        <LikeButton postId={post.id} initialCount={post.likes_count} initialLiked={post.liked} />
+        <MedalButton postId={post.id} initialCount={post.medal_count ?? 0} />
+      </div>
     </article>
   );
 }
-
-// ── Act divider ────────────────────────────────────────────────
 function ActDivider({ label }: { label: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 18, margin: "32px 0 18px" }}>
@@ -403,6 +415,7 @@ export default function FeedPage() {
             <Link href="/" className="brand-logo" style={{ justifySelf: "start", fontSize: 22 }}>Spot<span>light</span>ly</Link>
             <span className="feed-kicker">Your lineup</span>
             <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
+              <Link href="/wall" className="nav-pill nav-pill--secondary" title="This month's top creators">🏅 Wall</Link>
               {isCreator && (
                 <Link href="/dashboard" className="nav-pill nav-pill--secondary">Dashboard</Link>
               )}

@@ -119,6 +119,7 @@ async function fetchEverything(handle: string) {
   let unlockedPostIds: Set<string> = new Set();
   let hasEarlyAccess = false;
   let viewerTierId: string | null = null;
+  let likedPostIds: Set<string> = new Set();
 
   if (user) {
     const [{ data: sub }, { data: unlocks }, { data: earlyPass }] = await Promise.all([
@@ -145,6 +146,16 @@ async function fetchEverything(handle: string) {
     viewerTierId = sub?.tier_id ?? null;
     unlockedPostIds = new Set((unlocks ?? []).map((u: any) => u.post_id));
     hasEarlyAccess = !!earlyPass;
+
+    const postIds = (posts ?? []).map((p: any) => p.id);
+    if (postIds.length) {
+      const { data: myLikes } = await (supabase as any)
+        .from("post_likes")
+        .select("post_id")
+        .eq("user_id", user.id)
+        .in("post_id", postIds);
+      likedPostIds = new Set((myLikes ?? []).map((l: any) => l.post_id));
+    }
   }
 
   // Check if creator is currently live
@@ -172,6 +183,7 @@ async function fetchEverything(handle: string) {
     isSubscribed,
     hasEarlyAccess,
     unlockedPostIds: Array.from(unlockedPostIds),
+    likedPostIds: Array.from(likedPostIds),
     viewerUserId: user?.id ?? null,
     viewerTierId,
     campaigns: campaignsWithProgress,
@@ -238,6 +250,7 @@ export default async function CreatorPage(props: {
               isSubscribed={isSubscribed}
               hasEarlyAccess={data.hasEarlyAccess}
               unlockedPostIds={data.unlockedPostIds ?? []}
+              likedPostIds={data.likedPostIds ?? []}
               viewerUserId={data.viewerUserId}
               displayName={displayName}
               handle={spotlight.handle}
@@ -252,6 +265,8 @@ export default async function CreatorPage(props: {
               bookingLabel={(spotlight as any).booking_label ?? null}
               viewerTierRank={viewerTierRank}
               tierRanks={tierRanks}
+              medalPoints={Number((spotlight as any).medal_points_total ?? 0)}
+              medalCount={Number((spotlight as any).medal_count_total ?? 0)}
             >
               <></>
             </CreatorStageClient>

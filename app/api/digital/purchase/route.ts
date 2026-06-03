@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
-const PLATFORM_CUT = 0.10;
+const PLATFORM_CUT = 0.05;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();

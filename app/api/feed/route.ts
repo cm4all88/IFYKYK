@@ -70,6 +70,18 @@ export async function GET(req: NextRequest) {
 
   const hasMore = filtered.length === 20;
 
+  // Step 5b: Mark which of these posts the viewer has liked
+  const pageIds = filtered.map((p: any) => p.id);
+  if (pageIds.length) {
+    const { data: myLikes } = await (supabase as any)
+      .from("post_likes")
+      .select("post_id")
+      .eq("user_id", user.id)
+      .in("post_id", pageIds);
+    const likedSet = new Set((myLikes ?? []).map((l: any) => l.post_id));
+    for (const p of filtered) p.liked = likedSet.has(p.id);
+  }
+
   // Step 6: Get active live streams from subscribed creators
   const { data: liveStreams } = await (supabase as any)
     .from("live_streams")

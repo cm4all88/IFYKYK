@@ -3,6 +3,8 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import UnlockButton from "./UnlockButton";
 import CommentSection from "./CommentSection";
+import LikeButton from "@/components/LikeButton";
+import MedalButton from "@/components/MedalButton";
 
 interface Post {
   id: string;
@@ -19,6 +21,8 @@ interface Post {
   is_pinned?: boolean;
   post_type?: string;
   required_tier_id?: string | null;
+  likes_count?: number;
+  medal_count?: number;
 }
 
 interface Props {
@@ -26,6 +30,7 @@ interface Props {
   isSubscribed: boolean;
   hasEarlyAccess: boolean;
   unlockedPostIds: string[];
+  likedPostIds: string[];
   viewerUserId: string | null;
   displayName: string;
   handle: string;
@@ -40,14 +45,16 @@ interface Props {
   bookingLabel: string | null;
   viewerTierRank: number | null;
   tierRanks: Record<string, number>;
+  medalPoints?: number;
+  medalCount?: number;
   children: React.ReactNode; // subscribe/tip/supertip buttons
 }
 
 export default function CreatorStageClient({
-  posts, isSubscribed, hasEarlyAccess, unlockedPostIds,
+  posts, isSubscribed, hasEarlyAccess, unlockedPostIds, likedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
   creatorProfileId, subscriptionPrice, backstageHandle,
-  bookingUrl, bookingLabel, viewerTierRank, tierRanks, children,
+  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, children,
 }: Props) {
   const now = new Date();
 
@@ -230,6 +237,23 @@ export default function CreatorStageClient({
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.9)", lineHeight: 1.7, maxWidth: 560, margin: "0 0 16px", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
               {bio}
             </p>
+          )}
+
+          {/* Trophy shelf — medal standing (social proof) */}
+          {medalCount > 0 && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 10, alignSelf: "center",
+              padding: "7px 14px", marginBottom: 16,
+              background: "rgba(242,184,75,0.06)", border: "1px solid rgba(242,184,75,0.18)", borderRadius: 999,
+            }}>
+              <span style={{ fontSize: 15 }}>🏅</span>
+              <span style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.08em", color: "rgba(242,184,75,0.95)" }}>
+                {medalCount.toLocaleString()} {medalCount === 1 ? "medal" : "medals"} earned
+              </span>
+              <a href="/wall" style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
+                The Wall →
+              </a>
+            </div>
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
@@ -474,12 +498,16 @@ export default function CreatorStageClient({
                         <span style={{ fontFamily: mono, fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
                           {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </span>
-                        {canView && (
-                          <button onClick={e => { e.stopPropagation(); setTipPost(tipPost === p.id ? null : p.id); }}
-                            style={{ background: tipPost === p.id ? "rgba(242,184,75,0.15)" : "none", border: "1px solid rgba(242,184,75,0.2)", borderRadius: 4, padding: "4px 10px", color: "rgba(242,184,75,0.7)", cursor: "pointer", fontFamily: mono, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                            💛 Tip
-                          </button>
-                        )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <LikeButton postId={p.id} initialCount={p.likes_count ?? 0} initialLiked={likedPostIds.includes(p.id)} size="sm" />
+                          <MedalButton postId={p.id} initialCount={p.medal_count ?? 0} size="sm" />
+                          {canView && (
+                            <button onClick={e => { e.stopPropagation(); setTipPost(tipPost === p.id ? null : p.id); }}
+                              style={{ background: tipPost === p.id ? "rgba(242,184,75,0.15)" : "none", border: "1px solid rgba(242,184,75,0.2)", borderRadius: 4, padding: "4px 10px", color: "rgba(242,184,75,0.7)", cursor: "pointer", fontFamily: mono, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                              💛 Tip
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {tipPost === p.id && (
                         <div style={{ marginTop: 10, padding: 12, background: "rgba(242,184,75,0.06)", borderRadius: 6, border: "1px solid rgba(242,184,75,0.15)" }} onClick={e => e.stopPropagation()}>

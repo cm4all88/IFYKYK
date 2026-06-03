@@ -294,6 +294,27 @@ export async function POST(req: NextRequest) {
         .eq("id", meta.comment_id);
     }
 
+    // ── Medal Pack purchase (100% platform) ──────────────────────────
+    else if (type === "medal_pack" && meta.fan_user_id) {
+      const medals = parseInt(meta.medals ?? "0", 10);
+      await (supabase as any).from("medal_purchases").insert({
+        fan_user_id: meta.fan_user_id,
+        pack_id: meta.pack_id,
+        medals,
+        amount_usd: parseFloat(meta.amount_usd ?? "0"),
+        stripe_session: s.id,
+      });
+      // Credit the fan's balance (create the row if needed).
+      const { data: bal } = await (supabase as any)
+        .from("medal_balances").select("balance, lifetime_purchased").eq("fan_user_id", meta.fan_user_id).maybeSingle();
+      await (supabase as any).from("medal_balances").upsert({
+        fan_user_id: meta.fan_user_id,
+        balance: (bal?.balance ?? 0) + medals,
+        lifetime_purchased: (bal?.lifetime_purchased ?? 0) + medals,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "fan_user_id" });
+    }
+
     // ── Early Access Pass ────────────────────────────────────────────
     else if (type === "early_access") {
       await (supabase as any).from("early_access_passes").upsert({
@@ -341,7 +362,7 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
     // ── Digital product purchase ──────────────────────────────────────
     else if ((type === "digital_product" || type === "digital_purchase") && meta.product_id) {
       const priceTotal = (s.amount_total ?? 0) / 100;
-      const platformFee = Math.round(priceTotal * 0.10 * 100) / 100;
+      const platformFee = Math.round(priceTotal * 0.05 * 100) / 100;
       const creatorEarns = Math.round((priceTotal - platformFee) * 100) / 100;
 
       const { data: purchase } = await (supabase as any)
