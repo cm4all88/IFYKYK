@@ -19,6 +19,9 @@ import SuperTipButton from "./SuperTipButton";
 import CommentSection from "./CommentSection";
 import LiveStreamView from "@/components/LiveStreamView";
 import CreatorStageClient from "./CreatorStageClient";
+import AudienceRail from "./AudienceRail";
+import CreatorMerch from "./CreatorMerch";
+import GiftSubscriptionButton from "./GiftSubscriptionButton";
 import SocialAddbacks from "./SocialAddbacks";
 import CreatorMarketplace from "./CreatorMarketplace";
 import SocialPostCard from "@/components/SocialPostCard";
@@ -212,108 +215,210 @@ export default async function CreatorPage(props: {
       <SuccessBanner />
       <ReferralTracker creatorHandle={spotlight.handle} />
       <main className="cp">
-        <CreatorStageClient
-          posts={posts as any}
-          isSubscribed={isSubscribed}
-          hasEarlyAccess={data.hasEarlyAccess}
-          unlockedPostIds={data.unlockedPostIds ?? []}
-          viewerUserId={data.viewerUserId}
-          displayName={displayName}
-          handle={spotlight.handle}
-          bio={spotlight.bio ?? null}
-          avatarUrl={spotlight.avatar_url ?? null}
-          coverUrl={spotlight.cover_url ?? null}
-          bgUrl={(spotlight as any).bg_url ?? null}
-          creatorProfileId={spotlight.id}
-          subscriptionPrice={spotlight.subscription_price ? Number(spotlight.subscription_price) : null}
-          backstageHandle={backstageHandle}
-          bookingUrl={(spotlight as any).booking_url ?? null}
-          bookingLabel={(spotlight as any).booking_label ?? null}
-        >
-          <SubscribeButton creatorProfileId={spotlight.id} />
-          <TipButton creatorProfileId={spotlight.id} />
-          <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
-          <MessageButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
-          {(spotlight as any).booking_url && (
-            <a href={(spotlight as any).booking_url} target="_blank" rel="noopener noreferrer" className="btn btn--secondary">
-              📅 {(spotlight as any).booking_label || "Book"}
-            </a>
-          )}
-        </CreatorStageClient>
-        {liveStream && (
-          <div className="cp-live-banner">
-            <LiveStreamView
-              streamId={liveStream.bunny_stream_id}
-              playbackUrl={liveStream.playback_url}
-              isCreator={false}
-              creatorHandle={spotlight.handle}
-              isBackstage={false}
-              embedded
-            />
+        <div className="cp-shell">
+
+          {/* ── LEFT — the audience member's own lineup, always present ── */}
+          <aside className="cp-rail cp-rail--left">
+            <AudienceRail currentHandle={spotlight.handle} />
+          </aside>
+
+          {/* ── CENTER — the stage: who they are, and their work ── */}
+          <div className="cp-center">
+            <CreatorStageClient
+              posts={posts as any}
+              isSubscribed={isSubscribed}
+              hasEarlyAccess={data.hasEarlyAccess}
+              unlockedPostIds={data.unlockedPostIds ?? []}
+              viewerUserId={data.viewerUserId}
+              displayName={displayName}
+              handle={spotlight.handle}
+              bio={spotlight.bio ?? null}
+              avatarUrl={spotlight.avatar_url ?? null}
+              coverUrl={spotlight.cover_url ?? null}
+              bgUrl={(spotlight as any).bg_url ?? null}
+              creatorProfileId={spotlight.id}
+              subscriptionPrice={spotlight.subscription_price ? Number(spotlight.subscription_price) : null}
+              backstageHandle={backstageHandle}
+              bookingUrl={(spotlight as any).booking_url ?? null}
+              bookingLabel={(spotlight as any).booking_label ?? null}
+            >
+              <></>
+            </CreatorStageClient>
+
+            {liveStream && (
+              <div className="cp-live-banner">
+                <LiveStreamView
+                  streamId={liveStream.bunny_stream_id}
+                  playbackUrl={liveStream.playback_url}
+                  isCreator={false}
+                  creatorHandle={spotlight.handle}
+                  isBackstage={false}
+                  embedded
+                />
+              </div>
+            )}
+
+            {socialPosts.length > 0 && (
+              <section className="cp-center-section">
+                <span className="cp-rail-kicker">From around the web</span>
+                <div className="cp-social-grid">
+                  {socialPosts.map((sp: any) => (
+                    <SocialPostCard key={sp.id} post={sp} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
-        )}
-        <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
-        <CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} />
 
-        {campaigns.length > 0 && (
-          <section className="cp-campaigns">
-            <h2 className="cp-section-title">Campaigns</h2>
-            <div className="cp-campaign-list">
-              {campaigns.map((c: any) => {
-                const goal = Number(c.goal_amount) || 0;
-                const pct = goal > 0 ? Math.min(100, Math.round((Number(c.raised) / goal) * 100)) : 0;
-                return (
-                  <div key={c.id} className="cp-campaign">
-                    <div className="cp-campaign-head">
-                      <h3>{c.title}</h3>
-                      <CampaignDonateButton campaignId={c.id} campaignTitle={c.title} />
-                    </div>
-                    {c.description && <p className="cp-campaign-desc">{c.description}</p>}
-                    <div className="cp-campaign-bar"><span style={{ width: `${pct}%` }} /></div>
-                    <div className="cp-campaign-meta">${Number(c.raised).toLocaleString()} raised{goal > 0 ? ` of $${goal.toLocaleString()} · ${pct}%` : ""}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+          {/* ── RIGHT — everything this creator offers, scoped to their page ── */}
+          <aside className="cp-rail cp-rail--right" id="cp-support">
 
-        {digitalProducts.length > 0 && (
-          <section className="cp-digital">
-            <h2 className="cp-section-title">Digital products</h2>
-            <div className="cp-card-grid">
-              {digitalProducts.map((pr: any) => (
-                <DigitalProductCard key={pr.id} product={pr} creatorProfileId={spotlight.id} />
-              ))}
+            {/* Support — sticky so it stays in reach while reading the feed */}
+            <div className="cp-support-block">
+              <span className="cp-rail-kicker">Support {displayName}</span>
+              <div className="cp-support-actions">
+                <SubscribeButton creatorProfileId={spotlight.id} />
+                <SuperTipButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
+                <TipButton creatorProfileId={spotlight.id} />
+                <GiftSubscriptionButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
+                <MessageButton creatorProfileId={spotlight.id} handle={spotlight.handle} />
+                {(spotlight as any).booking_url && (
+                  <a href={(spotlight as any).booking_url} target="_blank" rel="noopener noreferrer" className="btn btn--secondary btn--small cp-rail-btn">
+                    📅 {(spotlight as any).booking_label || "Book"}
+                  </a>
+                )}
+              </div>
             </div>
-          </section>
-        )}
 
-        {socialPosts.length > 0 && (
-          <section className="cp-digital">
-            <h2 className="cp-section-title">From around the web</h2>
-            <div className="cp-social-grid">
-              {socialPosts.map((sp: any) => (
-                <SocialPostCard key={sp.id} post={sp} />
-              ))}
-            </div>
-          </section>
-        )}
+            <CreatorMerch creatorProfileId={spotlight.id} handle={spotlight.handle} />
 
-        {wishlistItems.length > 0 && (
-          <section className="cp-wishlist">
-            <h2 className="cp-section-title">Wishlist</h2>
-            <div className="cp-card-grid">
-              {wishlistItems.map((i: any) => (
-                <WishlistItemCard key={i.id} item={i} />
-              ))}
-            </div>
-          </section>
-        )}
+            {digitalProducts.length > 0 && (
+              <div className="cp-rail-section">
+                <span className="cp-rail-kicker">Digital products</span>
+                <div className="cp-rail-grid">
+                  {digitalProducts.map((pr: any) => (
+                    <DigitalProductCard key={pr.id} product={pr} creatorProfileId={spotlight.id} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} />
+
+            <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
+
+            {campaigns.length > 0 && (
+              <div className="cp-rail-section">
+                <span className="cp-rail-kicker">Campaigns</span>
+                <div className="cp-campaign-list">
+                  {campaigns.map((c: any) => {
+                    const goal = Number(c.goal_amount) || 0;
+                    const pct = goal > 0 ? Math.min(100, Math.round((Number(c.raised) / goal) * 100)) : 0;
+                    return (
+                      <div key={c.id} className="cp-campaign">
+                        <div className="cp-campaign-head">
+                          <h3>{c.title}</h3>
+                          <CampaignDonateButton campaignId={c.id} campaignTitle={c.title} />
+                        </div>
+                        {c.description && <p className="cp-campaign-desc">{c.description}</p>}
+                        <div className="cp-campaign-bar"><span style={{ width: `${pct}%` }} /></div>
+                        <div className="cp-campaign-meta">${Number(c.raised).toLocaleString()} raised{goal > 0 ? ` of $${goal.toLocaleString()} · ${pct}%` : ""}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {wishlistItems.length > 0 && (
+              <div className="cp-rail-section">
+                <span className="cp-rail-kicker">Wishlist</span>
+                <div className="cp-rail-grid">
+                  {wishlistItems.map((i: any) => (
+                    <WishlistItemCard key={i.id} item={i} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+
+        {/* Mobile-only: jump to support without hunting for the rail */}
+        <a href="#cp-support" className="cp-mobile-support">
+          Subscribe to {displayName}
+        </a>
 
         <style>{`
           /* ── Base ── */
           .cp { min-height: 100vh; background: #09090C; position: relative; }
+
+          /* ── Three-column shell ── */
+          .cp-shell {
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr) 380px;
+            gap: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px 80px;
+            align-items: start;
+          }
+          .cp-rail { min-width: 0; }
+          .cp-center { min-width: 0; }
+
+          /* The stage hero + feed sit inside the center column now — strip the
+             full-bleed centering so they breathe inside the column instead. */
+          .cp-center > section:first-child { padding-top: 32px !important; }
+
+          .cp-rail--right {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+          }
+          .cp-support-block {
+            position: sticky;
+            top: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-3);
+            padding: 22px;
+          }
+          .cp-support-actions { display: flex; flex-direction: column; gap: 10px; }
+          .cp-support-actions > * { width: 100%; }
+          .cp-rail-btn { width: 100%; text-align: center; }
+
+          .cp-rail-kicker {
+            font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.22em;
+            text-transform: uppercase; color: var(--muted-faint);
+            display: block; margin-bottom: 14px;
+          }
+          .cp-rail-section { padding: 0; }
+          .cp-rail-grid { display: flex; flex-direction: column; gap: 14px; }
+
+          .cp-center-section { padding: 40px 0 0; }
+
+          /* Mobile support bar (hidden on desktop) */
+          .cp-mobile-support {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+            text-align: center; text-decoration: none;
+            font-family: var(--font-display); font-size: 14px; font-weight: 700;
+            color: #09090C; background: var(--accent);
+            padding: 16px; box-shadow: 0 -8px 30px rgba(0,0,0,0.5);
+          }
+
+          /* ── Responsive collapse ── */
+          @media (max-width: 1100px) {
+            .cp-shell {
+              grid-template-columns: 1fr;
+              gap: 0;
+              padding: 0 0 96px;
+            }
+            .cp-rail--left { position: sticky; top: 0; z-index: 20; }
+            .cp-center { padding: 0; }
+            .cp-rail--right { padding: 8px 16px 0; gap: 24px; }
+            .cp-support-block { position: static; }
+            .cp-mobile-support { display: block; }
+          }
 
           /* ── Stage hero ── */
           .cp-stage {

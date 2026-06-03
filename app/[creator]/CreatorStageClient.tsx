@@ -238,7 +238,8 @@ export default function CreatorStageClient({
             </a>
           )}
 
-          {/* THE SCREEN — active post displayed large */}
+          {/* THE SCREEN — active post displayed large (only when native posts exist) */}
+          {visiblePosts.length > 0 && (
           <div
             onClick={() => activePost && setLightbox(activePost)}
             style={{
@@ -316,6 +317,7 @@ export default function CreatorStageClient({
               </div>
             )}
           </div>
+          )}
         </div>
       </section>
 

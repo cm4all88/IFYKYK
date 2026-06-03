@@ -8,7 +8,10 @@
 const PRINTFUL_API = "https://api.printful.com";
 const LOUDCAP_KEY = process.env.LOUDCAP_API_KEY ?? "";
 
-export const MERCH_PLATFORM_CUT = 0.05; // 5% to Spotlightly for hosting
+// Spotlightly takes NO hosting fee on merch. The platform's only merch revenue
+// is Loudcap's fulfillment margin (below). Set this above 0 to re-enable a
+// hosting fee on retail.
+export const MERCH_PLATFORM_CUT = 0;
 
 async function pf(path: string, options: RequestInit = {}) {
   if (!LOUDCAP_KEY) throw new Error("LOUDCAP_API_KEY is not set.");
@@ -259,8 +262,23 @@ function mapPrintfulStatus(status: string): MerchOrder["status"] {
   }
 }
 
+// Loudcap's fulfillment margin — a markup on Printful's raw base cost. This is
+// Loudcap's revenue (your fulfillment company), separate from Spotlightly's
+// hosting fee. DEFAULT 15% — change this to set Loudcap's cut.
+export const LOUDCAP_MARGIN = 0.15;
+
+// Per-sale split. baseCost = Printful's raw cost, passed straight through to the
+// vendor. On top of that: Loudcap earns a margin (your fulfillment company), and
+// Stripe processing is borne by the creator's side — consistent with the rest of
+// the platform ("keep 100% minus Stripe"). Spotlightly takes no hosting fee on
+// merch. The creator keeps the remainder, the largest share.
+// Note: shipping is added at checkout, so the Stripe figure here is a retail-only
+// estimate for the creator's create-page preview; checkout computes it exactly.
 export function calcMerchPricing(retailPrice: number, baseCost: number) {
-  const platformCut = Math.round(retailPrice * MERCH_PLATFORM_CUT * 100) / 100;
-  const creatorEarns = Math.round((retailPrice - baseCost - platformCut) * 100) / 100;
-  return { retailPrice, baseCost, platformCut, creatorEarns };
+  const loudcapMargin = Math.round(baseCost * LOUDCAP_MARGIN * 100) / 100;
+  const hostingFee = Math.round(retailPrice * MERCH_PLATFORM_CUT * 100) / 100;
+  const stripeFee = Math.round((retailPrice * 0.029 + 0.30) * 100) / 100;
+  const platformCut = Math.round((loudcapMargin + hostingFee) * 100) / 100; // to you: Loudcap + Spotlightly
+  const creatorEarns = Math.round((retailPrice - baseCost - loudcapMargin - hostingFee - stripeFee) * 100) / 100;
+  return { retailPrice, baseCost, loudcapMargin, hostingFee, stripeFee, platformCut, creatorEarns };
 }

@@ -406,6 +406,98 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
         );
       }
     }
+
+    // ── Merch (Loudcap fulfillment) ──────────────────────────────────
+    else if (type === "merch" && meta.product_id) {
+      const retail = parseFloat(meta.retail_price ?? "0");
+      const creatorEarnings = parseFloat(meta.creator_earns ?? "0");
+      const platformEarnings = parseFloat(meta.platform_earnings ?? "0");
+      const ship = s.shipping_details ?? s.customer_details ?? {};
+      const addr = ship.address ?? {};
+      const fanEmail = s.customer_details?.email ?? "";
+
+      // Try to place the fulfillment order with Loudcap. Never block recording
+      // the sale on this — the creator has already been paid.
+      let loudcapOrderId = `unfulfilled_${s.id}`;
+      let orderStatus = "pending";
+      let trackingNumber: string | null = null;
+      let trackingUrl: string | null = null;
+
+      try {
+        const { LOUDCAP_API_KEY } = await getSecrets(["LOUDCAP_API_KEY"]);
+        if (LOUDCAP_API_KEY && meta.loudcap_product_id) {
+          const auth = { Authorization: `Bearer ${LOUDCAP_API_KEY}`, "Content-Type": "application/json" };
+
+          // Resolve the fulfillment variant from the chosen size.
+          let variantId: number | null = null;
+          const prodRes = await fetch(`https://api.printful.com/store/products/${meta.loudcap_product_id}`, { headers: auth });
+          if (prodRes.ok) {
+            const { result } = await prodRes.json();
+            const variants = result?.sync_variants ?? [];
+            const wanted = (meta.size ?? "").toLowerCase();
+            const match = variants.find((v: any) =>
+              wanted && String(v.name ?? "").toLowerCase().includes(wanted)
+            );
+            variantId = (match ?? variants[0])?.id ?? null;
+          }
+
+          if (variantId) {
+            const orderRes = await fetch("https://api.printful.com/orders?confirm=1", {
+              method: "POST",
+              headers: auth,
+              body: JSON.stringify({
+                recipient: {
+                  name: ship.name ?? "",
+                  address1: addr.line1 ?? "",
+                  address2: addr.line2 ?? "",
+                  city: addr.city ?? "",
+                  state_code: addr.state ?? "",
+                  zip: addr.postal_code ?? "",
+                  country_code: addr.country ?? "US",
+                  email: fanEmail,
+                },
+                items: [{ sync_variant_id: variantId, quantity: 1 }],
+              }),
+            });
+            if (orderRes.ok) {
+              const { result } = await orderRes.json();
+              loudcapOrderId = String(result?.id ?? loudcapOrderId);
+              orderStatus = "in_production";
+              trackingNumber = result?.shipments?.[0]?.tracking_number ?? null;
+              trackingUrl = result?.shipments?.[0]?.tracking_url ?? null;
+            }
+          }
+        }
+      } catch { /* non-fatal — record the sale as pending for manual fulfillment */ }
+
+      await (supabase as any).from("merch_orders").insert({
+        merch_product_id: meta.product_id,
+        creator_profile_id: meta.creator_profile_id,
+        fan_user_id: meta.buyer_user_id || null,
+        loudcap_order_id: loudcapOrderId,
+        variant_id: meta.size || "default",
+        quantity: 1,
+        retail_price: retail,
+        creator_earnings: creatorEarnings,
+        platform_earnings: platformEarnings,
+        stripe_payment_id: s.payment_intent ?? s.id,
+        status: orderStatus,
+        tracking_number: trackingNumber,
+        tracking_url: trackingUrl,
+        shipping_name: ship.name ?? "",
+        shipping_line1: addr.line1 ?? "",
+        shipping_city: addr.city ?? "",
+        shipping_state: addr.state ?? "",
+        shipping_zip: addr.postal_code ?? "",
+        shipping_country: addr.country ?? "US",
+      });
+
+      await notifyCreator(supabase, meta.creator_profile_id,
+        `🧢 New merch order — ${meta.product_name}`,
+        `Someone ordered your ${meta.product_name}.`,
+        `A fan ordered your <strong>${meta.product_name}</strong>${meta.size ? ` (${meta.size})` : ""}. You earn <strong style="color:#F0B429;">$${creatorEarnings.toFixed(2)}</strong> — Loudcap handles printing and shipping. Track it from your dashboard.`
+      );
+    }
   }
 
   // ── Subscription status changes ──────────────────────────────────

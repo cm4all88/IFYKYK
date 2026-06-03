@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   // Try Printful if configured
   const { LOUDCAP_API_KEY } = await getSecrets(["LOUDCAP_API_KEY"]);
 
-  let printfulProductId: string | null = null;
+  let loudcapProductId: string | null = null;
   let mockupUrl: string | null = null;
 
   if (LOUDCAP_API_KEY) {
@@ -69,11 +69,11 @@ export async function POST(req: NextRequest) {
 
       if (pfRes.ok) {
         const pfData = await pfRes.json();
-        printfulProductId = String(pfData.result?.id ?? "");
+        loudcapProductId = String(pfData.result?.id ?? "");
         mockupUrl = pfData.result?.sync_product?.thumbnail_url ?? designUrl;
       }
     } catch {
-      // Non-fatal — save to DB without Printful
+      // Non-fatal — save to DB without fulfillment sync
     }
   }
 
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     .from("merch_products")
     .insert({
       creator_profile_id: profile.id,
-      printful_product_id: printfulProductId ?? "",
+      loudcap_product_id: loudcapProductId ?? "",
       name,
       design_url: designUrl,
       retail_price: pricing.retailPrice,
