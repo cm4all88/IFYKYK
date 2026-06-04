@@ -28,16 +28,14 @@ export default async function WallPage() {
   }>;
 
   return (
-    <main style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", position: "relative", overflow: "hidden" }}>
-      {/* Spotlight beam + ambient */}
-      <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 1100, height: 760,
-        background: "radial-gradient(ellipse 50% 55% at 50% 0%, rgba(242,184,75,0.22), rgba(242,184,75,0.06) 38%, transparent 68%)", pointerEvents: "none" }} />
-      <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 2, height: 340,
-        background: "linear-gradient(to bottom, rgba(242,184,75,0.55), transparent)", pointerEvents: "none" }} />
+    <main style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "72px 28px" }}>
+      {/* Spotlight beam — soft glow only (no hard center line) */}
+      <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 1100, height: 720,
+        background: "radial-gradient(ellipse 50% 55% at 50% 0%, rgba(242,184,75,0.20), rgba(242,184,75,0.05) 40%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: -120, left: -140, width: 460, height: 460,
         background: "radial-gradient(circle, rgba(168,85,247,0.08), transparent 70%)", pointerEvents: "none" }} />
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "96px 28px 120px", position: "relative" }}>
+      <div style={{ maxWidth: 880, width: "100%", margin: "0 auto", position: "relative" }}>
         <div style={{ textAlign: "center", marginBottom: 64 }}>
           <p style={{ fontFamily: mono, fontSize: 13, letterSpacing: "0.32em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 20 }}>
             {monthName}
