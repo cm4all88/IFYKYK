@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   await (supabase as any).from("wishlist_purchases").update({
     status: "creator_purchased",
     receipt_url: receiptUrl ?? null,
-    stripe_transfer_id: transfer.id,
+    transfer_stripe_id: transfer.id,
     updated_at: new Date().toISOString(),
   }).eq("id", purchaseId);
 

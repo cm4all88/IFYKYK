@@ -20,7 +20,7 @@ export default async function DownloadsPage({
   if (searchParams.session_id) {
     const { data } = await (supabase as any)
       .from("digital_purchases")
-      .select("*, product:digital_product_id(title, description, category, preview_image_url, creator:creator_profile_id(handle, display_name))")
+      .select("*, product:digital_product_id(title, description, category, thumbnail_url, creator:creator_profile_id(handle, display_name))")
       .eq("stripe_session_id", searchParams.session_id)
       .maybeSingle();
     newPurchase = data;
@@ -29,7 +29,7 @@ export default async function DownloadsPage({
   // All purchases for this user
   const { data: allPurchases } = user ? await (supabase as any)
     .from("digital_purchases")
-    .select("*, product:digital_product_id(title, description, category, preview_image_url, creator:creator_profile_id(handle, display_name))")
+    .select("*, product:digital_product_id(title, description, category, thumbnail_url, creator:creator_profile_id(handle, display_name))")
     .eq("fan_user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50) : { data: [] };
@@ -92,8 +92,8 @@ export default async function DownloadsPage({
             {(allPurchases ?? []).map((p: any) => (
               <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 20, background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "18px 24px" }}>
                 <div style={{ width: 48, height: 48, borderRadius: 8, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
-                  {p.product?.preview_image_url
-                    ? <img src={p.product.preview_image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  {p.product?.thumbnail_url
+                    ? <img src={p.product.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     : <span style={{ fontSize: 22 }}>{CATEGORY_EMOJI[p.product?.category] ?? "📦"}</span>
                   }
                 </div>

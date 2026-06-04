@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     }
     if (!(mod as any).allowed) {
       await (supabase as any).from("moderation_events").insert({
-        creator_id: creatorProfileId,
+        creator_profile_id: creatorProfileId,
         content_type: "post",
         flag_reason: (mod as any).reason ?? "Content policy violation",
         severity: (mod as any).severity ?? "medium",

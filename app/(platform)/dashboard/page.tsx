@@ -1758,7 +1758,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
       title: title.trim(), description: description.trim() || null,
       price: parseFloat(price), file_url: fileUrl, file_name: fileName,
       file_size_bytes: fileSizeBytes, file_type: fileType, category,
-      preview_image_url: previewImageUrl || null,
+      thumbnail_url: previewImageUrl || null,
     });
     setCreating(false); setTitle(""); setDescription(""); setPrice("");
     setFileUrl(""); setFileName(""); setCategory("other"); setPreviewImageUrl("");
@@ -1872,14 +1872,14 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
             return (
               <div key={p.id} style={{ display:"flex", alignItems:"center", gap:"var(--s-4)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", opacity: p.status === "paused" ? 0.6 : 1 }}>
                 <div style={{ width:52, height:40, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
-                  {p.preview_image_url ? <img src={p.preview_image_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:20 }}>{cat?.emoji ?? "📦"}</span>}
+                  {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:20 }}>{cat?.emoji ?? "📦"}</span>}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.title}</p>
                   <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)", fontWeight:700 }}>${Number(p.price).toFixed(2)}</span>
                     <span style={{ fontSize:11, color:"var(--muted)" }}>{cat?.label}</span>
-                    <span style={{ fontSize:11, color:"var(--muted)" }}>{p.sales_count} sold</span>
+                    <span style={{ fontSize:11, color:"var(--muted)" }}>{p.total_sales} sold</span>
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", color: p.status === "active" ? "#34D399" : "var(--muted)", background: p.status === "active" ? "rgba(52,211,153,0.08)" : "rgba(255,255,255,0.04)", border: `1px solid ${p.status === "active" ? "rgba(52,211,153,0.2)" : "var(--border)"}`, padding:"1px 7px", borderRadius:99 }}>{p.status}</span>
                   </div>
                 </div>

@@ -374,7 +374,7 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
           fan_email: meta.fan_email || s.customer_details?.email || "",
           amount_paid: priceTotal,
           platform_fee: platformFee,
-          creator_earns: creatorEarns,
+          creator_receives: creatorEarns,
           stripe_session_id: s.id,
         })
         .select()
@@ -382,13 +382,8 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
 
       // Update product sales count
       if (purchase) {
-        await (supabase as any)
-          .from("digital_products")
-          .update({ sales_count: (supabase as any).rpc("increment", { x: 1 }) })
-          .eq("id", meta.product_id);
-        // Simpler approach — just increment directly
-        const { data: prod } = await (supabase as any).from("digital_products").select("sales_count").eq("id", meta.product_id).maybeSingle();
-        await (supabase as any).from("digital_products").update({ sales_count: (prod?.sales_count ?? 0) + 1 }).eq("id", meta.product_id);
+        const { data: prod } = await (supabase as any).from("digital_products").select("total_sales").eq("id", meta.product_id).maybeSingle();
+        await (supabase as any).from("digital_products").update({ total_sales: (prod?.total_sales ?? 0) + 1 }).eq("id", meta.product_id);
       }
 
       // Email fan with download link
