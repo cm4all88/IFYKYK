@@ -161,7 +161,7 @@ export default function PostCarousel({
 
       {filteredPosts.length === 0 && (
         <div style={{ textAlign: "center", padding: "48px 24px" }}>
-          <p style={{ fontFamily: serif, fontSize: 20, fontStyle: "italic", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+          <p style={{ fontFamily: serif, fontSize: 20, fontStyle: "italic", color: "var(--muted)", margin: 0 }}>
             {search || activeTag ? "No posts match that search." : "The stage is set."}
           </p>
         </div>
@@ -286,7 +286,7 @@ export default function PostCarousel({
                             {earlyAccessLocked ? "Early access only" : purchaseLocked ? "Unlock to view" : "Subscribers only"}
                           </p>
                           {p.caption && (
-                            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5, fontStyle: "italic", marginBottom: 16 }}>
+                            <p style={{ fontSize: 12, color: "var(--text-soft)", lineHeight: 1.5, fontStyle: "italic", marginBottom: 16 }}>
                               &ldquo;{p.caption.slice(0, 100)}{p.caption.length > 100 ? "…" : ""}&rdquo;
                             </p>
                           )}

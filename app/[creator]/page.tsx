@@ -694,7 +694,7 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
         <a href={`/fan-signup?return=${encodeURIComponent(`/?subscribe=${creatorProfileId}`)}`} className="btn btn--primary">
           Sign up to subscribe
         </a>
-        <a href="/login" style={{ textAlign:"center", fontSize:12, color:"rgba(255,255,255,0.4)", textDecoration:"none" }}>
+        <a href="/login" style={{ textAlign:"center", fontSize:12, color:"var(--muted)", textDecoration:"none" }}>
           Already have an account? Sign in
         </a>
       </div>

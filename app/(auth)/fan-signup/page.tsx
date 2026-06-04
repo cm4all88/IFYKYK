@@ -73,7 +73,7 @@ export default function FanSignupPage() {
             <h1 style={{ fontFamily: serif, fontSize: 30, fontWeight: 300, color: "#fff", marginBottom: 12 }}>
               You&apos;re in.
             </h1>
-            <p style={{ fontSize: 15, color: "#71717a", lineHeight: 1.7 }}>
+            <p style={{ fontSize: 15, color: "var(--muted)", lineHeight: 1.7 }}>
               Check your email to confirm your account, then come back and find your people.
             </p>
             <Link href="/login" style={{
@@ -98,7 +98,7 @@ export default function FanSignupPage() {
             <h1 style={{ fontFamily: serif, fontSize: 36, fontWeight: 300, color: "#fff", marginBottom: 8, lineHeight: 1.1 }}>
               Get closer to<br /><em style={{ fontStyle: "italic", color: "#f5c842" }}>the creators you love.</em>
             </h1>
-            <p style={{ fontSize: 14, color: "#71717a", lineHeight: 1.7, marginBottom: 32 }}>
+            <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, marginBottom: 32 }}>
               Subscribe directly. No algorithm deciding what you see. Just you and the people whose work you actually follow.
             </p>
 
@@ -110,7 +110,7 @@ export default function FanSignupPage() {
               )}
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#71717a" }}>Your name</span>
+                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--muted)" }}>Your name</span>
                 <input
                   type="text" value={name} onChange={e => setName(e.target.value)}
                   placeholder="What should creators call you?"
@@ -122,7 +122,7 @@ export default function FanSignupPage() {
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#71717a" }}>Email</span>
+                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--muted)" }}>Email</span>
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="your@email.com"
@@ -134,7 +134,7 @@ export default function FanSignupPage() {
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "#71717a" }}>Password</span>
+                <span style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--muted)" }}>Password</span>
                 <input
                   type="password" value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="At least 8 characters"

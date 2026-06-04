@@ -66,7 +66,7 @@ export default function ExploreClient({ initialCreators, userId }: Props) {
 
       {/* Header */}
       <div style={{ marginBottom: 40 }}>
-        <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>Discover</p>
+        <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8 }}>Discover</p>
         <h1 style={{ fontFamily: "Georgia,serif", fontSize: 48, fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 16 }}>
           Find your next <em style={{ color: "#F0B429" }}>favorite creator.</em>
         </h1>
@@ -82,7 +82,7 @@ export default function ExploreClient({ initialCreators, userId }: Props) {
             onChange={e => setQuery(e.target.value)}
             style={{ width: "100%", background: "#111115", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 999, padding: "13px 20px 13px 44px", color: "#F2F2F0", fontSize: 14, outline: "none", fontFamily: "inherit" }}
           />
-          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "rgba(255,255,255,0.3)" }}>🔍</span>
+          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "var(--muted)" }}>🔍</span>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export default function ExploreClient({ initialCreators, userId }: Props) {
       {/* Recommendations section */}
       {recommendations.length > 0 && !query && !activeTag && (
         <div style={{ marginBottom: 48 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
+          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 16 }}>
             ✦ Recommended for you
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 2, marginBottom: 2 }}>
@@ -118,7 +118,7 @@ export default function ExploreClient({ initialCreators, userId }: Props) {
             ))}
           </div>
           <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "32px 0" }} />
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
+          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 16 }}>
             All creators
           </p>
         </div>
@@ -126,10 +126,10 @@ export default function ExploreClient({ initialCreators, userId }: Props) {
 
       {/* Creator grid */}
       {searching ? (
-        <div style={{ textAlign: "center", padding: "60px 0", color: "rgba(255,255,255,0.3)", fontSize: 14 }}>Searching…</div>
+        <div style={{ textAlign: "center", padding: "60px 0", color: "var(--muted)", fontSize: 14 }}>Searching…</div>
       ) : creators.length === 0 ? (
         <div style={{ textAlign: "center", padding: "80px 0" }}>
-          <p style={{ fontFamily: "Georgia,serif", fontSize: 22, fontWeight: 300, color: "rgba(255,255,255,0.3)", fontStyle: "italic", marginBottom: 12 }}>No creators match that search.</p>
+          <p style={{ fontFamily: "Georgia,serif", fontSize: 22, fontWeight: 300, color: "var(--muted)", fontStyle: "italic", marginBottom: 12 }}>No creators match that search.</p>
           <button onClick={() => { setQuery(""); setActiveTag(null); }} style={{ background: "none", border: "none", color: "#F0B429", fontSize: 13, cursor: "pointer" }}>Clear filters →</button>
         </div>
       ) : (
@@ -145,7 +145,7 @@ export default function ExploreClient({ initialCreators, userId }: Props) {
           <h3 style={{ fontFamily: "Georgia,serif", fontSize: 28, fontWeight: 300, color: "#fff", lineHeight: 1.1, marginBottom: 12 }}>
             Tell them about <em style={{ color: "#F0B429" }}>Spotlightly.</em>
           </h3>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", lineHeight: 1.7, maxWidth: 420, margin: "0 auto 28px" }}>
+          <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.7, maxWidth: 420, margin: "0 auto 28px" }}>
             They keep 100% of what they earn. No percentage cuts, no follower minimums.
           </p>
           <a href="https://spotlightly.app/signup" style={{ display: "inline-block", background: "#F0B429", color: "#09090C", fontWeight: 700, fontSize: 13, padding: "12px 28px", borderRadius: 999, textDecoration: "none" }}>
@@ -171,7 +171,7 @@ function CreatorCard({ creator: c, reason }: { creator: Creator; reason?: string
           <p style={{ fontSize: 14, fontWeight: 700, color: "#F2F2F0", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {c.display_name ?? c.handle}
           </p>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>@{c.handle}</p>
+          <p style={{ fontSize: 12, color: "var(--muted)" }}>@{c.handle}</p>
         </div>
       </div>
 
@@ -183,7 +183,7 @@ function CreatorCard({ creator: c, reason }: { creator: Creator; reason?: string
       )}
 
       {c.bio && !reason && (
-        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", lineHeight: 1.6, marginBottom: 12, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+        <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
           {c.bio}
         </p>
       )}
@@ -194,7 +194,7 @@ function CreatorCard({ creator: c, reason }: { creator: Creator; reason?: string
           {c.tags.slice(0, 3).map(tag => {
             const cat = CREATOR_CATEGORIES.find(x => x.id === tag);
             return cat ? (
-              <span key={tag} style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "2px 8px", borderRadius: 999 }}>
+              <span key={tag} style={{ fontSize: 11, color: "var(--muted)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", padding: "2px 8px", borderRadius: 999 }}>
                 {cat.emoji} {cat.label}
               </span>
             ) : null;

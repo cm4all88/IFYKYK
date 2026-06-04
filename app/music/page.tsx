@@ -96,14 +96,14 @@ export default function MusicPage() {
 
         {/* Header */}
         <div style={{ marginBottom: 56 }}>
-          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", marginBottom: 8 }}>Music licensing guide</p>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--text-soft)", marginBottom: 8 }}>Music licensing guide</p>
           <h1 style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: "clamp(34px,5vw,54px)", fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 16 }}>
             Never get a copyright<br /><em style={{ color: "#F0B429" }}>strike again.</em>
           </h1>
-          <p style={{ fontSize: 16, color: "rgba(242,242,240,0.65)", lineHeight: 1.75, maxWidth: 580 }}>
+          <p style={{ fontSize: 16, color: "var(--text-soft)", lineHeight: 1.75, maxWidth: 580 }}>
             The biggest legal risk for creators is music. One background song can trigger a strike, demonetize a video, or end a channel. Here&apos;s the complete guide to licensing it right.
           </p>
-          <p style={{ fontSize: 11, color: "rgba(242,242,240,0.45)", marginTop: 16, fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: ".06em" }}>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 16, fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: ".06em" }}>
             DISCLOSURE: We may earn a commission on referrals at no extra cost to you.
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function MusicPage() {
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{p.tagline}</p>
+                    <p style={{ fontSize: 13, color: "var(--muted)" }}>{p.tagline}</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 13, color: "#F0B429", fontWeight: 700, marginBottom: 8 }}>{p.price}</p>
@@ -148,14 +148,14 @@ export default function MusicPage() {
                   {p.pros.map((pro, j) => (
                     <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                       <span style={{ color: "#34D399", flexShrink: 0, marginTop: 1 }}>✓</span>
-                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>{pro}</span>
+                      <span style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.5 }}>{pro}</span>
                     </div>
                   ))}
                 </div>
               </div>
               <div style={{ padding: "14px 32px", background: "rgba(255,255,255,0.01)" }}>
-                <p style={{ fontSize: 12, color: "rgba(242,242,240,0.55)" }}>
-                  <span style={{ color: "rgba(242,242,240,0.65)", fontWeight: 600 }}>Best for: </span>
+                <p style={{ fontSize: 12, color: "var(--text-soft)" }}>
+                  <span style={{ color: "var(--text-soft)", fontWeight: 600 }}>Best for: </span>
                   {p.bestFor}
                 </p>
               </div>
@@ -165,12 +165,12 @@ export default function MusicPage() {
 
         {/* FAQ */}
         <div style={{ marginBottom: 64 }}>
-          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(242,242,240,0.55)", marginBottom: 24 }}>Common questions</p>
+          <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--text-soft)", marginBottom: 24 }}>Common questions</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {FAQ.map((item, i) => (
               <div key={i} style={{ background: "#232428", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "20px 24px" }}>
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#F2F2F0", marginBottom: 8 }}>{item.q}</p>
-                <p style={{ fontSize: 13, color: "rgba(242,242,240,0.65)", lineHeight: 1.7 }}>{item.a}</p>
+                <p style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.7 }}>{item.a}</p>
               </div>
             ))}
           </div>
@@ -178,10 +178,10 @@ export default function MusicPage() {
 
         {/* Bottom CTAs */}
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", padding: "40px 0", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <Link href="/gear" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "rgba(242,242,240,0.65)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4 }}>
+          <Link href="/gear" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-soft)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4 }}>
             📦 Creator gear guide
           </Link>
-          <Link href="/tools" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "rgba(242,242,240,0.65)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4 }}>
+          <Link href="/tools" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-soft)", fontSize: 13, textDecoration: "none", padding: "10px 20px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4 }}>
             ⚡ Software toolkit
           </Link>
           <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#F0B429", color: "#09090C", fontSize: 13, fontWeight: 700, textDecoration: "none", padding: "10px 24px", borderRadius: 4 }}>

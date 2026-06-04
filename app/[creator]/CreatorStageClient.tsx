@@ -145,7 +145,7 @@ export default function CreatorStageClient({
         >
           <button onClick={() => setLightbox(null)} style={{
             position: "absolute", top: 20, right: 24,
-            background: "none", border: "none", color: "rgba(255,255,255,0.6)",
+            background: "none", border: "none", color: "var(--text-soft)",
             fontSize: 28, cursor: "pointer", lineHeight: 1,
           }}>×</button>
 
@@ -250,7 +250,7 @@ export default function CreatorStageClient({
               <span style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.08em", color: "rgba(242,184,75,0.95)" }}>
                 {medalCount.toLocaleString()} {medalCount === 1 ? "medal" : "medals"} earned
               </span>
-              <a href="/wall" style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
+              <a href="/wall" style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none" }}>
                 The Wall →
               </a>
             </div>
@@ -317,7 +317,7 @@ export default function CreatorStageClient({
               <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
                 <div style={{ fontFamily: serif, fontSize: 48, fontWeight: 300, color: "rgba(242,184,75,0.15)", lineHeight: 1 }}>✦</div>
                 {activePost?.caption && (
-                  <p style={{ fontFamily: serif, fontSize: 22, fontStyle: "italic", fontWeight: 300, color: "rgba(242,242,240,0.6)", maxWidth: 560, lineHeight: 1.6, padding: "0 32px" }}>
+                  <p style={{ fontFamily: serif, fontSize: 22, fontStyle: "italic", fontWeight: 300, color: "var(--text-soft)", maxWidth: 560, lineHeight: 1.6, padding: "0 32px" }}>
                     &ldquo;{activePost.caption}&rdquo;
                   </p>
                 )}
@@ -338,7 +338,7 @@ export default function CreatorStageClient({
                     {tierLocked ? "Higher tier only" : purchaseLocked ? "Unlock to view" : "Subscribers only"}
                   </p>
                   {activePost.caption && (
-                    <p style={{ fontFamily: serif, fontSize: 18, fontStyle: "italic", color: "rgba(255,255,255,0.5)", maxWidth: 400, lineHeight: 1.6, margin: 0 }}>
+                    <p style={{ fontFamily: serif, fontSize: 18, fontStyle: "italic", color: "var(--text-soft)", maxWidth: 400, lineHeight: 1.6, margin: 0 }}>
                       &ldquo;{activePost.caption.slice(0, 120)}&rdquo;
                     </p>
                   )}
@@ -348,7 +348,7 @@ export default function CreatorStageClient({
 
             {/* Fullscreen hint */}
             {activePost?.media_url && (
-              <div style={{ position: "absolute", bottom: 12, right: 12, background: "rgba(0,0,0,0.6)", borderRadius: 4, padding: "4px 8px", fontFamily: mono, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)" }}>
+              <div style={{ position: "absolute", bottom: 12, right: 12, background: "rgba(0,0,0,0.6)", borderRadius: 4, padding: "4px 8px", fontFamily: mono, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)" }}>
                 ⤢ Fullscreen
               </div>
             )}
@@ -360,7 +360,7 @@ export default function CreatorStageClient({
       {/* Posts section */}
       {visiblePosts.length > 0 && (
         <div style={{ background: "transparent", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", textAlign: "center", padding: "24px 0 8px" }}>
+          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-soft)", textAlign: "center", padding: "24px 0 8px" }}>
             {filteredPosts.length} post{filteredPosts.length !== 1 ? "s" : ""}
           </p>
 
@@ -447,7 +447,7 @@ export default function CreatorStageClient({
                               <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(242,184,75,0.9)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                 <span style={{ fontSize: 18, marginLeft: 4 }}>▶</span>
                               </div>
-                              <span style={{ position: "absolute", bottom: 10, left: 12, fontFamily: mono, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)" }}>Click to play</span>
+                              <span style={{ position: "absolute", bottom: 10, left: 12, fontFamily: mono, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-soft)" }}>Click to play</span>
                             </div>
                           )}
                           {!p.media_url && <div style={{ height: 60, background: "rgba(242,184,75,0.03)" }} />}
@@ -460,7 +460,7 @@ export default function CreatorStageClient({
                             <p style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "rgba(242,184,75,0.8)", marginBottom: 8 }}>
                               {tierLocked ? "Higher tier only" : purchaseLocked ? "Unlock to view" : "Subscribers only"}
                             </p>
-                            {p.caption && <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", lineHeight: 1.5, fontStyle: "italic", marginBottom: 12 }}>&ldquo;{p.caption.slice(0, 80)}{p.caption.length > 80 ? "…" : ""}&rdquo;</p>}
+                            {p.caption && <p style={{ fontSize: 11, color: "var(--text-soft)", lineHeight: 1.5, fontStyle: "italic", marginBottom: 12 }}>&ldquo;{p.caption.slice(0, 80)}{p.caption.length > 80 ? "…" : ""}&rdquo;</p>}
                             <div onClick={e => e.stopPropagation()}>
                               {(locked || subLocked) && (
                                 <form action="/api/subscribe" method="post">
@@ -495,7 +495,7 @@ export default function CreatorStageClient({
                         </div>
                       )}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ fontFamily: mono, fontSize: 10, color: "rgba(255,255,255,0.55)", letterSpacing: "0.06em" }}>
+                        <span style={{ fontFamily: mono, fontSize: 10, color: "var(--text-soft)", letterSpacing: "0.06em" }}>
                           {new Date(p.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>

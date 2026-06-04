@@ -54,7 +54,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
 
   return (
     <div style={{ padding: "40px 40px 0" }}>
-      <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>
+      <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 16 }}>
         Follow-backs from {displayName}
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -74,7 +74,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
                   <p style={{ fontSize: 13, color: "#F2F2F0", margin: 0, fontWeight: 500 }}>{p.label} follow-back</p>
                 </div>
               </div>
-              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", margin: "0 0 12px", lineHeight: 1.5 }}>
+              <p style={{ fontSize: 12, color: "var(--text-soft)", margin: "0 0 12px", lineHeight: 1.5 }}>
                 {ab.description || `Delivered within ${ab.delivery_days} days`}
               </p>
               {!isOpen ? (
@@ -110,7 +110,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
                     </button>
                     <button onClick={() => setBuying(null)} style={{
                       background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6,
-                      padding: "9px 12px", color: "rgba(255,255,255,0.5)", cursor: "pointer", fontSize: 12,
+                      padding: "9px 12px", color: "var(--text-soft)", cursor: "pointer", fontSize: 12,
                     }}>✕</button>
                   </div>
                 </div>

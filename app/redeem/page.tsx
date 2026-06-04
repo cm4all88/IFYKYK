@@ -5,7 +5,7 @@ export default function RedeemPage() {
   return (
     <Suspense fallback={
       <main style={{ minHeight:"100vh", background:"#09090C", display:"flex", alignItems:"center", justifyContent:"center" }}>
-        <p style={{ color:"rgba(242,242,240,0.4)", fontFamily:"monospace", fontSize:13 }}>Loading…</p>
+        <p style={{ color:"var(--muted)", fontFamily:"monospace", fontSize:13 }}>Loading…</p>
       </main>
     }>
       <RedeemForm />

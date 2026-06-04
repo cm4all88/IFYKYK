@@ -50,7 +50,7 @@ function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
         <div style={{
           flex: 1, background: "#17181B", borderRadius: 3,
           padding: "4px 10px", fontFamily: "DM Mono, monospace",
-          fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: "0.04em",
+          fontSize: 10, color: "var(--muted)", letterSpacing: "0.04em",
         }}>
           spotlightly.app/{handle || "your-handle"}
         </div>
@@ -107,14 +107,14 @@ function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
 
           {bio ? (
             <p style={{
-              fontSize: 12, color: "rgba(242,242,240,0.55)",
+              fontSize: 12, color: "var(--text-soft)",
               lineHeight: 1.65, marginBottom: 12,
               maxHeight: 60, overflow: "hidden",
             }}>
               {bio}
             </p>
           ) : (
-            <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 12, fontStyle: "italic" }}>
+            <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, fontStyle: "italic" }}>
               Your bio will appear here
             </p>
           )}
@@ -340,7 +340,7 @@ export default function OnboardingPage() {
   const ghostBtn: React.CSSProperties = {
     width: "100%",
     background: "transparent",
-    color: "rgba(247,243,236,0.55)",
+    color: "var(--text-soft)",
     fontFamily: "DM Mono, monospace",
     fontSize: 10,
     letterSpacing: "0.14em",
@@ -431,7 +431,7 @@ export default function OnboardingPage() {
           <p style={{
             fontFamily: "Cormorant Garamond, Georgia, serif",
             fontSize: 18, fontStyle: "italic",
-            color: "rgba(247,243,236,0.4)",
+            color: "var(--muted)",
             marginBottom: 40, lineHeight: 1.6,
           }}>
             What should the spotlight call you?
@@ -542,7 +542,7 @@ export default function OnboardingPage() {
                 What do you do?
               </h2>
               <p style={{
-                fontSize: 15, color: "rgba(247,243,236,0.45)",
+                fontSize: 15, color: "var(--muted)",
                 lineHeight: 1.8, marginBottom: 40,
                 textAlign: "center", maxWidth: 400, margin: "0 auto 40px",
               }}>
@@ -601,7 +601,7 @@ export default function OnboardingPage() {
                     <span style={{ fontSize: 24, flexShrink: 0 }}>{rec.emoji}</span>
                     <div>
                       <p style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>{rec.title}</p>
-                      <p style={{ fontSize: 13, color: "rgba(247,243,236,0.5)", lineHeight: 1.65, margin: 0 }}>{rec.desc}</p>
+                      <p style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.65, margin: 0 }}>{rec.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -629,7 +629,7 @@ export default function OnboardingPage() {
                 <button onClick={askFollowUp} disabled={followUpLoading || !followUp.trim()} style={{
                   background: "#2A2D33", border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 4, padding: "0 18px",
-                  color: "rgba(255,255,255,0.5)", fontFamily: "DM Mono, monospace",
+                  color: "var(--text-soft)", fontFamily: "DM Mono, monospace",
                   fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase",
                   cursor: "pointer", flexShrink: 0,
                   opacity: followUpLoading || !followUp.trim() ? 0.45 : 1,
@@ -709,7 +709,7 @@ export default function OnboardingPage() {
           <span style={{
             fontFamily: "DM Mono, monospace", fontSize: 9,
             letterSpacing: "0.2em", textTransform: "uppercase",
-            color: "rgba(247,243,236,0.55)", display: "block", marginBottom: 12,
+            color: "var(--text-soft)", display: "block", marginBottom: 12,
           }}>
             Building your page
           </span>
@@ -720,7 +720,7 @@ export default function OnboardingPage() {
           }}>
             Make it yours.
           </h2>
-          <p style={{ fontSize: 14, color: "rgba(247,243,236,0.62)", marginBottom: 36, lineHeight: 1.7 }}>
+          <p style={{ fontSize: 14, color: "var(--text-soft)", marginBottom: 36, lineHeight: 1.7 }}>
             Your audience sees this the moment they arrive. Watch it come together on the right.
           </p>
 
@@ -799,7 +799,7 @@ export default function OnboardingPage() {
             <input type="url" value={bookingUrl} onChange={e => setBookingUrl(e.target.value)}
               placeholder="https://calendly.com/you"
               style={{ ...inputBase, fontFamily: "DM Mono, monospace", fontSize: 12 }} />
-            <p style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "rgba(255,255,255,0.45)", marginTop: 6, letterSpacing: "0.04em" }}>
+            <p style={{ fontFamily: "DM Mono, monospace", fontSize: 10, color: "var(--muted)", marginTop: 6, letterSpacing: "0.04em" }}>
               Hairdressers, trainers, coaches — audience members book directly from your page.
             </p>
           </div>
@@ -878,7 +878,7 @@ export default function OnboardingPage() {
           <span style={{
             fontFamily: "DM Mono, monospace", fontSize: 9,
             letterSpacing: "0.2em", textTransform: "uppercase",
-            color: "rgba(247,243,236,0.3)", display: "block",
+            color: "var(--muted)", display: "block",
             marginBottom: 12, textAlign: "center",
           }}>
             Almost there
@@ -891,7 +891,7 @@ export default function OnboardingPage() {
             Open the box office.
           </h2>
           <p style={{
-            fontSize: 15, color: "rgba(247,243,236,0.45)",
+            fontSize: 15, color: "var(--muted)",
             lineHeight: 1.8, marginBottom: 36, textAlign: "center",
           }}>
             Connect Stripe so your audience can subscribe and pay you directly. Takes 2 minutes.
@@ -994,7 +994,7 @@ export default function OnboardingPage() {
           }} />
 
           <p style={{
-            fontSize: 16, color: "rgba(247,243,236,0.45)",
+            fontSize: 16, color: "var(--muted)",
             lineHeight: 1.8, marginBottom: 32,
           }}>
             Your Spotlightly page is ready. Share your link and start building your audience.
@@ -1039,7 +1039,7 @@ export default function OnboardingPage() {
             {profile && (
               <a href={`/${profile.handle}`} target="_blank" rel="noopener noreferrer" style={{
                 display: "block", textAlign: "center",
-                background: "transparent", color: "rgba(247,243,236,0.35)",
+                background: "transparent", color: "var(--muted)",
                 fontFamily: "DM Mono, monospace", fontSize: 10,
                 letterSpacing: "0.14em", textTransform: "uppercase",
                 padding: "14px 0", borderRadius: 4,

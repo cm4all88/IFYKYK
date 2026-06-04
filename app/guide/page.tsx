@@ -141,7 +141,7 @@ export default function GuidePage() {
         <Link href="/" className="brand-logo" style={{ fontSize: 24 }}>Spot<span>light</span>ly
         </Link>
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-          <Link href="/help" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#71717a", textDecoration: "none" }}>Help</Link>
+          <Link href="/help" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none" }}>Help</Link>
           <Link href="/signup" style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.15em", textTransform: "uppercase", color: "#09090C", background: "#F0B429", padding: "8px 18px", borderRadius: 3, textDecoration: "none" }}>Start free →</Link>
         </div>
       </header>
@@ -151,7 +151,7 @@ export default function GuidePage() {
         padding: "80px 40px 60px", maxWidth: 860, margin: "0 auto",
         background: "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(240,180,41,0.07) 0%, transparent 70%)",
       }}>
-        <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "#71717a", marginBottom: 16 }}>Creator Guide</p>
+        <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.25em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 16 }}>Creator Guide</p>
         <h1 style={{ fontFamily: serif, fontSize: "clamp(40px,6vw,64px)", fontWeight: 300, color: "#fff", lineHeight: 1.05, marginBottom: 20, letterSpacing: "-0.02em" }}>
           From signup to<br /><em style={{ fontStyle: "italic", color: "#F0B429" }}>your first $1,000.</em>
         </h1>
@@ -162,7 +162,7 @@ export default function GuidePage() {
           <Link href="/signup" style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", color: "#09090C", background: "#F0B429", padding: "14px 28px", borderRadius: 3, textDecoration: "none" }}>
             Start for free →
           </Link>
-          <Link href="/help" style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#71717a", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "14px 28px", borderRadius: 3, textDecoration: "none" }}>
+          <Link href="/help" style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "var(--muted)", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "14px 28px", borderRadius: 3, textDecoration: "none" }}>
             Help center
           </Link>
         </div>
@@ -206,7 +206,7 @@ export default function GuidePage() {
             Claim your handle →
           </Link>
           <p style={{ fontFamily: mono, fontSize: 10, color: "#52525b", marginTop: 20, letterSpacing: "0.08em" }}>
-            Questions? <a href="mailto:support@spotlightly.app" style={{ color: "#71717a", textDecoration: "none" }}>support@spotlightly.app</a>
+            Questions? <a href="mailto:support@spotlightly.app" style={{ color: "var(--muted)", textDecoration: "none" }}>support@spotlightly.app</a>
           </p>
         </div>
       </div>

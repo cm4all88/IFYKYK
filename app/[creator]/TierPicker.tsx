@@ -95,12 +95,12 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
                   <span style={{ fontSize: 14, fontWeight: 700, color: selected ? "#F0B429" : "#F2F2F0" }}>{tier.name}</span>
                 </div>
                 {tier.description && (
-                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
+                  <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
                 )}
                 {tier.perks?.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginLeft: 24 }}>
                     {tier.perks.slice(0, 3).map((perk, i) => (
-                      <span key={i} style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>✓ {perk}</span>
+                      <span key={i} style={{ fontSize: 11, color: "var(--muted)" }}>✓ {perk}</span>
                     ))}
                   </div>
                 )}
@@ -109,7 +109,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
                 <p style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: selected ? "#F0B429" : "rgba(255,255,255,0.7)", lineHeight: 1 }}>
                   ${Number(price).toFixed(2)}
                 </p>
-                <p style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>/{period}</p>
+                <p style={{ fontFamily: "monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>/{period}</p>
                 {billing === "yearly" && tier.yearly_discount_pct && (
                   <p style={{ fontSize: 10, color: "#34D399", marginTop: 2 }}>{tier.yearly_discount_pct}% off</p>
                 )}
@@ -133,7 +133,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
       </button>
 
       {!stripeReady && (
-        <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center" }}>
+        <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
           Payments coming soon
         </p>
       )}

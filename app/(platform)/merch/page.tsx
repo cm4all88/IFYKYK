@@ -68,7 +68,7 @@ function ComingSoonOverlay() {
         fontSize: 12,
         letterSpacing: "0.14em",
         textTransform: "uppercase",
-        color: "rgba(255,255,255,0.35)",
+        color: "var(--muted)",
         margin: 0,
       }}>
         Something big is being built.

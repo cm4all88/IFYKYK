@@ -34,11 +34,11 @@ export default function InterestPicker({ returnUrl, onDone }: Props) {
     <main style={{ minHeight:"100vh", background:"#09090C", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"40px 24px" }}>
       <div style={{ width:"100%", maxWidth:520 }}>
         <div style={{ textAlign:"center", marginBottom:40 }}>
-          <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".2em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:12 }}>One last thing</p>
+          <p style={{ fontFamily:"monospace", fontSize:10, letterSpacing:".2em", textTransform:"uppercase", color:"var(--muted)", marginBottom:12 }}>One last thing</p>
           <h1 style={{ fontFamily:"Georgia,serif", fontSize:32, fontWeight:300, color:"#fff", marginBottom:10, lineHeight:1.1 }}>
             What do you love?
           </h1>
-          <p style={{ fontSize:14, color:"rgba(242,242,240,0.45)", lineHeight:1.7 }}>
+          <p style={{ fontSize:14, color:"var(--muted)", lineHeight:1.7 }}>
             Pick the kinds of content you&apos;re into. We&apos;ll use this to recommend creators you&apos;ll actually like.
           </p>
         </div>

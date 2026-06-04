@@ -87,7 +87,7 @@ const ROADMAP: {
   {
     status: "parked",
     label: "Parked / Won't Build",
-    color: "#71717A",
+    color: "var(--muted)",
     colorSoft: "rgba(113,113,122,0.06)",
     items: [
       { name: "Creator subscription bundles", desc: "Fan subscribes to multiple creators at a discount. DOESN'T WORK — Spotlightly doesn't control subscription payments between fans and creators (Stripe Connect model). Can't discount what we don't handle.", note: "Architecture incompatible. Fans pay creators directly." },
@@ -148,7 +148,7 @@ export default async function RoadmapPage() {
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
                       <div style={{ flex: 1 }}>
                         <p style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{item.name}</p>
-                        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", lineHeight: 1.65 }}>{item.desc}</p>
+                        <p style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.65 }}>{item.desc}</p>
                         {item.note && (
                           <p style={{ fontSize: 12, color: section.color, marginTop: 6, fontStyle: "italic", opacity: 0.7 }}>⚠ {item.note}</p>
                         )}
@@ -160,7 +160,7 @@ export default async function RoadmapPage() {
                           </span>
                         )}
                         {item.revenue && (
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".08em", color: "rgba(255,255,255,0.3)", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".08em", color: "var(--muted)", maxWidth: 180, textAlign: "right", lineHeight: 1.4 }}>
                             {item.revenue}
                           </span>
                         )}

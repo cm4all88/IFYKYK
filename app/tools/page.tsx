@@ -208,7 +208,7 @@ export default function ToolsPage() {
           <p style={{ fontSize: 16, color: "rgba(242,242,240,0.7)", lineHeight: 1.75, maxWidth: 560 }}>
             Every tool here is used by working creators. No bloated suites, no software you&apos;ll install and never open. Just what actually moves the needle.
           </p>
-          <p style={{ fontSize: 11, color: "rgba(242,242,240,0.4)", marginTop: 16, fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: ".06em" }}>
+          <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 16, fontFamily: "var(--font-mono, DM Mono, monospace)", letterSpacing: ".06em" }}>
             DISCLOSURE: We may earn a commission on purchases through some links at no extra cost to you.
           </p>
         </div>
@@ -220,7 +220,7 @@ export default function ToolsPage() {
                 <span style={{ fontSize: 22 }}>{section.emoji}</span>
                 <div>
                   <h2 style={{ fontFamily: "var(--font-serif, Cormorant Garamond, Georgia, serif)", fontSize: 26, fontWeight: 300, color: "#fff", lineHeight: 1 }}>{section.name}</h2>
-                  <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>{section.lede}</p>
+                  <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>{section.lede}</p>
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 3 }}>
@@ -237,11 +237,11 @@ export default function ToolsPage() {
                             </span>
                           )}
                         </div>
-                        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{tool.tagline}</p>
+                        <p style={{ fontSize: 12, color: "var(--muted)" }}>{tool.tagline}</p>
                       </div>
                       <span style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 13, color: "#F0B429", fontWeight: 700, flexShrink: 0 }}>{tool.price}</span>
                     </div>
-                    <p style={{ fontSize: 13, color: "rgba(242,242,240,0.65)", lineHeight: 1.65 }}>{tool.why}</p>
+                    <p style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.65 }}>{tool.why}</p>
                     <p style={{ fontFamily: "var(--font-mono, DM Mono, monospace)", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "rgba(242,184,75,0.7)", marginTop: 12 }}>Get it →</p>
                   </a>
                 ))}

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MEDAL_PACKS, MEDAL_EMOJI } from "@/lib/medals";
+import MedalCheckout from "@/components/MedalCheckout";
 
 export default function MedalButton({
   postId,
@@ -19,6 +20,7 @@ export default function MedalButton({
   const [view, setView] = useState<"award" | "buy">("award");
   const [busy, setBusy] = useState(false);
   const [justAwarded, setJustAwarded] = useState(false);
+  const [checkout, setCheckout] = useState<{ clientSecret: string; publishableKey: string; medals: number; price: number } | null>(null);
 
   const px = size === "sm" ? 13 : 15;
 
@@ -63,13 +65,28 @@ export default function MedalButton({
     try {
       const res = await fetch("/api/medals/purchase", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packId, returnTo: typeof window !== "undefined" ? window.location.pathname : "/feed" }),
+        body: JSON.stringify({ packId }),
       });
       const data = await res.json();
-      if (data.url) { window.location.href = data.url; return; }
+      if (data.clientSecret && data.publishableKey) {
+        const pack = MEDAL_PACKS.find((p) => p.id === packId);
+        setCheckout({
+          clientSecret: data.clientSecret,
+          publishableKey: data.publishableKey,
+          medals: pack?.medals ?? 0,
+          price: pack?.price ?? 0,
+        });
+        setOpen(false);
+        return;
+      }
       alert(data.error || "Could not start checkout");
     } catch { alert("Something went wrong"); }
     finally { setBusy(false); }
+  }
+
+  function afterPurchase(newBalance: number) {
+    setBalance(newBalance);
+    setView("award");
   }
 
   return (
@@ -140,6 +157,17 @@ export default function MedalButton({
             </>
           )}
         </div>
+      )}
+
+      {checkout && (
+        <MedalCheckout
+          clientSecret={checkout.clientSecret}
+          publishableKey={checkout.publishableKey}
+          medals={checkout.medals}
+          price={checkout.price}
+          onClose={() => setCheckout(null)}
+          onComplete={(balance) => afterPurchase(balance)}
+        />
       )}
     </div>
   );

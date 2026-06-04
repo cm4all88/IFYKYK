@@ -45,7 +45,7 @@ export default function RedeemForm() {
             <h1 style={{ fontFamily: "Georgia,serif", fontSize: 28, fontWeight: 300, color: "#fff", marginBottom: 12, lineHeight: 1.1 }}>
               You&apos;re in.
             </h1>
-            <p style={{ fontSize: 15, color: "rgba(242,242,240,0.65)", lineHeight: 1.75, marginBottom: 32 }}>
+            <p style={{ fontSize: 15, color: "var(--text-soft)", lineHeight: 1.75, marginBottom: 32 }}>
               Your <strong style={{ color: "#fff" }}>{result.months}-month subscription</strong> to{" "}
               <strong style={{ color: "#F0B429" }}>@{result.creatorHandle}</strong> is now active.
             </p>
@@ -63,12 +63,12 @@ export default function RedeemForm() {
               <h1 style={{ fontFamily: "Georgia,serif", fontSize: 28, fontWeight: 300, color: "#fff", marginBottom: 8, lineHeight: 1.1 }}>
                 Redeem your gift.
               </h1>
-              <p style={{ fontSize: 14, color: "rgba(242,242,240,0.5)", lineHeight: 1.7 }}>
+              <p style={{ fontSize: 14, color: "var(--text-soft)", lineHeight: 1.7 }}>
                 Enter the code from your gift email to activate your subscription.
               </p>
             </div>
 
-            <label style={{ display: "block", fontFamily: "monospace", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "rgba(242,242,240,0.4)", marginBottom: 8 }}>
+            <label style={{ display: "block", fontFamily: "monospace", fontSize: 10, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8 }}>
               Redemption code
             </label>
             <input
@@ -101,7 +101,7 @@ export default function RedeemForm() {
               {loading ? "Redeeming…" : "Redeem gift →"}
             </button>
 
-            <p style={{ fontSize: 12, color: "rgba(242,242,240,0.3)", marginTop: 20, textAlign: "center", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 20, textAlign: "center", lineHeight: 1.6 }}>
               You&apos;ll need to be signed in to your Spotlightly account.<br />
               <Link href="/login" style={{ color: "rgba(240,180,41,0.6)" }}>Sign in here</Link> if you&apos;re not already.
             </p>

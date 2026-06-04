@@ -363,7 +363,7 @@ export default function MerchCreatePage() {
                   : <>
                       <p style={{ fontSize: 32, marginBottom: 8 }}>🖼️</p>
                       <p style={{ color: muted, fontSize: 13 }}>Drop your PNG here or <span style={{ color: accent }}>click to browse</span></p>
-                      <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 6 }}>PNG with transparent background works best</p>
+                      <p style={{ color: "var(--muted)", fontSize: 11, marginTop: 6 }}>PNG with transparent background works best</p>
                     </>
                 }
               </div>
@@ -394,7 +394,7 @@ export default function MerchCreatePage() {
                 />
               </div>
               <div style={{ position: "absolute", bottom: 8, right: 8 }}>
-                <span style={{ fontFamily: mono, fontSize: 7, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(0,0,0,0.6)", color: "rgba(255,255,255,0.6)", padding: "3px 7px", borderRadius: 2 }}>
+                <span style={{ fontFamily: mono, fontSize: 7, letterSpacing: "0.12em", textTransform: "uppercase", background: "rgba(0,0,0,0.6)", color: "var(--text-soft)", padding: "3px 7px", borderRadius: 2 }}>
                   Preview
                 </span>
               </div>

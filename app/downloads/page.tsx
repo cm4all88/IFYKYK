@@ -45,7 +45,7 @@ export default async function DownloadsPage({
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "60px 24px 120px" }}>
 
         <div style={{ marginBottom: 40 }}>
-          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "rgba(255,255,255,0.3)", marginBottom: 8 }}>My downloads</p>
+          <p style={{ fontFamily: "monospace", fontSize: 10, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8 }}>My downloads</p>
           <h1 style={{ fontFamily: "Georgia,serif", fontSize: 40, fontWeight: 300, color: "#fff", lineHeight: 1.05 }}>
             Your <em style={{ color: "#F0B429" }}>purchases.</em>
           </h1>
@@ -58,7 +58,7 @@ export default async function DownloadsPage({
             <h2 style={{ fontFamily: "Georgia,serif", fontSize: 24, fontWeight: 300, color: "#fff", marginBottom: 8 }}>
               {newPurchase.product?.title}
             </h2>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 20, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-soft)", marginBottom: 20, lineHeight: 1.6 }}>
               From <a href={`/${newPurchase.product?.creator?.handle}`} style={{ color: "#F0B429", textDecoration: "none" }}>{newPurchase.product?.creator?.display_name ?? newPurchase.product?.creator?.handle}</a>
             </p>
             <a
@@ -67,7 +67,7 @@ export default async function DownloadsPage({
             >
               ⬇ Download now
             </a>
-            <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 12 }}>
+            <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 12 }}>
               Up to {newPurchase.max_downloads} downloads · Link valid for 1 year · A copy was sent to your email
             </p>
           </div>
@@ -76,7 +76,7 @@ export default async function DownloadsPage({
         {/* All purchases */}
         {!user ? (
           <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "40px 32px", textAlign: "center" }}>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginBottom: 20 }}>Sign in to see all your purchases.</p>
+            <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 20 }}>Sign in to see all your purchases.</p>
             <Link href="/login?return=/downloads" style={{ display: "inline-block", background: "#F0B429", color: "#09090C", fontWeight: 700, fontSize: 13, padding: "11px 24px", borderRadius: 999, textDecoration: "none" }}>
               Sign in →
             </Link>
@@ -84,7 +84,7 @@ export default async function DownloadsPage({
         ) : !allPurchases?.length && !newPurchase ? (
           <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "40px 32px", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 16 }}>📦</div>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>No purchases yet.</p>
+            <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>No purchases yet.</p>
             <Link href="/explore" style={{ color: "#F0B429", fontSize: 13, textDecoration: "none" }}>Explore creators →</Link>
           </div>
         ) : (
@@ -102,7 +102,7 @@ export default async function DownloadsPage({
                     {p.product?.title}
                   </p>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <a href={`/${p.product?.creator?.handle}`} style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>
+                    <a href={`/${p.product?.creator?.handle}`} style={{ fontSize: 12, color: "var(--muted)", textDecoration: "none" }}>
                       @{p.product?.creator?.handle}
                     </a>
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)" }}>
