@@ -564,14 +564,39 @@ function OverviewPane({
           <p className="stat-num">{stats.posts.toLocaleString()}</p>
           <p className="stat-meta">{stats.posts === 0 ? "Get something out there" : "Live on your page"}</p>
         </div>
-        <div className="stat">
-          <p className="stat-label">🏅 Medals</p>
-          <p className="stat-num">{medals.total.toLocaleString()}</p>
-          <p className="stat-meta">
-            {medals.rank ? `#${medals.rank} on the Wall this month` : medals.total > 0 ? "Earned all-time" : "Awarded by your audience"}
+      </div>
+
+      {/* Medal standing — showcases the Wall, replaces the orphaned 5th stat */}
+      <Link
+        href="/wall"
+        style={{
+          display: "flex", alignItems: "center", gap: "var(--s-5)",
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderLeft: "3px solid var(--accent)", borderRadius: "var(--r-2)",
+          padding: "18px 24px", marginBottom: "var(--s-8)",
+          textDecoration: "none", color: "inherit", transition: "background var(--t-fast)",
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = "var(--surface-2)")}
+        onMouseLeave={e => (e.currentTarget.style.background = "var(--surface)")}
+      >
+        <span style={{ fontSize: 30, lineHeight: 1, flexShrink: 0 }}>&#127941;</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--muted)", margin: "0 0 5px" }}>Medals</p>
+          <p style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 400, color: "#fff", margin: 0, lineHeight: 1.1 }}>
+            {medals.total.toLocaleString()} {medals.total === 1 ? "medal" : "medals"} earned
+          </p>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "5px 0 0" }}>
+            {medals.rank
+              ? `You're #${medals.rank} on the Wall this month`
+              : medals.total > 0
+              ? "Keep earning to climb the Wall"
+              : "Standout posts earn medals from your audience"}
           </p>
         </div>
-      </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--accent)", flexShrink: 0 }}>
+          The Wall &rarr;
+        </span>
+      </Link>
 
       {/* Identity link toggle — only if both profiles exist */}
       {other && (
@@ -629,60 +654,56 @@ function OverviewPane({
         </button>
       </div>
 
-      {/* Tools — calm list, not a grid */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {/* Tools — a tidy grid, not a wall */}
+      <p className="kicker" style={{ marginBottom: "var(--s-4)" }}>Your tools</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 2 }}>
         {([
-          { pane: "payments" as Pane, label: "Connect Stripe", desc: "Required before your audience can pay you.", accent: true },
+          stripeConnected
+            ? { pane: "payments" as Pane, label: "Payments", desc: "Manage payouts and your Stripe account." }
+            : { pane: "payments" as Pane, label: "Connect Stripe", desc: "Required before your audience can pay you.", accent: true },
           { pane: "profile" as Pane, label: "Edit profile", desc: "Avatar, bio, cover. Your first impression." },
           { href: "/messages", label: "Messages", desc: "Inbox and Front Row messages." },
-          { pane: "channels" as Pane, label: "Channels", desc: "Subscription tiers your audience can join." },
+          { pane: "channels" as Pane, label: "Subscription tiers", desc: "What your audience joins to support you." },
           { pane: "marketplace" as Pane, label: "Marketplace", desc: "Sell items from your collection." },
-          { pane: "social" as Pane, label: "Social posts", desc: "Paste your Instagram, TikTok, or YouTube links." },
+          { pane: "social" as Pane, label: "Social posts", desc: "Bring in your Instagram, TikTok, or YouTube." },
           { href: "/live", label: "Go Live", desc: "Stream directly to your audience." },
           { href: "/merch", label: "Merch", desc: "Design and sell branded products. No upfront cost." },
-          { pane: "digital" as Pane, label: "Digital store", desc: "Sell guides, presets, courses. 0% cut." },
+          { pane: "digital" as Pane, label: "Digital store", desc: "Guides, presets, courses. You keep 95%." },
           { pane: "analytics" as Pane, label: "Analytics", desc: "Audience growth and earnings." },
           { pane: "advisor" as Pane, label: "✦ Advisor", desc: "AI-powered monetization strategy." },
         ] as Array<{ pane?: Pane; href?: string; label: string; desc: string; accent?: boolean }>).map(item => {
-          const sharedStyle: React.CSSProperties = {
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "16px 20px", color: "inherit",
-            borderBottom: "1px solid var(--border)", gap: 16,
-            transition: "background var(--t-fast)", cursor: "pointer",
+          const cardStyle: React.CSSProperties = {
+            display: "flex", flexDirection: "column", gap: 4,
+            padding: "16px 18px", color: "inherit", textAlign: "left",
+            border: "1px solid var(--border)", borderRadius: "var(--r-2)",
+            background: "transparent", cursor: "pointer", width: "100%",
+            transition: "background var(--t-fast), border-color var(--t-fast)",
+          };
+          const enter = (e: React.MouseEvent<HTMLElement>) => {
+            e.currentTarget.style.background = "var(--surface)";
+            e.currentTarget.style.borderColor = "var(--border-strong, var(--border))";
+          };
+          const leave = (e: React.MouseEvent<HTMLElement>) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.borderColor = "var(--border)";
           };
           const inner = (
             <>
-              <div>
-                <p style={{
-                  fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500,
-                  color: item.accent ? "var(--accent-open)" : "var(--text)",
-                  margin: "0 0 3px",
-                }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 500, color: item.accent ? "var(--accent-open)" : "var(--text)" }}>
                   {item.label}
-                </p>
-                <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{item.desc}</p>
+                </span>
+                <span style={{ color: "var(--muted)", fontSize: 15, opacity: 0.4 }}>&rsaquo;</span>
               </div>
-              <span style={{ color: "var(--muted)", fontSize: 16, flexShrink: 0, opacity: 0.4 }}>›</span>
+              <span style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{item.desc}</span>
             </>
           );
           return item.pane ? (
-            <button
-              key={item.label}
-              onClick={() => onSetPane(item.pane!)}
-              style={{ ...sharedStyle, background: "transparent", border: "none", borderBottom: "1px solid var(--border)", width: "100%", textAlign: "left" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
+            <button key={item.label} onClick={() => onSetPane(item.pane!)} style={{ ...cardStyle }} onMouseEnter={enter} onMouseLeave={leave}>
               {inner}
             </button>
           ) : (
-            <Link
-              key={item.label}
-              href={item.href!}
-              style={{ ...sharedStyle, textDecoration: "none" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--surface)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-            >
+            <Link key={item.label} href={item.href!} style={{ ...cardStyle, textDecoration: "none" }} onMouseEnter={enter} onMouseLeave={leave}>
               {inner}
             </Link>
           );
