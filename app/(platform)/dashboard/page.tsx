@@ -3820,7 +3820,11 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
   async function deleteAccount() {
     if (deleteConfirm !== profile.handle) return;
     setDeleting(true);
-    await (supabase as any).from("creator_profiles").update({ deleted_at: new Date().toISOString() }).eq("id", profile.id);
+    try {
+      await fetch("/api/account/delete", { method: "POST" });
+    } catch {
+      // even if the request errors, sign out below
+    }
     await supabase.auth.signOut();
     window.location.href = "/";
   }

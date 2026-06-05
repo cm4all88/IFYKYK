@@ -48,6 +48,8 @@ interface Props {
   tierRanks: Record<string, number>;
   medalPoints?: number;
   medalCount?: number;
+  totalLikes?: number;
+  subscriberCount?: number;
   socialLinks?: Record<string, string> | null;
   children: React.ReactNode; // subscribe/tip/supertip buttons
 }
@@ -56,7 +58,7 @@ export default function CreatorStageClient({
   posts, isSubscribed, hasEarlyAccess, unlockedPostIds, likedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
   creatorProfileId, subscriptionPrice, backstageHandle,
-  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, socialLinks, children,
+  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, totalLikes = 0, subscriberCount = 0, socialLinks, children,
 }: Props) {
   const now = new Date();
 
@@ -131,6 +133,11 @@ export default function CreatorStageClient({
   const serif = "var(--font-serif, Cormorant Garamond, Georgia, serif)";
 
   const bgImage = bgUrl || coverUrl;
+  const statPill: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 7, padding: "7px 14px",
+    background: "rgba(242,184,75,0.06)", border: "1px solid rgba(242,184,75,0.18)", borderRadius: 999,
+    fontFamily: mono, fontSize: 11, letterSpacing: "0.06em", color: "rgba(242,184,75,0.95)",
+  };
 
   return (
     <>
@@ -209,21 +216,21 @@ export default function CreatorStageClient({
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", width: "100%", maxWidth: 900 }}>
 
           {/* Creator identity — top */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", overflow: "hidden", border: "2px solid rgba(242,184,75,0.3)", flexShrink: 0 }}>
+          <div className="cp-identity">
+            <div className="cp-stage-avatar" style={{ borderRadius: "50%", overflow: "hidden", border: "2px solid rgba(242,184,75,0.35)", flexShrink: 0, boxShadow: "0 8px 30px rgba(0,0,0,0.45)" }}>
               {avatarUrl ? (
                 <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               ) : (
-                <div style={{ width: "100%", height: "100%", background: "rgba(242,184,75,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 22, color: "rgba(242,184,75,0.7)" }}>
+                <div style={{ width: "100%", height: "100%", background: "rgba(242,184,75,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: serif, fontSize: 48, color: "rgba(242,184,75,0.7)" }}>
                   {String(displayName).charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
-            <div style={{ textAlign: "left" }}>
-              <h1 style={{ fontFamily: serif, fontSize: "clamp(24px, 4vw, 40px)", fontWeight: 300, color: "#ffffff", lineHeight: 1, letterSpacing: "-0.02em", margin: "0 0 4px" }}>
+            <div className="cp-identity-text">
+              <h1 className="cp-stage-name" style={{ fontFamily: serif, fontWeight: 300, color: "#ffffff", lineHeight: 1, letterSpacing: "-0.02em", margin: "0 0 6px", textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>
                 {displayName}
               </h1>
-              <p style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.12em", color: "rgba(242,184,75,0.95)", margin: 0 }}>@{handle}</p>
+              <p style={{ fontFamily: mono, fontSize: 13, letterSpacing: "0.14em", color: "rgba(242,184,75,0.95)", margin: 0 }}>@{handle}</p>
             </div>
           </div>
 
@@ -236,24 +243,35 @@ export default function CreatorStageClient({
 
           <SocialLinks links={socialLinks} />
 
-          {/* Trophy shelf — medal standing (social proof) */}
-          {medalCount > 0 && (
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 10, alignSelf: "center",
-              padding: "7px 14px", marginBottom: 16,
-              background: "rgba(242,184,75,0.06)", border: "1px solid rgba(242,184,75,0.18)", borderRadius: 999,
-            }}>
-              <span style={{ fontSize: 15 }}>🏅</span>
-              <span style={{ fontFamily: mono, fontSize: 11, letterSpacing: "0.08em", color: "rgba(242,184,75,0.95)" }}>
-                {medalCount.toLocaleString()} {medalCount === 1 ? "medal" : "medals"} earned
-              </span>
-              <a href="/wall" style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none" }}>
-                The Wall →
-              </a>
+          {/* Social proof — medals · likes · subscribers */}
+          {(medalCount > 0 || totalLikes > 0 || subscriberCount > 0) && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center", alignSelf: "center", marginBottom: 16 }}>
+              {medalCount > 0 && (
+                <span style={statPill}>
+                  <span style={{ fontSize: 14 }}>🏅</span>
+                  {medalCount.toLocaleString()} {medalCount === 1 ? "medal" : "medals"}
+                </span>
+              )}
+              {totalLikes > 0 && (
+                <span style={statPill}>
+                  <span style={{ color: "#F2B84B", fontSize: 13 }}>♥</span>
+                  {totalLikes.toLocaleString()} {totalLikes === 1 ? "like" : "likes"}
+                </span>
+              )}
+              {subscriberCount > 0 && (
+                <span style={statPill}>
+                  {subscriberCount.toLocaleString()} {subscriberCount === 1 ? "subscriber" : "subscribers"}
+                </span>
+              )}
+              {medalCount > 0 && (
+                <a href="/wall" style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", textDecoration: "none", marginLeft: 2 }}>
+                  The Wall →
+                </a>
+              )}
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
+          <div className="cp-stage-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginBottom: 16 }}>
             {children}
           </div>
 

@@ -9,7 +9,12 @@ const PLATFORM_COLORS: Record<string, string> = {
   x: '#fff', twitter: '#fff', facebook: '#1877F2',
 }
 
-function igCode(u: string) { const m = (u || '').match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i); return m ? m[1] : null }
+function igEmbed(u: string) {
+  const m = (u || '').match(/instagram\.com\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
+  if (!m) return null;
+  let t = m[1].toLowerCase(); if (t === 'reels') t = 'reel';
+  return `https://www.instagram.com/${t}/${m[2]}/embed/`;
+}
 function ttId(u: string) { const m = (u || '').match(/\/video\/(\d{6,25})/); return m ? m[1] : null }
 function ytId(u: string) { const m = (u || '').match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/); return m ? m[1] : null }
 function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : null }
@@ -17,7 +22,7 @@ function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); ret
 // Direct iframe embeds — no third-party scripts, no oEmbed token, SPA-safe.
 function embedFor(platform: string, url: string): { src: string; height: number; bg: string } | null {
   switch (platform) {
-    case 'instagram': { const c = igCode(url); return c ? { src: `https://www.instagram.com/p/${c}/embed/`, height: 560, bg: '#fff' } : null }
+    case 'instagram': { const src = igEmbed(url); return src ? { src, height: 560, bg: '#fff' } : null }
     case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, height: 740, bg: '#000' } : null }
     case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, height: 320, bg: '#000' } : null }
     case 'x':

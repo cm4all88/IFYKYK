@@ -44,7 +44,7 @@ async function fetchEverything(handle: string) {
     .eq("handle", handle)
     .maybeSingle();
 
-  if (!spotlight) return null;
+  if (!spotlight || (spotlight as any).deleted_at) return null;
 
   let backstageHandle: string | null = null;
   if (spotlight.linked) {
@@ -103,6 +103,12 @@ async function fetchEverything(handle: string) {
     .eq("creator_id", spotlight.id)
     .order("pinned", { ascending: false })
     .order("original_posted_at", { ascending: false, nullsFirst: false });
+
+  const { count: subscriberCount } = await (supabase as any)
+    .from("subscriptions")
+    .select("id", { count: "exact", head: true })
+    .eq("creator_profile_id", spotlight.id)
+    .eq("status", "active");
 
   const { data: campaigns } = await (supabase as any)
     .from("campaigns")
@@ -196,6 +202,7 @@ async function fetchEverything(handle: string) {
     liveStream: liveStream ?? null,
     superTips: superTips ?? [],
     socialPosts: socialPosts ?? [],
+    subscriberCount: subscriberCount ?? 0,
   };
 }
 
@@ -235,6 +242,9 @@ export default async function CreatorPage(props: {
 
   // Full-page background: creator's chosen bg, else their cover.
   const bgImg = (spotlight as any).bg_url || spotlight.cover_url || null;
+
+  const subscriberCount = (data as any).subscriberCount ?? 0;
+  const totalLikes = ((posts ?? []) as any[]).reduce((s, p) => s + (Number((p as any).likes_count) || 0), 0);
 
   // Order social posts by real post date (derived from TikTok/Instagram URLs),
   // pinned first. The stored original_posted_at is used when present.
@@ -308,6 +318,8 @@ export default async function CreatorPage(props: {
               tierRanks={tierRanks}
               medalPoints={Number((spotlight as any).medal_points_total ?? 0)}
               medalCount={Number((spotlight as any).medal_count_total ?? 0)}
+              totalLikes={totalLikes}
+              subscriberCount={subscriberCount}
               socialLinks={(spotlight as any).social_links ?? {}}
             >
               <></>
@@ -436,6 +448,10 @@ export default async function CreatorPage(props: {
           }
           .cp-rail { min-width: 0; }
           .cp-center { min-width: 0; }
+          .cp-identity { display: flex; align-items: center; gap: 22px; margin-bottom: 20px; }
+          .cp-identity-text { text-align: left; }
+          .cp-stage-avatar { width: 120px; height: 120px; }
+          .cp-stage-name { font-size: clamp(36px, 6vw, 64px); }
 
           /* The stage hero + feed sit inside the center column now — strip the
              full-bleed centering so they breathe inside the column instead. */
@@ -696,8 +712,10 @@ export default async function CreatorPage(props: {
 
           /* ── Mobile ── */
           @media (max-width: 720px) {
-            .cp-stage-name { font-size: clamp(32px, 10vw, 56px); }
-            .cp-stage-avatar { width: 88px; height: 88px; }
+            .cp-identity { flex-direction: column; gap: 14px; }
+            .cp-identity-text { text-align: center; }
+            .cp-stage-avatar { width: 108px; height: 108px; }
+            .cp-stage-name { font-size: clamp(30px, 9vw, 48px); }
             .cp-stage-avatar-fallback { width: 88px; height: 88px; font-size: 36px; }
             .cp-stage-actions { gap: 8px; }
             .cp-stage-actions .btn { flex: 1; min-width: 0; font-size: 11px; padding: 10px 12px; }
