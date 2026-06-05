@@ -26,6 +26,7 @@ import SocialAddbacks from "./SocialAddbacks";
 import CreatorMarketplace from "./CreatorMarketplace";
 import SocialPostCard from "@/components/SocialPostCard";
 import CreatorRailNav from "@/components/CreatorRailNav";
+import SocialPostsGrid from "@/components/SocialPostsGrid";
 import { socialPostTimestamp } from "@/lib/socialDates";
 import type { Metadata } from "next";
 
@@ -327,12 +328,8 @@ export default async function CreatorPage(props: {
 
             {orderedSocialPosts.length > 0 && (
               <section className="cp-center-section" id="sec-social">
-                <span className="cp-rail-kicker">From around the web</span>
-                <div className="cp-social-grid">
-                  {orderedSocialPosts.map((sp: any) => (
-                    <SocialPostCard key={sp.id} post={sp} />
-                  ))}
-                </div>
+                <span className="cp-rail-kicker">From around the web · {orderedSocialPosts.length}</span>
+                <SocialPostsGrid posts={orderedSocialPosts} />
               </section>
             )}
           </div>

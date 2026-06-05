@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube',
   x: 'X', twitter: 'X', facebook: 'Facebook',
@@ -11,45 +9,21 @@ const PLATFORM_COLORS: Record<string, string> = {
   x: '#fff', twitter: '#fff', facebook: '#1877F2',
 }
 
-function cleanUrl(u: string) { return (u || '').split('?')[0] }
-function ytId(u: string) {
-  const m = u.match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/)
-  return m ? m[1] : null
-}
-function ttId(u: string) { const m = u.match(/\/video\/(\d+)/); return m ? m[1] : null }
+function igCode(u: string) { const m = (u || '').match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i); return m ? m[1] : null }
+function ttId(u: string) { const m = (u || '').match(/\/video\/(\d{6,25})/); return m ? m[1] : null }
+function ytId(u: string) { const m = (u || '').match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/); return m ? m[1] : null }
+function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : null }
 
-// Build the embed markup ourselves so it works without oEmbed tokens.
-function buildEmbed(platform: string, url: string, oembed: string | null): string | null {
-  const u = cleanUrl(url)
+// Direct iframe embeds — no third-party scripts, no oEmbed token, SPA-safe.
+function embedFor(platform: string, url: string): { src: string; height: number; bg: string } | null {
   switch (platform) {
-    case 'instagram':
-      return `<blockquote class="instagram-media" data-instgrm-permalink="${u}" data-instgrm-version="14" style="background:#FFF;border:0;margin:0 auto;max-width:540px;width:100%;border-radius:8px;"></blockquote>`
-    case 'youtube': {
-      const id = ytId(url)
-      return id
-        ? `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:8px;border:0;"></iframe>`
-        : oembed
-    }
-    case 'tiktok': {
-      const id = ttId(url)
-      if (id) return `<blockquote class="tiktok-embed" cite="${u}" data-video-id="${id}" style="max-width:605px;min-width:325px;margin:0 auto;"><a href="${u}"></a></blockquote>`
-      return oembed
-    }
+    case 'instagram': { const c = igCode(url); return c ? { src: `https://www.instagram.com/p/${c}/embed/`, height: 560, bg: '#fff' } : null }
+    case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, height: 740, bg: '#000' } : null }
+    case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, height: 320, bg: '#000' } : null }
     case 'x':
-    case 'twitter':
-      return oembed || `<blockquote class="twitter-tweet" data-theme="dark"><a href="${u}"></a></blockquote>`
-    default:
-      return oembed
+    case 'twitter': { const id = xId(url); return id ? { src: `https://platform.twitter.com/embed/Tweet.html?id=${id}&theme=dark`, height: 560, bg: 'transparent' } : null }
+    default: return null
   }
-}
-
-function ensureScript(src: string, id: string, onReady?: () => void) {
-  const existing = document.getElementById(id) as HTMLScriptElement | null
-  if (existing) { onReady?.(); return }
-  const s = document.createElement('script')
-  s.id = id; s.src = src; s.async = true
-  s.onload = () => onReady?.()
-  document.body.appendChild(s)
 }
 
 interface SocialPostCardProps {
@@ -66,26 +40,7 @@ interface SocialPostCardProps {
 export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }: SocialPostCardProps) {
   const label = PLATFORM_LABELS[post.platform] || post.platform
   const color = PLATFORM_COLORS[post.platform] || 'var(--accent, #F0B429)'
-  const embed = buildEmbed(post.platform, post.url, post.oembed_html)
-
-  // Hydrate the embed with the platform's script once it's in the DOM.
-  useEffect(() => {
-    if (!embed) return
-    const p = post.platform
-    if (p === 'instagram') {
-      ensureScript('https://www.instagram.com/embed.js', 'ig-embed-js', () => {
-        ;(window as any).instgrm?.Embeds?.process?.()
-      })
-      ;(window as any).instgrm?.Embeds?.process?.()
-    } else if (p === 'tiktok') {
-      ensureScript('https://www.tiktok.com/embed.js', 'tt-embed-js')
-    } else if (p === 'x' || p === 'twitter') {
-      ensureScript('https://platform.twitter.com/widgets.js', 'tw-embed-js', () => {
-        ;(window as any).twttr?.widgets?.load?.()
-      })
-      ;(window as any).twttr?.widgets?.load?.()
-    }
-  }, [embed, post.platform, post.id])
+  const embed = embedFor(post.platform, post.url)
 
   const formattedDate = post.original_posted_at
     ? new Date(post.original_posted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -99,15 +54,21 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
         </span>
         {formattedDate && (
           <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--muted)', marginLeft: 'auto' }}>
-            Originally posted {formattedDate}
+            {formattedDate}
           </span>
         )}
       </div>
 
       {embed ? (
-        <div style={{ padding: 16 }}>
-          <div dangerouslySetInnerHTML={{ __html: embed }} style={{ maxWidth: '100%' }} />
-        </div>
+        <iframe
+          src={embed.src}
+          title={`${label} post`}
+          loading="lazy"
+          scrolling="no"
+          allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
+          allowFullScreen
+          style={{ display: 'block', width: '100%', height: embed.height, border: 0, background: embed.bg }}
+        />
       ) : (
         <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', gap: 16, padding: 16, textDecoration: 'none', alignItems: 'center' }}>
           {post.thumbnail_url && (
