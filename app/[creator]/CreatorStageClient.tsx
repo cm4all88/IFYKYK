@@ -192,17 +192,10 @@ export default function CreatorStageClient({
       }}>
         {/* Background */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-          {bgImage && (
-            <img src={bgImage} alt="" style={{
-              position: "absolute", inset: 0, width: "100%", height: "100%",
-              objectFit: "cover", opacity: 0.85, filter: "saturate(1)",
-            }} />
-          )}
+          {/* page-level background paints the creator's image; here we add the spotlight glow only */}
           <div style={{
             position: "absolute", inset: 0,
-            background: bgImage
-              ? "linear-gradient(to bottom, rgba(9,9,12,0.4) 0%, rgba(9,9,12,0.1) 20%, rgba(9,9,12,0.1) 75%, rgba(9,9,12,0.7) 100%)"
-              : "radial-gradient(ellipse 70% 70% at 50% 40%, rgba(242,184,75,0.06), transparent 70%)",
+            background: "radial-gradient(ellipse 70% 70% at 50% 40%, rgba(242,184,75,0.08), transparent 70%)",
           }} />
           {/* Floor glow */}
           <div style={{

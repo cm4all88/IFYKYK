@@ -25,6 +25,8 @@ import GiftSubscriptionButton from "./GiftSubscriptionButton";
 import SocialAddbacks from "./SocialAddbacks";
 import CreatorMarketplace from "./CreatorMarketplace";
 import SocialPostCard from "@/components/SocialPostCard";
+import CreatorRailNav from "@/components/CreatorRailNav";
+import { socialPostTimestamp } from "@/lib/socialDates";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
@@ -230,12 +232,50 @@ export default async function CreatorPage(props: {
   (subscriptionTiers ?? []).forEach((t: any) => { tierRanks[t.id] = t.sort_order ?? 0; });
   const viewerTierRank = data.viewerTierId != null ? (tierRanks[data.viewerTierId] ?? null) : null;
 
+  // Full-page background: creator's chosen bg, else their cover.
+  const bgImg = (spotlight as any).bg_url || spotlight.cover_url || null;
+
+  // Order social posts by real post date (derived from TikTok/Instagram URLs),
+  // pinned first. The stored original_posted_at is used when present.
+  const orderedSocialPosts = [...((socialPosts ?? []) as any[])].sort((a, b) => {
+    if (!!b.pinned !== !!a.pinned) return b.pinned ? 1 : -1;
+    return socialPostTimestamp(b) - socialPostTimestamp(a);
+  });
+
+  // Subscription status for the rail.
+  const tiers = (subscriptionTiers ?? []) as any[];
+  const currentTier = tiers.find((t) => t.id === data.viewerTierId) ?? null;
+  const tierName = currentTier?.name ?? (isSubscribed ? "Subscriber" : null);
+  const lowestPrice = tiers.length
+    ? Math.min(...tiers.map((t) => Number(t.price_monthly) || Infinity).filter((n) => Number.isFinite(n)))
+    : (spotlight.subscription_price ? Number(spotlight.subscription_price) : null);
+  const railPrice = Number.isFinite(lowestPrice as number) ? (lowestPrice as number) : null;
+  const canUpgrade = isSubscribed && tiers.some((t) => (t.sort_order ?? 0) > (currentTier?.sort_order ?? -1));
+
+  // Section links in order of importance — only those the creator actually has.
+  const navLinks: { id: string; label: string }[] = [
+    { id: "sec-posts", label: "Posts" },
+    ...(orderedSocialPosts.length ? [{ id: "sec-social", label: "Social posts" }] : []),
+    ...((digitalProducts ?? []).length ? [{ id: "sec-store", label: "Store" }] : []),
+    { id: "sec-merch", label: "Merch" },
+    { id: "sec-market", label: "Marketplace" },
+    ...((campaigns ?? []).length ? [{ id: "sec-campaigns", label: "Campaigns" }] : []),
+    { id: "sec-support", label: "Subscribe & message" },
+  ];
+
   return (
     <>
       <SiteHeader />
       <SuccessBanner />
       <ReferralTracker creatorHandle={spotlight.handle} />
-      <main className="cp">
+      <main
+        className="cp"
+        style={
+          bgImg
+            ? { background: `linear-gradient(rgba(9,9,12,0.74), rgba(9,9,12,0.9)), url("${bgImg}") center top / cover fixed` }
+            : undefined
+        }
+      >
         <div className="cp-shell">
 
           {/* ── LEFT — the audience member's own lineup, always present ── */}
@@ -244,7 +284,7 @@ export default async function CreatorPage(props: {
           </aside>
 
           {/* ── CENTER — the stage: who they are, and their work ── */}
-          <div className="cp-center">
+          <div className="cp-center" id="sec-posts">
             <CreatorStageClient
               posts={posts as any}
               isSubscribed={isSubscribed}
@@ -285,11 +325,11 @@ export default async function CreatorPage(props: {
               </div>
             )}
 
-            {socialPosts.length > 0 && (
-              <section className="cp-center-section">
+            {orderedSocialPosts.length > 0 && (
+              <section className="cp-center-section" id="sec-social">
                 <span className="cp-rail-kicker">From around the web</span>
                 <div className="cp-social-grid">
-                  {socialPosts.map((sp: any) => (
+                  {orderedSocialPosts.map((sp: any) => (
                     <SocialPostCard key={sp.id} post={sp} />
                   ))}
                 </div>
@@ -300,8 +340,16 @@ export default async function CreatorPage(props: {
           {/* ── RIGHT — everything this creator offers, scoped to their page ── */}
           <aside className="cp-rail cp-rail--right" id="cp-support">
 
+            <CreatorRailNav
+              isSubscribed={isSubscribed}
+              tierName={tierName}
+              price={railPrice}
+              canUpgrade={canUpgrade}
+              links={navLinks}
+            />
+
             {/* Support — sticky so it stays in reach while reading the feed */}
-            <div className="cp-support-block">
+            <div className="cp-support-block" id="sec-support">
               <span className="cp-rail-kicker">Support {displayName}</span>
               <div className="cp-support-actions">
                 <SubscribeButton creatorProfileId={spotlight.id} />
@@ -317,10 +365,10 @@ export default async function CreatorPage(props: {
               </div>
             </div>
 
-            <CreatorMerch creatorProfileId={spotlight.id} handle={spotlight.handle} />
+            <div id="sec-merch"><CreatorMerch creatorProfileId={spotlight.id} handle={spotlight.handle} /></div>
 
             {digitalProducts.length > 0 && (
-              <div className="cp-rail-section">
+              <div className="cp-rail-section" id="sec-store">
                 <span className="cp-rail-kicker">Digital products</span>
                 <div className="cp-rail-grid">
                   {digitalProducts.map((pr: any) => (
@@ -330,12 +378,12 @@ export default async function CreatorPage(props: {
               </div>
             )}
 
-            <CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} />
+            <div id="sec-market"><CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} /></div>
 
             <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
 
             {campaigns.length > 0 && (
-              <div className="cp-rail-section">
+              <div className="cp-rail-section" id="sec-campaigns">
                 <span className="cp-rail-kicker">Campaigns</span>
                 <div className="cp-campaign-list">
                   {campaigns.map((c: any) => {
