@@ -5,6 +5,7 @@ import UnlockButton from "./UnlockButton";
 import CommentSection from "./CommentSection";
 import LikeButton from "@/components/LikeButton";
 import MedalButton from "@/components/MedalButton";
+import SocialLinks from "@/components/SocialLinks";
 
 interface Post {
   id: string;
@@ -47,6 +48,7 @@ interface Props {
   tierRanks: Record<string, number>;
   medalPoints?: number;
   medalCount?: number;
+  socialLinks?: Record<string, string> | null;
   children: React.ReactNode; // subscribe/tip/supertip buttons
 }
 
@@ -54,7 +56,7 @@ export default function CreatorStageClient({
   posts, isSubscribed, hasEarlyAccess, unlockedPostIds, likedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
   creatorProfileId, subscriptionPrice, backstageHandle,
-  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, children,
+  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, socialLinks, children,
 }: Props) {
   const now = new Date();
 
@@ -238,6 +240,8 @@ export default function CreatorStageClient({
               {bio}
             </p>
           )}
+
+          <SocialLinks links={socialLinks} />
 
           {/* Trophy shelf — medal standing (social proof) */}
           {medalCount > 0 && (

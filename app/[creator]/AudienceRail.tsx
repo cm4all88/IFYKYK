@@ -23,7 +23,6 @@ interface FanMe {
 
 const NAV = [
   { href: "/feed", label: "Your lineup", icon: "◎" },
-  { href: "/explore", label: "Explore", icon: "✦" },
   { href: "/messages", label: "Messages", icon: "✉" },
   { href: "/account", label: "Account", icon: "○" },
 ];

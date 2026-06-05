@@ -11,7 +11,6 @@ export default function Footer() {
           <Link href="/terms">Terms</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/dmca">DMCA</Link>
-          <Link href="/explore">Explore</Link>
           <Link href="/gear">Gear</Link>
           <Link href="/tools">Tools</Link>
           <Link href="/music">Music</Link>

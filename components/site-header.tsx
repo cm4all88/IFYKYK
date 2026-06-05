@@ -39,9 +39,6 @@ export default async function SiteHeader({
           <Link href="/guide" className="sh-link">Creator Guide</Link>
           {user ? (
             <>
-              <Link href="/explore" className="sh-link">
-                Explore
-              </Link>
               <Link href="/account" className="sh-link">
                 Account
               </Link>
@@ -68,9 +65,6 @@ export default async function SiteHeader({
             </>
           ) : (
             <>
-              <Link href="/explore" className="sh-link">
-                Explore
-              </Link>
               <Link href="/login" className="sh-link">
                 Sign in
               </Link>

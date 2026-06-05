@@ -267,6 +267,7 @@ export default async function CreatorPage(props: {
               tierRanks={tierRanks}
               medalPoints={Number((spotlight as any).medal_points_total ?? 0)}
               medalCount={Number((spotlight as any).medal_count_total ?? 0)}
+              socialLinks={(spotlight as any).social_links ?? {}}
             >
               <></>
             </CreatorStageClient>
