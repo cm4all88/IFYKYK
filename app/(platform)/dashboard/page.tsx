@@ -129,6 +129,12 @@ export default function DashboardPage() {
       return;
     }
 
+    if ((rows ?? []).some((r: any) => r.deleted_at)) {
+      await supabase.auth.signOut();
+      window.location.href = "/";
+      return;
+    }
+
     const spot = (rows ?? []).find((r: any) => r.kind === "spotlight") as Profile | undefined;
     const back = (rows ?? []).find((r: any) => r.kind === "backstage") as Profile | undefined;
 
@@ -3805,6 +3811,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
   const [priceErr, setPriceErr] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteConfirm, setDeleteConfirm] = React.useState("");
+  const [deleteErr, setDeleteErr] = React.useState<string | null>(null);
   const supabase = createClient();
 
   async function savePrice() {
@@ -3819,11 +3826,19 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
 
   async function deleteAccount() {
     if (deleteConfirm !== profile.handle) return;
-    setDeleting(true);
+    setDeleting(true); setDeleteErr(null);
     try {
-      await fetch("/api/account/delete", { method: "POST" });
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      const data = await res.json().catch(() => ({} as any));
+      if (!res.ok || data?.ok === false) {
+        setDeleteErr(data?.error || "Delete failed — nothing was changed. Try again.");
+        setDeleting(false);
+        return;
+      }
     } catch {
-      // even if the request errors, sign out below
+      setDeleteErr("Delete failed — couldn't reach the server. Try again.");
+      setDeleting(false);
+      return;
     }
     await supabase.auth.signOut();
     window.location.href = "/";
@@ -3905,6 +3920,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
             {deleting ? "Deleting…" : "Delete my account"}
           </button>
         </div>
+        {deleteErr && <p style={{ color:"var(--red)", fontSize:12, marginTop:"var(--s-3)" }}>{deleteErr}</p>}
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
 import { notFound } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import SiteHeader from "@/components/site-header";
 import Footer from "@/components/Footer";
@@ -45,6 +47,14 @@ async function fetchEverything(handle: string) {
     .maybeSingle();
 
   if (!spotlight || (spotlight as any).deleted_at) return null;
+
+  // Founding Creator: among the first 100 spotlight creators by signup.
+  const { count: earlierCreators } = await (supabase as any)
+    .from("creator_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("kind", "spotlight")
+    .lt("created_at", (spotlight as any).created_at);
+  const isFounder = (earlierCreators ?? 0) < 100;
 
   let backstageHandle: string | null = null;
   if (spotlight.linked) {
@@ -203,6 +213,7 @@ async function fetchEverything(handle: string) {
     superTips: superTips ?? [],
     socialPosts: socialPosts ?? [],
     subscriberCount: subscriberCount ?? 0,
+    isFounder,
   };
 }
 
@@ -321,6 +332,7 @@ export default async function CreatorPage(props: {
               totalLikes={totalLikes}
               subscriberCount={subscriberCount}
               socialLinks={(spotlight as any).social_links ?? {}}
+              isFounder={data.isFounder}
             >
               <></>
             </CreatorStageClient>

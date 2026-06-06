@@ -50,6 +50,7 @@ interface Props {
   medalCount?: number;
   totalLikes?: number;
   subscriberCount?: number;
+  isFounder?: boolean;
   socialLinks?: Record<string, string> | null;
   children: React.ReactNode; // subscribe/tip/supertip buttons
 }
@@ -58,7 +59,7 @@ export default function CreatorStageClient({
   posts, isSubscribed, hasEarlyAccess, unlockedPostIds, likedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
   creatorProfileId, subscriptionPrice, backstageHandle,
-  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, totalLikes = 0, subscriberCount = 0, socialLinks, children,
+  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, totalLikes = 0, subscriberCount = 0, isFounder = false, socialLinks, children,
 }: Props) {
   const now = new Date();
 
@@ -244,9 +245,13 @@ export default function CreatorStageClient({
           <SocialLinks links={socialLinks} />
 
           {/* Social proof — medals · likes · subscribers */}
-          {(medalCount > 0 || totalLikes > 0 || subscriberCount > 0) && (
+          {(isFounder || medalCount > 0 || totalLikes > 0 || subscriberCount > 0) && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center", alignSelf: "center", marginBottom: 16 }}>
-              {medalCount > 0 && (
+              {isFounder && (
+                <span style={{ ...statPill, background: "rgba(192,132,252,0.10)", border: "1px solid rgba(192,132,252,0.35)", color: "#d7b8ff" }}>
+                  <span>★</span> Founding Creator
+                </span>
+              )}              {medalCount > 0 && (
                 <span style={statPill}>
                   <span style={{ fontSize: 14 }}>🏅</span>
                   {medalCount.toLocaleString()} {medalCount === 1 ? "medal" : "medals"}
