@@ -23,8 +23,8 @@ export default function DmcaPage() {
             <p style={{ background: "var(--surface)", border: "1px solid var(--border)", padding: "20px 24px", borderRadius: "var(--r-2)", fontFamily: "var(--font-mono)", fontSize: 12, lineHeight: 2 }}>
               Tahoma Systems LLC<br />
               ATTN: Copyright Agent<br />
-              PO Box 4444<br />
-              Seattle, WA 98104<br />
+              PO Box 472<br />
+              Black Diamond, WA 98010<br />
               legal@spotlightly.app
             </p>
 

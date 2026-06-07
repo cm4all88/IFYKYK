@@ -17,8 +17,9 @@ export default function Page2257() {
             <p style={{ background:"var(--surface)", border:"1px solid var(--border)", padding:"20px 24px", borderRadius:"var(--r-2)", fontFamily:"var(--font-mono)", fontSize:12, lineHeight:2 }}>
               Custodian of Records<br />
               Tahoma Systems LLC<br />
-              legal@spotlightly.app<br />
-              Seattle, Washington, USA
+              PO Box 472<br />
+              Black Diamond, WA 98010<br />
+              legal@spotlightly.app
             </p>
             <h2>Verification</h2>
             <p>All Backstage creators on Spotlightly are required to complete age and identity verification through Veriff before posting any content. Verification records and 2257-compliant documentation are maintained on file and available for inspection as required by law.</p>

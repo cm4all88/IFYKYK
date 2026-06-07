@@ -73,7 +73,7 @@ export default function PrivacyPage() {
             <p>We may update this policy from time to time. We will notify you of material changes by email. Continued use after changes constitutes acceptance.</p>
 
             <h2>13. Contact</h2>
-            <p><a href="mailto:privacy@spotlightly.app">privacy@spotlightly.app</a><br />Tahoma Systems LLC · Seattle, Washington, USA</p>
+            <p><a href="mailto:privacy@spotlightly.app">privacy@spotlightly.app</a><br />Tahoma Systems LLC · Black Diamond, Washington, USA</p>
           </div>
         </div>
       </main>

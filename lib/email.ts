@@ -21,7 +21,7 @@ function base(content: string) {
 ${content}
 </td></tr>
 <tr><td style="padding:24px 48px;border-top:1px solid rgba(255,255,255,0.07);">
-<p style="font-size:11px;color:#6B6560;margin:0;">Spotlightly · Tahoma Systems LLC · PO Box 4444 · Seattle, WA 98104</p>
+<p style="font-size:11px;color:#6B6560;margin:0;">Spotlightly · Tahoma Systems LLC · PO Box 472 · Black Diamond, WA 98010</p>
 <p style="font-size:11px;color:#6B6560;margin:4px 0 0;">You're receiving this because you have a Spotlightly account. <a href="{{unsubscribe}}" style="color:#6B6560;">Unsubscribe</a></p>
 </td></tr>
 </table></td></tr></table>

@@ -85,8 +85,8 @@ export default function TermsPage() {
 
             <h2>16. Contact</h2>
             <p>Questions about these Terms: <a href="mailto:legal@spotlightly.app">legal@spotlightly.app</a><br />
-            Tahoma Systems LLC · PO Box 4444 · Seattle, WA 98104</p>
-            <p>Tahoma Systems LLC · Seattle, Washington, USA</p>
+            Tahoma Systems LLC · PO Box 472 · Black Diamond, WA 98010</p>
+            <p>Tahoma Systems LLC · Black Diamond, Washington, USA</p>
 
           </div>
         </div>
