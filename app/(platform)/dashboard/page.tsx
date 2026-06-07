@@ -487,13 +487,15 @@ function OverviewPane({
   const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
   const [medals, setMedals] = React.useState<{ total: number; monthPoints: number; rank: number | null }>({ total: 0, monthPoints: 0, rank: null });
   const [checklistDismissed, setChecklistDismissed] = React.useState(false);
+  const [hasTier, setHasTier] = React.useState(false);
 
   React.useEffect(() => {
     async function load() {
-      const [{ count: audience }, { count: posts }, { data: tips }] = await Promise.all([
+      const [{ count: audience }, { count: posts }, { data: tips }, { count: tierCount }] = await Promise.all([
         (supabase as any).from("subscriptions").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "active"),
         (supabase as any).from("posts").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "live"),
         (supabase as any).from("tips").select("amount_usd, created_at").eq("creator_profile_id", profile.id),
+        (supabase as any).from("subscription_tiers").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("is_active", true),
       ]);
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -501,6 +503,7 @@ function OverviewPane({
       const thisMonth = allTips.filter((t: any) => t.created_at >= monthStart).reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
       const lifetime = allTips.reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
       setStats({ audience: audience ?? 0, posts: posts ?? 0, thisMonth, lifetime });
+      setHasTier((tierCount ?? 0) > 0);
 
       // Medal standing
       const { data: board } = await (supabase as any).from("creator_medal_month").select("creator_profile_id, points");
@@ -522,7 +525,7 @@ function OverviewPane({
     : stats.posts === 0
     ? { pane: "posts" as Pane, label: "Create your first post", desc: "Free posts build your audience. Paid posts build your income.", color: "var(--accent)" }
     : stats.audience === 0
-    ? { pane: "channels" as Pane, label: "Set up a subscription", desc: "Give your audience a reason to join.", color: "var(--accent)" }
+    ? { pane: "tiers" as Pane, label: "Set up a subscription", desc: "Give your audience a reason to join.", color: "var(--accent)" }
     : { pane: "posts" as Pane, label: "New post", desc: "Keep your audience engaged.", color: "var(--accent)" };
 
   return (
@@ -541,7 +544,7 @@ function OverviewPane({
           hasBio={!!profile.bio}
           hasStripe={!!(profile as any).stripe_onboarded}
           hasPost={stats.posts > 0}
-          hasChannel={false}
+          hasChannel={hasTier}
           onDismiss={() => setChecklistDismissed(true)}
           onSetPane={(p) => onSetPane(p as Pane)}
         />
