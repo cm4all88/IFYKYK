@@ -153,9 +153,14 @@ export async function POST(req: NextRequest) {
   });
 
   if (!stripeRes.ok) {
-    const err = await stripeRes.text();
-    console.error("Stripe checkout error:", err);
-    return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
+    const errText = await stripeRes.text();
+    console.error("Stripe checkout error:", errText);
+    let msg = "Could not start checkout";
+    try {
+      const j = JSON.parse(errText);
+      if (j?.error?.message) msg = `Could not start checkout: ${j.error.message}`;
+    } catch { /* keep generic */ }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   const session = await stripeRes.json();

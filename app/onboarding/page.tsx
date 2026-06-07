@@ -58,27 +58,43 @@ function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
 
       {/* Page content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "0 0 24px" }}>
-        {/* Cover */}
+        {/* Cover — spotlight stage */}
         <div style={{
-          height: 100,
-          background: "linear-gradient(135deg, #1c1c22 0%, #232428 100%)",
+          height: 120,
+          background: "#0c0c0f",
           position: "relative",
           overflow: "hidden",
         }}>
+          {/* beam cone */}
+          <div style={{
+            position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)",
+            width: "65%", height: "200%",
+            background: "radial-gradient(ellipse 50% 55% at 50% 0%, rgba(245,200,66,0.28), rgba(245,200,66,0.07) 38%, transparent 68%)",
+          }} />
+          {/* center light line */}
+          <div style={{
+            position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
+            width: 1, height: "62%",
+            background: "linear-gradient(to bottom, rgba(245,200,66,0.55), transparent)",
+          }} />
+          {/* ambient brand corners */}
           <div style={{
             position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 80% 120% at 50% -20%, rgba(242,184,75,0.12), transparent 60%)",
+            background: "radial-gradient(ellipse 40% 60% at 12% 100%, rgba(192,132,252,0.06), transparent 60%), radial-gradient(ellipse 40% 60% at 88% 100%, rgba(110,231,183,0.05), transparent 60%)",
           }} />
+          {/* floor scrim into page */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 64, background: "linear-gradient(to top, #17181B, transparent)" }} />
         </div>
 
         {/* Avatar + name */}
         <div style={{ padding: "0 20px", marginTop: -28 }}>
           <div style={{
-            width: 56, height: 56, borderRadius: "50%",
-            background: avatarUrl ? "transparent" : "rgba(242,184,75,0.15)",
-            border: "2px solid #17181B",
+            width: 64, height: 64, borderRadius: "50%",
+            background: avatarUrl ? "transparent" : "rgba(245,200,66,0.12)",
+            border: "2px solid rgba(245,200,66,0.5)",
+            boxShadow: "0 0 0 4px #17181B, 0 6px 20px rgba(0,0,0,0.5)",
             overflow: "hidden",
-            marginBottom: 10,
+            marginBottom: 12,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
             {avatarUrl
@@ -140,33 +156,59 @@ function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
             </div>
           )}
 
-          {/* Subscribe button placeholder */}
+          {/* Subscribe button */}
           <div style={{
-            background: "rgba(242,184,75,0.12)",
-            border: "1px solid rgba(242,184,75,0.2)",
-            borderRadius: 4,
-            padding: "10px 0",
+            background: "linear-gradient(180deg, #f5c842, #e6b332)",
+            borderRadius: 5,
+            padding: "12px 0",
             textAlign: "center",
             fontFamily: "DM Mono, monospace",
-            fontSize: 10, letterSpacing: "0.12em",
+            fontSize: 10, letterSpacing: "0.14em",
             textTransform: "uppercase",
-            color: "rgba(242,184,75,0.7)",
-            marginBottom: 16,
+            fontWeight: 600,
+            color: "#0c0c0f",
+            boxShadow: "0 4px 16px rgba(245,200,66,0.25)",
+            marginBottom: 18,
           }}>
             Subscribe
           </div>
 
-          {/* Placeholder posts */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {[1,2,3].map(i => (
+          {/* Members-only posts */}
+          <div style={{
+            fontFamily: "DM Mono, monospace", fontSize: 8.5,
+            letterSpacing: "0.18em", textTransform: "uppercase",
+            color: "var(--muted)", marginBottom: 10,
+          }}>
+            Members-only
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[0, 1].map(i => (
               <div key={i} style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.05)",
-                borderRadius: 4, padding: "10px 12px",
-                opacity: 1 - (i * 0.2),
+                position: "relative",
+                background: "rgba(255,255,255,0.025)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 6, padding: "12px",
+                display: "flex", alignItems: "center", gap: 10,
               }}>
-                <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 2, marginBottom: 6, width: `${80 - i * 15}%` }} />
-                <div style={{ height: 6, background: "rgba(255,255,255,0.04)", borderRadius: 2, width: "60%" }} />
+                <div style={{
+                  width: 34, height: 34, borderRadius: 6, flexShrink: 0,
+                  background: "rgba(245,200,66,0.08)",
+                  border: "1px solid rgba(245,200,66,0.18)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(245,200,66,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ height: 7, background: "rgba(255,255,255,0.10)", borderRadius: 2, marginBottom: 6, width: `${72 - i * 18}%` }} />
+                  <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 2, width: "48%" }} />
+                </div>
+                <span style={{
+                  fontFamily: "DM Mono, monospace", fontSize: 8,
+                  letterSpacing: "0.1em", textTransform: "uppercase",
+                  color: "rgba(245,200,66,0.6)", flexShrink: 0,
+                }}>
+                  Locked
+                </span>
               </div>
             ))}
           </div>
@@ -909,7 +951,7 @@ export default function OnboardingPage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <a href="/api/stripe/connect/start" style={{
+            <a href="/api/stripe/connect/start" target="_blank" rel="noopener noreferrer" style={{
               display: "block", textAlign: "center",
               background: "#F2B84B", color: "#09090C",
               fontFamily: "DM Mono, monospace", fontWeight: 500,

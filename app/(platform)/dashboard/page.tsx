@@ -3895,11 +3895,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
             <a href="https://dashboard.stripe.com" target="_blank" className="settings-link" style={{ fontSize:12 }}>Stripe Dashboard →</a>
           </div>
         ) : (
-          <button className="btn btn--primary btn--small" onClick={async () => {
-            const res = await fetch("/api/stripe/connect/start", { method:"POST" });
-            const { url } = await res.json();
-            if (url) window.location.href = url;
-          }}>Connect Stripe — 3 minutes</button>
+          <a href="/api/stripe/connect/start" target="_blank" rel="noopener noreferrer" className="btn btn--primary btn--small">Connect Stripe — 3 minutes</a>
         )}
       </div>
 
@@ -3942,14 +3938,19 @@ function PaymentsPane({ profile }: { profile: Profile }) {
   async function connectStripe() {
     setConnecting(true);
     setErr(null);
+    // Open the tab synchronously on click so the popup blocker doesn't kill it,
+    // then point it at Stripe once the onboarding link is ready.
+    const w = window.open("about:blank", "_blank");
     try {
       const res = await fetch("/api/stripe/connect/start", { method: "POST" });
       let data: any = {};
       try { data = await res.json(); } catch { /* empty body */ }
       if (!res.ok || data.error) throw new Error(data.error ?? `Server error ${res.status}`);
       if (!data.url) throw new Error("No redirect URL returned from Stripe");
-      window.location.href = data.url;
+      if (w) w.location.href = data.url; else window.location.href = data.url;
+      setConnecting(false);
     } catch (e: any) {
+      if (w) w.close();
       setErr(e.message ?? "Could not connect Stripe. Check your Stripe API key in Vercel env vars.");
       setConnecting(false);
     }
