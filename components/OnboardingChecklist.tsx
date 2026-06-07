@@ -17,7 +17,7 @@ export default function OnboardingChecklist({ hasAvatar, hasBio, hasStripe, hasP
   const steps = [
     { done: hasAvatar && hasBio, label: "Complete your profile", desc: "Add a photo and bio so fans know who you are.", pane: "profile" },
     { done: hasStripe, label: "Connect Stripe", desc: "Required before any fan can pay you.", pane: "payments" },
-    { done: hasChannel, label: "Create a subscription tier", desc: "Give fans a reason to subscribe.", pane: "channels" },
+    { done: hasChannel, label: "Create a subscription tier", desc: "Give fans a reason to subscribe.", pane: "tiers" },
     { done: hasPost, label: "Publish your first post", desc: "Free posts build your audience.", pane: "posts" },
   ];
 

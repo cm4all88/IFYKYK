@@ -89,18 +89,11 @@ export async function POST(req: NextRequest) {
 
     if (tier) {
       tierName = tier.name;
-      if (billingPeriod === "yearly" && tier.stripe_yearly_price_id) {
-        stripePriceId = tier.stripe_yearly_price_id;
-        priceCents = Math.round(Number(tier.yearly_price) * 100);
-      } else if (tier.stripe_monthly_price_id) {
-        stripePriceId = tier.stripe_monthly_price_id;
-        priceCents = Math.round(Number(tier.monthly_price) * 100);
-      } else {
-        // Tier exists but no Stripe price yet — use dynamic price
-        priceCents = billingPeriod === "yearly"
-          ? Math.round(Number(tier.yearly_price ?? tier.monthly_price * 10) * 100)
-          : Math.round(Number(tier.monthly_price) * 100);
-      }
+      const monthly = Number(tier.price_monthly);
+      const yearly = tier.price_yearly != null ? Number(tier.price_yearly) : null;
+      priceCents = billingPeriod === "yearly"
+        ? Math.round((yearly ?? monthly * 10) * 100)
+        : Math.round(monthly * 100);
       channelName = tier.name;
     }
   } else if (typeof channelId === "string" && channelId.length > 0) {

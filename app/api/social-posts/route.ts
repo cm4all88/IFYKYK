@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase-server'
 
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 // GET /api/social-posts?creator_id=xxx
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
@@ -52,7 +55,21 @@ export async function POST(req: NextRequest) {
   }
 
   // Normal POST — add new social post
-  const { url, platform, oembed_html, caption, thumbnail_url, original_posted_at } = body
+  const { url, platform, oembed_html, original_posted_at } = body
+  let caption = body.caption ?? null
+  let thumbnail_url = body.thumbnail_url ?? null
+
+  // Instagram: pull the image + caption and re-host the image on our CDN so the
+  // card doesn't depend on IG's flaky live iframe. Best-effort — on any failure
+  // we leave thumbnail_url null and the card falls back to the live embed.
+  if (platform === 'instagram' && !thumbnail_url) {
+    try {
+      const { enrichInstagram } = await import('@/lib/socialEnrich')
+      const enriched = await enrichInstagram(url)
+      if (enriched.thumbnail_url) thumbnail_url = enriched.thumbnail_url
+      if (!caption && enriched.caption) caption = enriched.caption
+    } catch { /* fall through to iframe */ }
+  }
 
   const { data, error } = await (supabase as any)
     .from('social_posts')

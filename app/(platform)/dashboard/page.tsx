@@ -283,7 +283,6 @@ export default function DashboardPage() {
               {openSections.has("publish") && (
                 <div className="db-nav-section">
                   <PaneButton current={pane} target="posts" onClick={setPane}>Posts</PaneButton>
-                  <PaneButton current={pane} target="channels" onClick={setPane}>Channels</PaneButton>
                   <PaneButton current={pane} target="marketplace" onClick={setPane}>Marketplace</PaneButton>
                   <PaneButton current={pane} target="store" onClick={setPane}>Digital Store</PaneButton>
                   <PaneButton current={pane} target="social" onClick={setPane}>Social Posts</PaneButton>
@@ -1477,6 +1476,7 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
     name: "", description: "", price_monthly: "", price_yearly: "", perks: "", color: "#F0B429",
   });
   const [offerYearly, setOfferYearly] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1496,6 +1496,25 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
     return (m * 10).toFixed(2); // 2 months free
   }
 
+  function resetForm() {
+    setForm({ name:"", description:"", price_monthly:"", price_yearly:"", perks:"", color:"#F0B429" });
+    setOfferYearly(false); setEditId(null); setCreating(false);
+  }
+
+  function startEdit(tier: any) {
+    setEditId(tier.id);
+    setForm({
+      name: tier.name ?? "",
+      description: tier.description ?? "",
+      price_monthly: tier.price_monthly != null ? String(tier.price_monthly) : "",
+      price_yearly: tier.price_yearly != null ? String(tier.price_yearly) : "",
+      perks: (tier.perks ?? []).join("\n"),
+      color: tier.color ?? "#F0B429",
+    });
+    setOfferYearly(tier.price_yearly != null);
+    setCreating(true);
+  }
+
   async function saveTier(e: FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.price_monthly) return;
@@ -1505,18 +1524,25 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
     const yearly = offerYearly
       ? (form.price_yearly ? parseFloat(form.price_yearly) : parseFloat(calcYearly(form.price_monthly)))
       : null;
-    await (supabase as any).from("subscription_tiers").insert({
-      creator_profile_id: profile.id,
+    const payload = {
       name: form.name.trim(),
       description: form.description.trim() || null,
       price_monthly: parseFloat(form.price_monthly),
       price_yearly: yearly,
       perks,
       color: form.color || null,
-      sort_order: tiers.length,
-    });
-    setForm({ name:"", description:"", price_monthly:"", price_yearly:"", perks:"", color:"#F0B429" });
-    setOfferYearly(false); setCreating(false); setSaving(false);
+    };
+    if (editId) {
+      await (supabase as any).from("subscription_tiers").update(payload).eq("id", editId);
+    } else {
+      await (supabase as any).from("subscription_tiers").insert({
+        ...payload,
+        creator_profile_id: profile.id,
+        sort_order: tiers.length,
+      });
+    }
+    resetForm();
+    setSaving(false);
     void load();
   }
 
@@ -1545,7 +1571,7 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
           <p className="kicker">Subscription Tiers</p>
           <h1 className="pane-title">Your <em>pricing.</em></h1>
         </div>
-        <button className="btn btn--primary" type="button" onClick={() => setCreating(c => !c)}>
+        <button className="btn btn--primary" type="button" onClick={() => { if (creating) resetForm(); else setCreating(true); }}>
           {creating ? "Cancel" : "+ Add tier"}
         </button>
       </div>
@@ -1621,7 +1647,7 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
           </div>
 
           <button type="submit" className="btn btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Add tier"}
+            {saving ? "Saving…" : editId ? "Save changes" : "Add tier"}
           </button>
         </form>
       )}
@@ -1672,6 +1698,7 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
               <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
                 <button onClick={() => moveTier(tier.id, "up")} className="btn btn--secondary" style={{ fontSize:12 }} disabled={idx === 0}>↑</button>
                 <button onClick={() => moveTier(tier.id, "down")} className="btn btn--secondary" style={{ fontSize:12 }} disabled={idx === tiers.length - 1}>↓</button>
+                <button onClick={() => startEdit(tier)} className="btn btn--secondary" style={{ fontSize:12 }}>Edit</button>
                 <button onClick={() => deleteTier(tier.id)} className="btn btn--secondary" style={{ fontSize:12, color:"var(--red)" }}>Remove</button>
               </div>
             </div>

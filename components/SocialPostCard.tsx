@@ -64,7 +64,26 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
         )}
       </div>
 
-      {embed ? (
+      {post.thumbnail_url ? (
+        <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+          <div style={{ position: 'relative', width: '100%', background: '#0d0d12' }}>
+            <img
+              src={post.thumbnail_url}
+              alt={post.caption || `${label} post`}
+              loading="lazy"
+              style={{ display: 'block', width: '100%', maxHeight: 480, objectFit: 'cover' }}
+            />
+            <span style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.55)', color: '#fff', fontFamily: 'var(--font-mono, monospace)', fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4 }}>
+              ↗ {label}
+            </span>
+          </div>
+          {post.caption && (
+            <p style={{ color: 'var(--text-soft, rgba(232,232,240,0.78))', fontSize: 13, lineHeight: 1.55, margin: 0, padding: '12px 16px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {post.caption}
+            </p>
+          )}
+        </a>
+      ) : embed ? (
         <iframe
           src={embed.src}
           title={`${label} post`}
