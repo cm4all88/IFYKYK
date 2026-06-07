@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][product_data][description]": description,
     "line_items[0][price_data][unit_amount]": String(price),
     "line_items[0][quantity]": "1",
-    "transfer_data[destination]": post.creator.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": post.creator.stripe_account_id,
     "success_url": `${origin}/${post.creator.handle}?unlocked=${postId}`,
     "cancel_url": `${origin}/${post.creator.handle}`,
     "client_reference_id": user.id,

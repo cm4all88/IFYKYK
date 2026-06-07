@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 
   const params = new URLSearchParams({
     mode: "subscription",
-    "transfer_data[destination]": profile.stripe_account_id,
+    "subscription_data[transfer_data][destination]": profile.stripe_account_id,
     "success_url": `${origin}/${profile.handle}?subscribed=1`,
     "cancel_url": `${origin}/${profile.handle}`,
     "client_reference_id": user.id,

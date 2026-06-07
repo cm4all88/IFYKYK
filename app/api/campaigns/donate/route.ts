@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][product_data][description]": campaign.reward_description ?? "Exclusive access for campaign supporters",
     "line_items[0][price_data][unit_amount]": String(Math.round(amountUsd * 100)),
     "line_items[0][quantity]": "1",
-    "transfer_data[destination]": campaign.creator.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": campaign.creator.stripe_account_id,
     "success_url": `${origin}/${campaign.creator.handle}?campaign_donated=1`,
     "cancel_url": `${origin}/${campaign.creator.handle}`,
     "metadata[campaign_id]": campaignId,

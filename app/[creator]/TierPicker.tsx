@@ -6,9 +6,8 @@ interface Tier {
   name: string;
   description?: string;
   perks: string[];
-  monthly_price: number;
-  yearly_price?: number;
-  yearly_discount_pct?: number;
+  price_monthly: number;
+  price_yearly?: number;
 }
 
 interface Props {
@@ -22,7 +21,9 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
   const [selectedTier, setSelectedTier] = useState<string>(tiers[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
 
-  const hasYearly = tiers.some(t => t.yearly_price);
+  const hasYearly = tiers.some(t => t.price_yearly);
+  const discountPct = (t: Tier) =>
+    t.price_yearly ? Math.round((1 - t.price_yearly / (t.price_monthly * 12)) * 100) : 0;
 
   async function subscribe() {
     if (!selectedTier || !stripeReady) return;
@@ -60,7 +61,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
               {period === "monthly" ? "Monthly" : "Yearly"}
               {period === "yearly" && (
                 <span style={{ marginLeft: 6, fontSize: 10, background: "rgba(52,211,153,0.15)", color: "#34D399", padding: "1px 6px", borderRadius: 99 }}>
-                  Save up to {Math.max(...tiers.filter(t => t.yearly_discount_pct).map(t => t.yearly_discount_pct ?? 0))}%
+                  Save up to {Math.max(...tiers.filter(t => t.price_yearly).map(discountPct), 0)}%
                 </span>
               )}
             </button>
@@ -71,8 +72,8 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
       {/* Tier cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {tiers.map(tier => {
-          const price = billing === "yearly" && tier.yearly_price ? tier.yearly_price : tier.monthly_price;
-          const period = billing === "yearly" && tier.yearly_price ? "yr" : "mo";
+          const price = billing === "yearly" && tier.price_yearly ? tier.price_yearly : tier.price_monthly;
+          const period = billing === "yearly" && tier.price_yearly ? "yr" : "mo";
           const selected = selectedTier === tier.id;
 
           return (
@@ -110,8 +111,8 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
                   ${Number(price).toFixed(2)}
                 </p>
                 <p style={{ fontFamily: "monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>/{period}</p>
-                {billing === "yearly" && tier.yearly_discount_pct && (
-                  <p style={{ fontSize: 10, color: "#34D399", marginTop: 2 }}>{tier.yearly_discount_pct}% off</p>
+                {billing === "yearly" && tier.price_yearly && (
+                  <p style={{ fontSize: 10, color: "#34D399", marginTop: 2 }}>{discountPct(tier)}% off</p>
                 )}
               </div>
             </button>

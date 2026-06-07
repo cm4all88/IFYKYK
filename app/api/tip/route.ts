@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][unit_amount]": String(Math.round(amountUsd * 100)),
     "line_items[0][quantity]": "1",
     // 100% to creator — Spotlightly takes nothing from tips
-    "transfer_data[destination]": profile.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": profile.stripe_account_id,
     "success_url": `${origin}/${profile.handle}?tipped=1`,
     "cancel_url": `${origin}/${profile.handle}`,
     "metadata[creator_profile_id]": creatorProfileId,

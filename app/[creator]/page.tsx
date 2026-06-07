@@ -760,7 +760,7 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
     .select("*")
     .eq("creator_profile_id", creatorProfileId)
     .eq("is_active", true)
-    .order("monthly_price", { ascending: true });
+    .order("sort_order", { ascending: true });
 
   const activeTiers = tiers ?? [];
 

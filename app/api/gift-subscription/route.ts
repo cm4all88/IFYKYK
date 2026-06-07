@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][product_data][description]": `A subscription gift for ${recipientEmail}`,
     "line_items[0][price_data][unit_amount]": String(totalCents),
     "line_items[0][quantity]": "1",
-    "transfer_data[destination]": profile.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": profile.stripe_account_id,
     "success_url": `${origin}/${profile.handle}?gift_sent=1`,
     "cancel_url": `${origin}/${profile.handle}`,
     "client_reference_id": user.id,
