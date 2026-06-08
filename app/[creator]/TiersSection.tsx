@@ -48,6 +48,8 @@ export default function TiersSection({ tiers, creatorHandle, creatorName }: Prop
     return Math.round((1 - tier.price_yearly / (tier.price_monthly * 12)) * 100);
   };
 
+  const norm = (s: string) => (s || "").trim().toLowerCase().replace(/[.!,;:\s]+$/g, "");
+
   return (
     <div style={{ marginBottom: "var(--s-12)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--s-4)", marginBottom: "var(--s-6)" }}>
@@ -130,16 +132,19 @@ export default function TiersSection({ tiers, creatorHandle, creatorName }: Prop
               )}
 
               {/* Perks */}
-              {tier.perks && tier.perks.length > 0 && (
+              {(() => {
+                const visiblePerks = (tier.perks ?? []).filter(p => norm(p) !== norm(tier.description ?? ""));
+                return visiblePerks.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                  {tier.perks.map((perk, i) => (
+                  {visiblePerks.map((perk, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                       <span style={{ color: tier.color ?? "var(--accent)", flexShrink: 0, marginTop: 1, fontSize: 13 }}>✓</span>
                       <span style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.5 }}>{perk}</span>
                     </div>
                   ))}
                 </div>
-              )}
+                ) : null;
+              })()}
 
               {/* Subscribe button */}
               <button

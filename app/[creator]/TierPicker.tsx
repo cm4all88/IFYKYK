@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
 
+// Normalize for comparing a perk against the description (ignore case, trailing punctuation/space)
+const norm = (s: string) => (s || "").trim().toLowerCase().replace(/[.!,;:\s]+$/g, "");
+
 interface Tier {
   id: string;
   name: string;
@@ -85,6 +88,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
           const price = billing === "yearly" && tier.price_yearly ? tier.price_yearly : tier.price_monthly;
           const period = billing === "yearly" && tier.price_yearly ? "yr" : "mo";
           const selected = selectedTier === tier.id;
+          const visiblePerks = (tier.perks ?? []).filter(p => norm(p) !== norm(tier.description ?? "")).slice(0, 3);
 
           return (
             <button
@@ -108,9 +112,9 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
                 {tier.description && (
                   <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
                 )}
-                {tier.perks?.length > 0 && (
+                {visiblePerks.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginLeft: 24 }}>
-                    {tier.perks.slice(0, 3).map((perk, i) => (
+                    {visiblePerks.map((perk, i) => (
                       <span key={i} style={{ fontSize: 11, color: "var(--muted)" }}>✓ {perk}</span>
                     ))}
                   </div>
