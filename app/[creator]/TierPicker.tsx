@@ -25,20 +25,30 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
   const discountPct = (t: Tier) =>
     t.price_yearly ? Math.round((1 - t.price_yearly / (t.price_monthly * 12)) * 100) : 0;
 
-  async function subscribe() {
+  function subscribe() {
     if (!selectedTier || !stripeReady) return;
     setLoading(true);
-    const fd = new FormData();
-    fd.append("creator_profile_id", creatorProfileId);
-    fd.append("tier_id", selectedTier);
-    fd.append("billing_period", billing);
-    const res = await fetch("/api/subscribe", { method: "POST", body: fd });
-    // The route redirects to Stripe — follow the redirect
-    if (res.redirected) {
-      window.location.href = res.url;
-    } else {
-      setLoading(false);
+    // Submit a real top-level form so the browser follows Stripe's 303 redirect
+    // with the URL #fragment intact. fetch() strips the fragment from res.url,
+    // which produces a fragment-less Checkout URL that Stripe can't load
+    // ("page not found / contact the merchant").
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/api/subscribe";
+    const fields: Record<string, string> = {
+      creator_profile_id: creatorProfileId,
+      tier_id: selectedTier,
+      billing_period: billing,
+    };
+    for (const [name, value] of Object.entries(fields)) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
     }
+    document.body.appendChild(form);
+    form.submit();
   }
 
   return (
