@@ -30,48 +30,31 @@ export default function CreatorRailNav({
         marginBottom: 16,
       }}
     >
-      {/* subscription status */}
-      <div style={{ paddingBottom: 14, borderBottom: "1px solid var(--border)", marginBottom: 14 }}>
-        <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>
-          Your access
-        </span>
-        {isSubscribed ? (
-          <>
-            <p style={{ fontFamily: "var(--font-serif, serif)", fontSize: 22, color: "var(--text)", margin: "6px 0 0", lineHeight: 1.1 }}>
-              {tierName || "Subscribed"}
-            </p>
-            {canUpgrade && (
-              <button
-                onClick={() => jump("sec-support")}
-                style={{
-                  marginTop: 12, width: "100%", padding: "10px 0", border: "1px solid var(--accent)",
-                  background: "var(--accent-soft, rgba(242,184,75,0.08))", color: "var(--accent)",
-                  fontFamily: "var(--font-display, sans-serif)", fontWeight: 700, fontSize: 13, borderRadius: 9, cursor: "pointer",
-                }}
-              >
-                Upgrade tier ↑
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: 14, color: "var(--text-soft)", margin: "6px 0 0", lineHeight: 1.4 }}>
-              {price ? <>Subscribe from <strong style={{ color: "var(--text)" }}>${price.toFixed(2)}/mo</strong></> : "Not subscribed yet"}
-            </p>
+      {/* subscription status — shown only for subscribers. For everyone else the
+          tier picker below ("Support …") is the single subscribe CTA, so we don't
+          duplicate a Subscribe button up here. */}
+      {isSubscribed && (
+        <div style={{ paddingBottom: 14, borderBottom: "1px solid var(--border)", marginBottom: 14 }}>
+          <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>
+            Your access
+          </span>
+          <p style={{ fontFamily: "var(--font-serif, serif)", fontSize: 22, color: "var(--text)", margin: "6px 0 0", lineHeight: 1.1 }}>
+            {tierName || "Subscribed"}
+          </p>
+          {canUpgrade && (
             <button
               onClick={() => jump("sec-support")}
               style={{
-                marginTop: 12, width: "100%", padding: "11px 0", border: "none",
-                background: "linear-gradient(180deg, #F5C55A, #F2B84B)", color: "#09090C",
-                fontFamily: "var(--font-display, sans-serif)", fontWeight: 800, fontSize: 14, borderRadius: 9, cursor: "pointer",
-                boxShadow: "0 8px 22px rgba(242,184,75,0.22)",
+                marginTop: 12, width: "100%", padding: "10px 0", border: "1px solid var(--accent)",
+                background: "var(--accent-soft, rgba(242,184,75,0.08))", color: "var(--accent)",
+                fontFamily: "var(--font-display, sans-serif)", fontWeight: 700, fontSize: 13, borderRadius: 9, cursor: "pointer",
               }}
             >
-              Subscribe
+              Upgrade tier ↑
             </button>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* section navigation */}
       <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>

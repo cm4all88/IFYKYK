@@ -748,6 +748,26 @@ function ProfilePane({
   const [bookingLabel, setBookingLabel] = useState((profile as any).booking_label ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [bioOptions, setBioOptions] = useState<string[]>([]);
+  const [bioLoading, setBioLoading] = useState(false);
+
+  async function suggestBio() {
+    setBioLoading(true);
+    setBioOptions([]);
+    try {
+      const res = await fetch("/api/advisor/bio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName, handle: profile.handle, currentBio: bio, tags, kind: profile.kind }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data.options) && data.options.length) setBioOptions(data.options);
+      else if (data.error) setErr(data.error);
+    } catch {
+      setErr("Couldn't write a bio just now — try again.");
+    }
+    setBioLoading(false);
+  }
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -833,9 +853,26 @@ function ProfilePane({
             </div>
           </div>
           <div className="form-field">
-            <label className="label">Bio</label>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <label className="label">Bio</label>
+              <button type="button" onClick={suggestBio} disabled={bioLoading}
+                style={{ background:"none", border:"none", color:"var(--accent)", fontSize:12, fontWeight:600, cursor: bioLoading ? "default" : "pointer", padding:0, opacity: bioLoading ? 0.6 : 1 }}>
+                {bioLoading ? "Writing…" : "✨ Write it for me"}
+              </button>
+            </div>
             <textarea className="textarea" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A line or two about what you do." maxLength={500} rows={3} />
             <p className="hint">{bio.length}/500</p>
+            {bioOptions.length > 0 && (
+              <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:8 }}>
+                <p className="hint" style={{ margin:0 }}>Tap one to use it, then tweak:</p>
+                {bioOptions.map((opt, i) => (
+                  <button key={i} type="button" onClick={() => { setBio(opt); setBioOptions([]); }}
+                    style={{ textAlign:"left", background:"rgba(255,255,255,0.03)", border:"1px solid var(--border)", borderRadius:8, padding:"10px 12px", color:"var(--text)", fontSize:13, lineHeight:1.5, cursor:"pointer" }}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="form-row">
             <div className="form-field">
