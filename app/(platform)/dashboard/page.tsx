@@ -118,6 +118,11 @@ export default function DashboardPage() {
     setUserEmail(user.email ?? null);
     setIsAdmin(user.id === ADMIN_ID);
 
+    // If this creator signed up via someone's referral link, mark that referral
+    // verified (idempotent) so the referrer's reward ladder fires. Harmless if
+    // there's no pending referral.
+    fetch("/api/referrals/verify", { method: "POST" }).catch(() => {});
+
     const { data: rows, error } = await supabase
       .from("creator_profiles")
       .select("*")

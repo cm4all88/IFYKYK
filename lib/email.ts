@@ -82,3 +82,18 @@ export async function sendMessageEmail(to: string, fromName: string, preview: st
   `);
   await send(to, `New message on Spotlightly from ${fromName}`, html);
 }
+
+export async function sendReferralInviteEmail(to: string, firstName: string, referralLink: string) {
+  const hi = firstName ? `Hi ${firstName},` : "Hi,";
+  const html = base(`
+    <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:300;color:#ffffff;margin:0 0 16px;">Know a creator who should be here?</h1>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:0 0 16px;">${hi}</p>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:0 0 16px;">You joined Spotlightly early &mdash; which means you already get what we're building: a place where creators keep what they earn, and their fans can actually get close to them.</p>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:0 0 24px;">Think of the creators you'd love to see here &mdash; the ones whose work you'd happily pay for, who deserve better than handing a fifth of everything to someone else. Send them your invite link:</p>
+    <a href="${referralLink}" style="display:inline-block;background:#F0B429;color:#09090C;font-weight:bold;font-size:13px;padding:14px 28px;border-radius:4px;text-decoration:none;">Invite a creator &rarr;</a>
+    <p style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;margin:20px 0 0;">Or copy this link:<br/><a href="${referralLink}" style="color:#F0B429;word-break:break-all;">${referralLink}</a></p>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:28px 0 0;">One creator you bring could be the start of their whole thing here. Thanks for being here early.</p>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:8px 0 0;">&mdash; The Spotlightly team</p>
+  `);
+  await send(to, "Know a creator who should be on Spotlightly?", html);
+}

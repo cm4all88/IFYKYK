@@ -49,9 +49,10 @@ export default function SignupPage() {
 
     localStorage.setItem("spotlightly_creator_ref", ref);
     setReferrerHandle(ref);
-    setPhase("referred");
 
-    // Look up their display name + avatar
+    // Show the "invited by" screen only when the ref resolves to a real creator
+    // (handle-based invite). Code-based invites (e.g. a fan's link) won't match a
+    // handle — we still keep the ref for attribution, but skip the named screen.
     (supabase as any)
       .from("creator_profiles")
       .select("display_name, avatar_url")
@@ -59,8 +60,11 @@ export default function SignupPage() {
       .eq("kind", "spotlight")
       .maybeSingle()
       .then(({ data }: any) => {
-        if (data?.display_name) setReferrerName(data.display_name);
-        if (data?.avatar_url) setReferrerAvatar(data.avatar_url);
+        if (data?.display_name) {
+          setReferrerName(data.display_name);
+          if (data.avatar_url) setReferrerAvatar(data.avatar_url);
+          setPhase("referred");
+        }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -197,10 +201,19 @@ export default function SignupPage() {
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")
         : null;
       if (refHandle) {
+        // Handle-based creator→creator referral (existing behavior).
         fetch("/api/referrals/creator", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
+        }).catch(() => {});
+        // Code-based referral attribution (e.g. a non-creator's invite link).
+        // record_referral safely no-ops when `ref` isn't a real referral code,
+        // so this won't double-count or affect the handle-based path above.
+        fetch("/api/referrals/attribute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: refHandle, referredUserId: userId, accountType: "creator" }),
         }).catch(() => {});
         localStorage.removeItem("spotlightly_creator_ref");
       }
