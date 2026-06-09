@@ -33,7 +33,6 @@ import { socialPostTimestamp } from "@/lib/socialDates";
 import type { Metadata } from "next";
 
 type AnyProfile = Record<string, any>;
-type AnyChannel = Record<string, any>;
 type AnyPost = Record<string, any>;
 
 async function fetchEverything(handle: string) {
@@ -67,20 +66,13 @@ async function fetchEverything(handle: string) {
     if (backstage?.linked) backstageHandle = backstage.handle as string;
   }
 
-  const [{ data: channels }, { data: posts }] = await Promise.all([
-    supabase
-      .from("channels")
-      .select("*")
-      .eq("creator_profile_id", spotlight.id)
-      .order("sort_order", { ascending: true, nullsFirst: false }),
-    supabase
-      .from("posts")
-      .select("*")
-      .eq("creator_profile_id", spotlight.id)
-      .eq("status", "live").or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(50),
-  ]);
+  const { data: posts } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("creator_profile_id", spotlight.id)
+    .eq("status", "live").or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .limit(50);
 
   // Fetch wishlist items (unpurchased)
   const { data: wishlistItems } = await (supabase as any)
@@ -197,7 +189,6 @@ async function fetchEverything(handle: string) {
   return {
     spotlight: spotlight as AnyProfile,
     backstageHandle,
-    channels: (channels ?? []) as AnyChannel[],
     posts: (posts ?? []) as AnyPost[],
     isSubscribed,
     hasEarlyAccess,
@@ -242,7 +233,7 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream, socialPosts } = data;
+  const { spotlight, backstageHandle, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream, socialPosts } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   // Tier-gating: map each tier to its rank (sort_order). A post locked to a tier

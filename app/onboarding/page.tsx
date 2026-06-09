@@ -16,208 +16,6 @@ interface AIResponse {
   followUpAnswer?: string;
 }
 
-// ── Live page preview (desktop only, step 3) ──────────────────────
-function PagePreview({ handle, displayName, bio, avatarUrl, tags }: {
-  handle: string; displayName: string; bio: string;
-  avatarUrl: string; tags: string[];
-}) {
-  const cats = (CREATOR_CATEGORIES as readonly { id: string; label: string; emoji: string }[]);
-  return (
-    <div style={{
-      background: "#17181B",
-      border: "1px solid rgba(255,255,255,0.07)",
-      borderRadius: 8,
-      overflow: "hidden",
-      height: "100%",
-      display: "flex",
-      flexDirection: "column",
-    }}>
-      {/* Mini browser bar */}
-      <div style={{
-        background: "#111115",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        padding: "10px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        flexShrink: 0,
-      }}>
-        <div style={{ display: "flex", gap: 5 }}>
-          {["#EF4444","#F0B429","#34D399"].map(c => (
-            <div key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c, opacity: 0.5 }} />
-          ))}
-        </div>
-        <div style={{
-          flex: 1, background: "#17181B", borderRadius: 3,
-          padding: "4px 10px", fontFamily: "DM Mono, monospace",
-          fontSize: 10, color: "var(--muted)", letterSpacing: "0.04em",
-        }}>
-          spotlightly.app/{handle || "your-handle"}
-        </div>
-      </div>
-
-      {/* Page content */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 0 24px" }}>
-        {/* Cover — spotlight stage */}
-        <div style={{
-          height: 120,
-          background: "#0c0c0f",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-          {/* beam cone */}
-          <div style={{
-            position: "absolute", top: -20, left: "50%", transform: "translateX(-50%)",
-            width: "65%", height: "200%",
-            background: "radial-gradient(ellipse 50% 55% at 50% 0%, rgba(245,200,66,0.28), rgba(245,200,66,0.07) 38%, transparent 68%)",
-          }} />
-          {/* center light line */}
-          <div style={{
-            position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)",
-            width: 1, height: "62%",
-            background: "linear-gradient(to bottom, rgba(245,200,66,0.55), transparent)",
-          }} />
-          {/* ambient brand corners */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 40% 60% at 12% 100%, rgba(192,132,252,0.06), transparent 60%), radial-gradient(ellipse 40% 60% at 88% 100%, rgba(110,231,183,0.05), transparent 60%)",
-          }} />
-          {/* floor scrim into page */}
-          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 64, background: "linear-gradient(to top, #17181B, transparent)" }} />
-        </div>
-
-        {/* Avatar + name */}
-        <div style={{ padding: "0 20px", marginTop: -28 }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: "50%",
-            background: avatarUrl ? "transparent" : "rgba(245,200,66,0.12)",
-            border: "2px solid rgba(245,200,66,0.5)",
-            boxShadow: "0 0 0 4px #17181B, 0 6px 20px rgba(0,0,0,0.5)",
-            overflow: "hidden",
-            marginBottom: 12,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            {avatarUrl
-              ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(242,184,75,0.6)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-            }
-          </div>
-
-          <div style={{
-            fontFamily: "Cormorant Garamond, Georgia, serif",
-            fontSize: 20, fontWeight: 400, color: "#fff",
-            marginBottom: 4, lineHeight: 1.1,
-            minHeight: 24,
-            transition: "all 0.2s",
-          }}>
-            {displayName || <span style={{ color: "rgba(255,255,255,0.15)" }}>Your name</span>}
-          </div>
-
-          <div style={{
-            fontFamily: "DM Mono, monospace",
-            fontSize: 10, color: "rgba(242,184,75,0.6)",
-            letterSpacing: "0.08em", marginBottom: 10,
-          }}>
-            @{handle || "your-handle"}
-          </div>
-
-          {bio ? (
-            <p style={{
-              fontSize: 12, color: "var(--text-soft)",
-              lineHeight: 1.65, marginBottom: 12,
-              maxHeight: 60, overflow: "hidden",
-            }}>
-              {bio}
-            </p>
-          ) : (
-            <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12, fontStyle: "italic" }}>
-              Your bio will appear here
-            </p>
-          )}
-
-          {/* Tags */}
-          {tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 16 }}>
-              {tags.slice(0, 4).map(t => {
-                const cat = cats.find(c => c.id === t);
-                return cat ? (
-                  <span key={t} style={{
-                    fontFamily: "DM Mono, monospace", fontSize: 9,
-                    letterSpacing: "0.08em", textTransform: "uppercase",
-                    padding: "3px 8px", borderRadius: 3,
-                    background: "rgba(242,184,75,0.08)",
-                    border: "1px solid rgba(242,184,75,0.15)",
-                    color: "rgba(242,184,75,0.7)",
-                  }}>
-                    {cat.emoji} {cat.label}
-                  </span>
-                ) : null;
-              })}
-            </div>
-          )}
-
-          {/* Subscribe button */}
-          <div style={{
-            background: "linear-gradient(180deg, #f5c842, #e6b332)",
-            borderRadius: 5,
-            padding: "12px 0",
-            textAlign: "center",
-            fontFamily: "DM Mono, monospace",
-            fontSize: 10, letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            fontWeight: 600,
-            color: "#0c0c0f",
-            boxShadow: "0 4px 16px rgba(245,200,66,0.25)",
-            marginBottom: 18,
-          }}>
-            Subscribe
-          </div>
-
-          {/* Members-only posts */}
-          <div style={{
-            fontFamily: "DM Mono, monospace", fontSize: 8.5,
-            letterSpacing: "0.18em", textTransform: "uppercase",
-            color: "var(--muted)", marginBottom: 10,
-          }}>
-            Members-only
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[0, 1].map(i => (
-              <div key={i} style={{
-                position: "relative",
-                background: "rgba(255,255,255,0.025)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: 6, padding: "12px",
-                display: "flex", alignItems: "center", gap: 10,
-              }}>
-                <div style={{
-                  width: 34, height: 34, borderRadius: 6, flexShrink: 0,
-                  background: "rgba(245,200,66,0.08)",
-                  border: "1px solid rgba(245,200,66,0.18)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(245,200,66,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ height: 7, background: "rgba(255,255,255,0.10)", borderRadius: 2, marginBottom: 6, width: `${72 - i * 18}%` }} />
-                  <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 2, width: "48%" }} />
-                </div>
-                <span style={{
-                  fontFamily: "DM Mono, monospace", fontSize: 8,
-                  letterSpacing: "0.1em", textTransform: "uppercase",
-                  color: "rgba(245,200,66,0.6)", flexShrink: 0,
-                }}>
-                  Locked
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main page ─────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
@@ -712,7 +510,7 @@ export default function OnboardingPage() {
         minHeight: "100vh",
         background: "#17181B",
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: "1fr",
         position: "relative",
       }}>
         <style>{`
@@ -738,10 +536,12 @@ export default function OnboardingPage() {
         <div style={{
           padding: "48px 48px 80px",
           overflowY: "auto",
-          borderRight: "1px solid rgba(255,255,255,0.06)",
           maxHeight: "100vh",
           position: "relative",
           zIndex: 1,
+          maxWidth: 760,
+          margin: "0 auto",
+          width: "100%",
         }}
           className="onb-split"
         >
@@ -858,31 +658,7 @@ export default function OnboardingPage() {
           </button>
         </div>
 
-        {/* Right — live preview (desktop only) */}
-        <div className="onb-preview" style={{
-          padding: "48px 40px",
-          display: "flex",
-          flexDirection: "column",
-          maxHeight: "100vh",
-          overflow: "hidden",
-        }}>
-          <div style={{
-            fontFamily: "DM Mono, monospace", fontSize: 9,
-            letterSpacing: "0.2em", textTransform: "uppercase",
-            color: "rgba(247,243,236,0.2)", marginBottom: 16, textAlign: "center",
-          }}>
-            Live preview
-          </div>
-          <div style={{ flex: 1, overflow: "hidden" }}>
-            <PagePreview
-              handle={profile?.handle || ""}
-              displayName={displayName}
-              bio={bio}
-              avatarUrl={avatarUrl}
-              tags={selectedTags}
-            />
-          </div>
-        </div>
+        {/* Live preview tabled — removed until it's reworked */}
       </main>
     );
   }
