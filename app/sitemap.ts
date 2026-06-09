@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase-server";
 import { SITE_URL } from "@/lib/site";
 import NICHES from "@/lib/niches";
+import COMPARISONS from "@/lib/comparisons";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
@@ -30,9 +31,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Comparison / "alternative" pages — high-intent long-tail
+  const compareUrls = (COMPARISONS as { slug: string }[]).map((c) => ({
+    url: `${SITE_URL}/vs/${c.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  }));
+
   const staticUrls: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${SITE_URL}/for-creators`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${SITE_URL}/all-in-one`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/explore`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/gear`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/tools`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
@@ -42,5 +52,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
   ];
 
-  return [...staticUrls, ...nicheUrls, ...creatorUrls];
+  return [...staticUrls, ...nicheUrls, ...compareUrls, ...creatorUrls];
 }
