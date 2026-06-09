@@ -54,6 +54,39 @@ async function deleteMessage(formData: FormData) {
   revalidatePath("/admin/comms");
 }
 
+// Admin override: change an existing account's email directly, no confirmation
+// email required. For handing off an account you created to its real owner.
+async function changeAccountEmail(formData: FormData) {
+  "use server";
+  if (!(await isAdmin())) throw new Error("Not authorized");
+  const currentEmail = String(formData.get("current_email") || "").trim().toLowerCase();
+  const newEmail = String(formData.get("new_email") || "").trim().toLowerCase();
+  if (!currentEmail || !newEmail) redirect("/admin/comms?saved=email_error");
+
+  const db: any = await createServiceClient();
+
+  // Find the account by its current email.
+  let target: any = null;
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) break;
+    const users = data?.users ?? [];
+    target = users.find((u: any) => (u.email ?? "").toLowerCase() === currentEmail);
+    if (target || users.length < 1000) break;
+  }
+  if (!target) redirect("/admin/comms?saved=email_notfound");
+
+  // email_confirm: true marks the new address confirmed immediately, so the
+  // owner can sign in with it right away — no confirmation link needed.
+  const { error: updErr } = await db.auth.admin.updateUserById(target.id, {
+    email: newEmail,
+    email_confirm: true,
+  });
+  if (updErr) redirect("/admin/comms?saved=email_error");
+
+  redirect("/admin/comms?saved=email_changed");
+}
+
 // Email every signed-up account that hasn't become a creator yet (and hasn't
 // already been invited), asking them to send their personal invite link.
 // Idempotent: tracks who's been sent in referral_invite_sends, sends in capped,
@@ -183,6 +216,15 @@ export default async function CommsPage(props: {
       {sp.saved === "message" && (
         <div className="adm-banner adm-banner--ok">✓ Message saved.</div>
       )}
+      {sp.saved === "email_changed" && (
+        <div className="adm-banner adm-banner--ok">✓ Account email updated. The owner can sign in with the new address now.</div>
+      )}
+      {sp.saved === "email_notfound" && (
+        <div className="adm-banner adm-banner--err">⚠ No account found with that current email.</div>
+      )}
+      {sp.saved === "email_error" && (
+        <div className="adm-banner adm-banner--err">⚠ Couldn&apos;t change the email — check both addresses (the new one may already be in use).</div>
+      )}
       {sp.saved === "invite_error" && (
         <div className="adm-banner adm-banner--err">
           ⚠ Couldn&apos;t list accounts to invite — check that the service-role key is set and the <code>referral_invite_sends</code> table exists.
@@ -269,6 +311,19 @@ export default async function CommsPage(props: {
             </label>
             <button type="submit" className="adm-btn adm-btn--primary">Send / Save</button>
           </div>
+        </form>
+      </div>
+
+      {/* Change an account's email */}
+      <div className="card">
+        <div className="card-title">Change an account&apos;s email</div>
+        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
+          For handing off an account you created. Sets the new email immediately, no confirmation link required. The owner signs in with the new address right after.
+        </p>
+        <form action={changeAccountEmail} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input className="adm-input" type="email" name="current_email" placeholder="Current email on the account" required />
+          <input className="adm-input" type="email" name="new_email" placeholder="New email" required />
+          <button type="submit" className="adm-btn adm-btn--primary" style={{ alignSelf: "flex-start" }}>Change email</button>
         </form>
       </div>
 
