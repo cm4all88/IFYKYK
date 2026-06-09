@@ -77,9 +77,10 @@ async function sendReferralInvites() {
 
   // All auth users → non-creators who haven't been invited yet.
   const recipients: { id: string; email: string; firstName: string }[] = [];
+  let listError = false;
   for (let page = 1; page <= 10; page++) {
     const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) break;
+    if (error) { listError = true; break; }
     const users = data?.users ?? [];
     for (const u of users) {
       if (!u.email || creatorUserIds.has(u.id) || alreadySent.has(u.id)) continue;
@@ -88,6 +89,10 @@ async function sendReferralInvites() {
       recipients.push({ id: u.id, email: u.email, firstName: name.split(/\s+/)[0] || "" });
     }
     if (users.length < 1000) break;
+  }
+
+  if (listError && recipients.length === 0) {
+    redirect(`/admin/comms?saved=invite_error`);
   }
 
   const pending = recipients.length;
@@ -137,6 +142,35 @@ export default async function CommsPage(props: {
 
   const bannerText = bannerRow?.value ?? "";
 
+  // Audience breakdown for the referral-invite card. Also exposes a silent
+  // user-listing failure instead of letting the send falsely report "all invited".
+  let inviteStats: { total: number; creators: number; nonCreators: number; pending: number; listError: boolean };
+  try {
+    const db: any = await createServiceClient();
+    const { data: creatorsRows } = await db.from("creator_profiles").select("user_id");
+    const creatorIds = new Set((creatorsRows ?? []).map((c: any) => c.user_id).filter(Boolean));
+    const { data: sentRows } = await db.from("referral_invite_sends").select("user_id");
+    const invited = new Set((sentRows ?? []).map((r: any) => r.user_id));
+
+    let total = 0, nonCreators = 0, pending = 0, listError = false;
+    for (let page = 1; page <= 10; page++) {
+      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
+      if (error) { listError = true; break; }
+      const users = data?.users ?? [];
+      for (const u of users) {
+        if (!u.email) continue;
+        total++;
+        if (creatorIds.has(u.id)) continue;
+        nonCreators++;
+        if (!invited.has(u.id)) pending++;
+      }
+      if (users.length < 1000) break;
+    }
+    inviteStats = { total, creators: total - nonCreators, nonCreators, pending, listError };
+  } catch {
+    inviteStats = { total: 0, creators: 0, nonCreators: 0, pending: 0, listError: true };
+  }
+
   return (
     <div>
       <p className="kicker">Admin · Communications</p>
@@ -148,6 +182,11 @@ export default async function CommsPage(props: {
       )}
       {sp.saved === "message" && (
         <div className="adm-banner adm-banner--ok">✓ Message saved.</div>
+      )}
+      {sp.saved === "invite_error" && (
+        <div className="adm-banner adm-banner--err">
+          ⚠ Couldn&apos;t list accounts to invite — check that the service-role key is set and the <code>referral_invite_sends</code> table exists.
+        </div>
       )}
       {sp.saved === "invites" && (
         <div className="adm-banner adm-banner--ok">
@@ -236,6 +275,15 @@ export default async function CommsPage(props: {
       {/* Referral invite to non-creators */}
       <div className="card">
         <div className="card-title">Invite non-creators to bring a creator</div>
+        {inviteStats.listError ? (
+          <p style={{ fontSize: 12, color: "#f87171", marginBottom: 12 }}>
+            ⚠ Couldn&apos;t list accounts — the service-role key may be missing in this environment, or the <code>referral_invite_sends</code> table isn&apos;t created yet. The send won&apos;t work until that&apos;s resolved.
+          </p>
+        ) : (
+          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+            {inviteStats.total} accounts with an email · {inviteStats.creators} are creators · <strong style={{ color: "var(--text)" }}>{inviteStats.nonCreators} are not creators</strong> · {inviteStats.pending} not yet invited.
+          </p>
+        )}
         <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
           Emails everyone who signed up but hasn&apos;t become a creator yet, asking them to send their personal invite link to people they&apos;d like to see become Spotlightly creators. Each link points to the creator signup. Anyone already invited is skipped automatically, so it&apos;s safe to click more than once. Sends in batches of up to {INVITE_PER_RUN_CAP} per click &mdash; if more remain, you&apos;ll be told to click again.
         </p>
