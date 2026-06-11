@@ -23,6 +23,9 @@ export default function SignupPage() {
   const [referrerHandle, setReferrerHandle] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [referrerAvatar, setReferrerAvatar] = useState<string | null>(null);
+  // True when `ref` matched a real creator handle (→ billing-credit path).
+  // False means treat it as a code-based invite (→ 034 reward ladder).
+  const [referrerIsCreator, setReferrerIsCreator] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("pick_backstage");
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
@@ -63,6 +66,7 @@ export default function SignupPage() {
         if (data?.display_name) {
           setReferrerName(data.display_name);
           if (data.avatar_url) setReferrerAvatar(data.avatar_url);
+          setReferrerIsCreator(true);
           setPhase("referred");
         }
       });
@@ -201,20 +205,24 @@ export default function SignupPage() {
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")
         : null;
       if (refHandle) {
-        // Handle-based creator→creator referral (existing behavior).
-        fetch("/api/referrals/creator", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
-        }).catch(() => {});
-        // Code-based referral attribution (e.g. a non-creator's invite link).
-        // record_referral safely no-ops when `ref` isn't a real referral code,
-        // so this won't double-count or affect the handle-based path above.
-        fetch("/api/referrals/attribute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: refHandle, referredUserId: userId, accountType: "creator" }),
-        }).catch(() => {});
+        if (referrerIsCreator) {
+          // `ref` resolved to a real creator handle → creator→creator billing
+          // credit ($29 off per 5 verified referrals). This is the only path
+          // that should fire for a handle.
+          fetch("/api/referrals/creator", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
+          }).catch(() => {});
+        } else {
+          // `ref` is a code-based invite (e.g. an admin/fan invite link) → the
+          // migration-034 reward ladder. record_referral no-ops on bad codes.
+          fetch("/api/referrals/attribute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: refHandle, referredUserId: userId, accountType: "creator" }),
+          }).catch(() => {});
+        }
         localStorage.removeItem("spotlightly_creator_ref");
       }
 

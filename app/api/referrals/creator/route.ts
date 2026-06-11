@@ -4,38 +4,56 @@ import { createClient } from "@/lib/supabase-server";
 const REFERRALS_PER_CREDIT = 5;
 const CREDIT_AMOUNT_USD = 29.00; // Starter tier price — lowest tier, fair for all
 
+// Records a creator→creator referral and issues a $29 billing credit every 5.
+// Hardened so the credit ladder can't be farmed: the referred account must be
+// a real, distinct spotlight creator, and each referred user counts at most
+// once. We re-derive everything server-side instead of trusting the body.
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { referrerHandle, referredUserId, referredHandle } = await req.json();
 
-  if (!referrerHandle) return NextResponse.json({ ok: true });
+  if (!referrerHandle || !referredUserId) return NextResponse.json({ ok: true });
 
   // Find referrer profile
   const { data: referrer } = await (supabase as any)
     .from("creator_profiles")
-    .select("id, display_name")
+    .select("id, user_id")
     .eq("handle", referrerHandle)
     .eq("kind", "spotlight")
     .maybeSingle();
 
   if (!referrer) return NextResponse.json({ ok: true });
 
-  // Don't let someone refer themselves
-  if (referredUserId) {
-    const { data: referredProfile } = await (supabase as any)
-      .from("creator_profiles")
-      .select("user_id")
-      .eq("id", referrer.id)
-      .maybeSingle();
-    if (referredProfile?.user_id === referredUserId) {
-      return NextResponse.json({ ok: true });
-    }
+  // The referred user must actually own a spotlight creator profile. This
+  // blocks fabricated user ids and stops anyone from claiming a credit before
+  // the referred account is a real creator.
+  const { data: referredProfile } = await (supabase as any)
+    .from("creator_profiles")
+    .select("user_id")
+    .eq("user_id", referredUserId)
+    .eq("kind", "spotlight")
+    .maybeSingle();
+
+  if (!referredProfile) return NextResponse.json({ ok: true });
+
+  // No self-referrals.
+  if (referredProfile.user_id === referrer.user_id) {
+    return NextResponse.json({ ok: true });
   }
+
+  // One attribution per referred user — replaying the same signup can't stack.
+  const { data: already } = await (supabase as any)
+    .from("creator_referrals")
+    .select("id")
+    .eq("referred_user_id", referredUserId)
+    .maybeSingle();
+
+  if (already) return NextResponse.json({ ok: true });
 
   // Record the referral
   await (supabase as any).from("creator_referrals").insert({
     referrer_profile_id: referrer.id,
-    referred_user_id: referredUserId ?? null,
+    referred_user_id: referredUserId,
     referred_handle: referredHandle ?? null,
     credited: false,
   });

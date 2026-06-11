@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { bunnySignedUrl } from "@/lib/bunny";
+
+export const runtime = "nodejs";
+
 
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
@@ -33,8 +37,7 @@ export async function GET(req: NextRequest) {
     .update({ download_count: purchase.download_count + 1 })
     .eq("id", purchase.id);
 
-  // Redirect to the file URL
-  // If using BunnyCDN private storage, generate a signed URL here
-  // For now, redirect directly — replace with signed URL logic when BunnyCDN is configured
-  return NextResponse.redirect(purchase.product.file_url);
+  // Redirect to a short-lived signed CDN URL when token auth is configured.
+  // Falls back to the plain url if BUNNY_TOKEN_KEY isn't set yet.
+  return NextResponse.redirect(bunnySignedUrl(purchase.product.file_url, 300));
 }
