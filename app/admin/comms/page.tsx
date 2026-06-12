@@ -1,11 +1,7 @@
-import { createClient, createServiceClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase-server";
 import { isAdmin } from "@/lib/admin";
-import { sendReferralInviteEmail } from "@/lib/email";
-import { SITE_URL } from "@/lib/site";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-
-export const maxDuration = 60;
 
 async function saveBanner(formData: FormData) {
   "use server";
@@ -54,107 +50,8 @@ async function deleteMessage(formData: FormData) {
   revalidatePath("/admin/comms");
 }
 
-// Admin override: change an existing account's email directly, no confirmation
-// email required. For handing off an account you created to its real owner.
-async function changeAccountEmail(formData: FormData) {
-  "use server";
-  if (!(await isAdmin())) throw new Error("Not authorized");
-  const currentEmail = String(formData.get("current_email") || "").trim().toLowerCase();
-  const newEmail = String(formData.get("new_email") || "").trim().toLowerCase();
-  if (!currentEmail || !newEmail) redirect("/admin/comms?saved=email_error");
-
-  const db: any = await createServiceClient();
-
-  // Find the account by its current email.
-  let target: any = null;
-  for (let page = 1; page <= 10; page++) {
-    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) break;
-    const users = data?.users ?? [];
-    target = users.find((u: any) => (u.email ?? "").toLowerCase() === currentEmail);
-    if (target || users.length < 1000) break;
-  }
-  if (!target) redirect("/admin/comms?saved=email_notfound");
-
-  // email_confirm: true marks the new address confirmed immediately, so the
-  // owner can sign in with it right away — no confirmation link needed.
-  const { error: updErr } = await db.auth.admin.updateUserById(target.id, {
-    email: newEmail,
-    email_confirm: true,
-  });
-  if (updErr) redirect("/admin/comms?saved=email_error");
-
-  redirect("/admin/comms?saved=email_changed");
-}
-
-// Email every signed-up account that hasn't become a creator yet (and hasn't
-// already been invited), asking them to send their personal invite link.
-// Idempotent: tracks who's been sent in referral_invite_sends, sends in capped,
-// throttled batches so a large list doesn't trip Resend's rate limit.
-const INVITE_PER_RUN_CAP = 100;
-const INVITE_SEND_DELAY_MS = 450;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function sendReferralInvites() {
-  "use server";
-  if (!(await isAdmin())) throw new Error("Not authorized");
-  const db: any = await createServiceClient();
-
-  // Already a creator?
-  const { data: creators } = await db.from("creator_profiles").select("user_id");
-  const creatorUserIds = new Set((creators ?? []).map((c: any) => c.user_id).filter(Boolean));
-
-  // Already invited?
-  const { data: sentRows } = await db.from("referral_invite_sends").select("user_id");
-  const alreadySent = new Set((sentRows ?? []).map((r: any) => r.user_id));
-
-  // All auth users → non-creators who haven't been invited yet.
-  const recipients: { id: string; email: string; firstName: string }[] = [];
-  let listError = false;
-  for (let page = 1; page <= 10; page++) {
-    const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) { listError = true; break; }
-    const users = data?.users ?? [];
-    for (const u of users) {
-      if (!u.email || creatorUserIds.has(u.id) || alreadySent.has(u.id)) continue;
-      const meta = u.user_metadata ?? {};
-      const name = String(meta.display_name || meta.full_name || meta.name || "").trim();
-      recipients.push({ id: u.id, email: u.email, firstName: name.split(/\s+/)[0] || "" });
-    }
-    if (users.length < 1000) break;
-  }
-
-  if (listError && recipients.length === 0) {
-    redirect(`/admin/comms?saved=invite_error`);
-  }
-
-  const pending = recipients.length;
-  const batch = recipients.slice(0, INVITE_PER_RUN_CAP);
-
-  let sent = 0;
-  for (const r of batch) {
-    try {
-      const { data: code } = await db.rpc("ensure_referral_code", { p_user: r.id });
-      const link = code ? `${SITE_URL}/signup?ref=${code}` : `${SITE_URL}/signup`;
-      await sendReferralInviteEmail(r.email, r.firstName, link);
-      // Record only on success, so a failed send is retried on the next run.
-      await db.from("referral_invite_sends").upsert(
-        { user_id: r.id, sent_at: new Date().toISOString() },
-        { onConflict: "user_id" }
-      );
-      sent++;
-    } catch {
-      /* skip individual failures, keep going */
-    }
-    await sleep(INVITE_SEND_DELAY_MS);
-  }
-
-  const remaining = pending - sent;
-  redirect(`/admin/comms?saved=invites&sent=${sent}&remaining=${remaining}`);
-}
-
 export default async function CommsPage(props: {
-  searchParams: Promise<{ saved?: string; sent?: string; remaining?: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
   if (!(await isAdmin())) notFound();
   const sp = await props.searchParams;
@@ -175,35 +72,6 @@ export default async function CommsPage(props: {
 
   const bannerText = bannerRow?.value ?? "";
 
-  // Audience breakdown for the referral-invite card. Also exposes a silent
-  // user-listing failure instead of letting the send falsely report "all invited".
-  let inviteStats: { total: number; creators: number; nonCreators: number; pending: number; listError: boolean };
-  try {
-    const db: any = await createServiceClient();
-    const { data: creatorsRows } = await db.from("creator_profiles").select("user_id");
-    const creatorIds = new Set((creatorsRows ?? []).map((c: any) => c.user_id).filter(Boolean));
-    const { data: sentRows } = await db.from("referral_invite_sends").select("user_id");
-    const invited = new Set((sentRows ?? []).map((r: any) => r.user_id));
-
-    let total = 0, nonCreators = 0, pending = 0, listError = false;
-    for (let page = 1; page <= 10; page++) {
-      const { data, error } = await db.auth.admin.listUsers({ page, perPage: 1000 });
-      if (error) { listError = true; break; }
-      const users = data?.users ?? [];
-      for (const u of users) {
-        if (!u.email) continue;
-        total++;
-        if (creatorIds.has(u.id)) continue;
-        nonCreators++;
-        if (!invited.has(u.id)) pending++;
-      }
-      if (users.length < 1000) break;
-    }
-    inviteStats = { total, creators: total - nonCreators, nonCreators, pending, listError };
-  } catch {
-    inviteStats = { total: 0, creators: 0, nonCreators: 0, pending: 0, listError: true };
-  }
-
   return (
     <div>
       <p className="kicker">Admin · Communications</p>
@@ -215,28 +83,6 @@ export default async function CommsPage(props: {
       )}
       {sp.saved === "message" && (
         <div className="adm-banner adm-banner--ok">✓ Message saved.</div>
-      )}
-      {sp.saved === "email_changed" && (
-        <div className="adm-banner adm-banner--ok">✓ Account email updated. The owner can sign in with the new address now.</div>
-      )}
-      {sp.saved === "email_notfound" && (
-        <div className="adm-banner adm-banner--err">⚠ No account found with that current email.</div>
-      )}
-      {sp.saved === "email_error" && (
-        <div className="adm-banner adm-banner--err">⚠ Couldn&apos;t change the email — check both addresses (the new one may already be in use).</div>
-      )}
-      {sp.saved === "invite_error" && (
-        <div className="adm-banner adm-banner--err">
-          ⚠ Couldn&apos;t list accounts to invite — check that the service-role key is set and the <code>referral_invite_sends</code> table exists.
-        </div>
-      )}
-      {sp.saved === "invites" && (
-        <div className="adm-banner adm-banner--ok">
-          ✓ Sent {sp.sent} referral invite{sp.sent === "1" ? "" : "s"}.{" "}
-          {Number(sp.remaining) > 0
-            ? `${sp.remaining} more not yet invited — click again to send the next batch.`
-            : "Everyone who hasn't become a creator has now been invited."}
-        </div>
       )}
 
       {/* Active banner preview */}
@@ -311,39 +157,6 @@ export default async function CommsPage(props: {
             </label>
             <button type="submit" className="adm-btn adm-btn--primary">Send / Save</button>
           </div>
-        </form>
-      </div>
-
-      {/* Change an account's email */}
-      <div className="card">
-        <div className="card-title">Change an account&apos;s email</div>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
-          For handing off an account you created. Sets the new email immediately, no confirmation link required. The owner signs in with the new address right after.
-        </p>
-        <form action={changeAccountEmail} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <input className="adm-input" type="email" name="current_email" placeholder="Current email on the account" required />
-          <input className="adm-input" type="email" name="new_email" placeholder="New email" required />
-          <button type="submit" className="adm-btn adm-btn--primary" style={{ alignSelf: "flex-start" }}>Change email</button>
-        </form>
-      </div>
-
-      {/* Referral invite to non-creators */}
-      <div className="card">
-        <div className="card-title">Invite non-creators to bring a creator</div>
-        {inviteStats.listError ? (
-          <p style={{ fontSize: 12, color: "#f87171", marginBottom: 12 }}>
-            ⚠ Couldn&apos;t list accounts — the service-role key may be missing in this environment, or the <code>referral_invite_sends</code> table isn&apos;t created yet. The send won&apos;t work until that&apos;s resolved.
-          </p>
-        ) : (
-          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
-            {inviteStats.total} accounts with an email · {inviteStats.creators} are creators · <strong style={{ color: "var(--text)" }}>{inviteStats.nonCreators} are not creators</strong> · {inviteStats.pending} not yet invited.
-          </p>
-        )}
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 16 }}>
-          Emails everyone who signed up but hasn&apos;t become a creator yet, asking them to send their personal invite link to people they&apos;d like to see become Spotlightly creators. Each link points to the creator signup. Anyone already invited is skipped automatically, so it&apos;s safe to click more than once. Sends in batches of up to {INVITE_PER_RUN_CAP} per click &mdash; if more remain, you&apos;ll be told to click again.
-        </p>
-        <form action={sendReferralInvites}>
-          <button type="submit" className="adm-btn adm-btn--primary">Send referral invite to all non-creators</button>
         </form>
       </div>
 

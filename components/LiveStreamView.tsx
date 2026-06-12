@@ -23,6 +23,7 @@ interface Tip {
 
 interface Props {
   streamId: string;
+  liveDbId?: string;
   playbackUrl: string;
   isCreator?: boolean;
   creatorHandle?: string;
@@ -32,9 +33,29 @@ interface Props {
 }
 
 export default function LiveStreamView({
-  streamId, playbackUrl, isCreator, creatorHandle, isBackstage, children, embedded
+  streamId, liveDbId, playbackUrl, isCreator, creatorHandle, isBackstage, children, embedded
 }: Props) {
   const supabase = createClient();
+
+  // Viewer presence heartbeat — powers live billing (broadcaster excluded).
+  useEffect(() => {
+    if (!liveDbId || isCreator) return;
+    let key = "";
+    try {
+      key = sessionStorage.getItem("sl_vk") || "";
+      if (!key) { key = Math.random().toString(36).slice(2); sessionStorage.setItem("sl_vk", key); }
+    } catch { key = Math.random().toString(36).slice(2); }
+    const ping = () => {
+      fetch("/api/live/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ streamId: liveDbId, viewerKey: key }),
+      }).catch(() => {});
+    };
+    ping();
+    const t = setInterval(ping, 30000);
+    return () => clearInterval(t);
+  }, [liveDbId, isCreator]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [tips, setTips] = useState<Tip[]>([]);
   const [input, setInput] = useState("");

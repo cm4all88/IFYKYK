@@ -23,9 +23,6 @@ export default function SignupPage() {
   const [referrerHandle, setReferrerHandle] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
   const [referrerAvatar, setReferrerAvatar] = useState<string | null>(null);
-  // True when `ref` matched a real creator handle (→ billing-credit path).
-  // False means treat it as a code-based invite (→ 034 reward ladder).
-  const [referrerIsCreator, setReferrerIsCreator] = useState(false);
 
   const [phase, setPhase] = useState<Phase>("pick_backstage");
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
@@ -52,10 +49,9 @@ export default function SignupPage() {
 
     localStorage.setItem("spotlightly_creator_ref", ref);
     setReferrerHandle(ref);
+    setPhase("referred");
 
-    // Show the "invited by" screen only when the ref resolves to a real creator
-    // (handle-based invite). Code-based invites (e.g. a fan's link) won't match a
-    // handle — we still keep the ref for attribution, but skip the named screen.
+    // Look up their display name + avatar
     (supabase as any)
       .from("creator_profiles")
       .select("display_name, avatar_url")
@@ -63,12 +59,8 @@ export default function SignupPage() {
       .eq("kind", "spotlight")
       .maybeSingle()
       .then(({ data }: any) => {
-        if (data?.display_name) {
-          setReferrerName(data.display_name);
-          if (data.avatar_url) setReferrerAvatar(data.avatar_url);
-          setReferrerIsCreator(true);
-          setPhase("referred");
-        }
+        if (data?.display_name) setReferrerName(data.display_name);
+        if (data?.avatar_url) setReferrerAvatar(data.avatar_url);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -205,24 +197,11 @@ export default function SignupPage() {
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")
         : null;
       if (refHandle) {
-        if (referrerIsCreator) {
-          // `ref` resolved to a real creator handle → creator→creator billing
-          // credit ($29 off per 5 verified referrals). This is the only path
-          // that should fire for a handle.
-          fetch("/api/referrals/creator", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
-          }).catch(() => {});
-        } else {
-          // `ref` is a code-based invite (e.g. an admin/fan invite link) → the
-          // migration-034 reward ladder. record_referral no-ops on bad codes.
-          fetch("/api/referrals/attribute", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: refHandle, referredUserId: userId, accountType: "creator" }),
-          }).catch(() => {});
-        }
+        fetch("/api/referrals/creator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
+        }).catch(() => {});
         localStorage.removeItem("spotlightly_creator_ref");
       }
 

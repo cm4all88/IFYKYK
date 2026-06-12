@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { MARKETPLACE_MIN_CENTS, dollars } from "@/lib/fees";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -40,6 +41,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { title, description, priceUsd, condition, category, images, videoUrl, quantity, subscriberOnly, personalNote, autograph } = body;
   if (!title?.trim() || !priceUsd) return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  if (Math.round(parseFloat(priceUsd) * 100) < MARKETPLACE_MIN_CENTS) {
+    return NextResponse.json({ error: `Minimum listing price is ${dollars(MARKETPLACE_MIN_CENTS)}` }, { status: 400 });
+  }
 
   const { data, error } = await (supabase as any)
     .from("marketplace_listings")

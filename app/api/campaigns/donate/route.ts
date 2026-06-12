@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { grossUpForStripe } from "@/lib/fees";
 
 export async function POST(req: NextRequest) {
   const { campaignId, amountUsd, message } = await req.json();
@@ -27,15 +28,18 @@ export async function POST(req: NextRequest) {
   if (!campaign.creator?.stripe_account_id) return NextResponse.json({ error: "Creator hasn't connected payments yet" }, { status: 503 });
 
   const origin = new URL(req.url).origin;
+  const donationCents = Math.round(amountUsd * 100);
+  const fanCents = grossUpForStripe(donationCents); // fan covers the card fee
 
   const params = new URLSearchParams({
     mode: "payment",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": `Support: ${campaign.title}`,
     "line_items[0][price_data][product_data][description]": campaign.reward_description ?? "Exclusive access for campaign supporters",
-    "line_items[0][price_data][unit_amount]": String(Math.round(amountUsd * 100)),
+    "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][quantity]": "1",
     "payment_intent_data[transfer_data][destination]": campaign.creator.stripe_account_id,
+    "payment_intent_data[transfer_data][amount]": String(donationCents),
     "success_url": `${origin}/${campaign.creator.handle}?campaign_donated=1`,
     "cancel_url": `${origin}/${campaign.creator.handle}`,
     "metadata[campaign_id]": campaignId,

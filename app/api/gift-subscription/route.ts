@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { grossUpForStripe } from "@/lib/fees";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
   const pricePerMonth = Number(profile.subscription_price ?? 9.99);
   const totalUsd = pricePerMonth * months;
   const totalCents = Math.round(totalUsd * 100);
+  const fanCents = grossUpForStripe(totalCents); // fan covers the card fee
   const origin = new URL(req.url).origin;
 
   const params = new URLSearchParams({
@@ -38,9 +40,10 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": `Gift: ${months} month${months > 1 ? "s" : ""} of @${profile.handle}`,
     "line_items[0][price_data][product_data][description]": `A subscription gift for ${recipientEmail}`,
-    "line_items[0][price_data][unit_amount]": String(totalCents),
+    "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][quantity]": "1",
     "payment_intent_data[transfer_data][destination]": profile.stripe_account_id,
+    "payment_intent_data[transfer_data][amount]": String(totalCents),
     "success_url": `${origin}/${profile.handle}?gift_sent=1`,
     "cancel_url": `${origin}/${profile.handle}`,
     "client_reference_id": user.id,

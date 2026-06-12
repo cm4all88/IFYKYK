@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import LiveFeeNotice from "@/components/LiveFeeNotice";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
 import BrowserStream from "@/components/BrowserStream";
@@ -81,6 +82,7 @@ export default function LivePage() {
       </header>
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "48px 28px" }}>
+        <LiveFeeNotice />
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".25em", textTransform: "uppercase" as const, color: "var(--muted)", marginBottom: 12 }}>Live Streaming</div>
         <h1 style={{ fontFamily: "var(--font-serif)", fontSize: 48, fontWeight: 300, color: "#fff", lineHeight: 1, letterSpacing: "-.02em", marginBottom: 8 }}>
           Go <em style={{ fontStyle: "italic", color: "var(--accent)" }}>live.</em>

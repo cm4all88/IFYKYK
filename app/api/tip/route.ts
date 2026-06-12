@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { createNotification } from "@/lib/notify";
 import { sendTipEmail } from "@/lib/email";
+import { grossUpForStripe } from "@/lib/fees";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -37,19 +38,29 @@ export async function POST(req: NextRequest) {
 
   const origin = new URL(req.url).origin;
 
+  // Fan covers the card fee so the creator receives the FULL tip and
+  // Spotlightly nets ~$0. Gross up the fan's charge by Stripe's standard
+  // US card rate (2.9% + $0.30), then cap the creator transfer to the tip.
+  const tipCents = Math.round(amountUsd * 100);
+  const totalCents = grossUpForStripe(tipCents); // what the fan pays
+  const feeCents = totalCents - tipCents;                       // covers Stripe
+
   const params = new URLSearchParams({
     mode: "payment",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": `Tip for @${profile.handle}`,
-    "line_items[0][price_data][unit_amount]": String(Math.round(amountUsd * 100)),
+    "line_items[0][price_data][product_data][description]": `Includes a $${(feeCents / 100).toFixed(2)} card fee so your full $${amountUsd.toFixed(2)} reaches @${profile.handle}.`,
+    "line_items[0][price_data][unit_amount]": String(totalCents),
     "line_items[0][quantity]": "1",
-    // 100% to creator — Spotlightly takes nothing from tips
+    // Creator receives the full tip; the grossed-up fee stays on the platform to cover Stripe.
     "payment_intent_data[transfer_data][destination]": profile.stripe_account_id,
+    "payment_intent_data[transfer_data][amount]": String(tipCents),
     "success_url": `${origin}/${profile.handle}?tipped=1`,
     "cancel_url": `${origin}/${profile.handle}`,
     "metadata[creator_profile_id]": creatorProfileId,
     "metadata[type]": "tip",
     "metadata[amount_usd]": String(amountUsd),
+    "metadata[fan_paid_usd]": (totalCents / 100).toFixed(2),
   });
 
   // Attach fan ID if logged in, skip if guest

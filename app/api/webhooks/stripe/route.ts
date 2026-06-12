@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     // ── Tip ─────────────────────────────────────────────────────────
     if (type === "tip") {
-      const amount = (s.amount_total ?? 0) / 100;
+      const amount = parseFloat(meta.amount_usd ?? "0") || (s.amount_total ?? 0) / 100;
       await (supabase as any).from("tips").insert({
         fan_user_id: meta.fan_user_id || null,
         creator_profile_id: meta.creator_profile_id,
@@ -361,9 +361,9 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
 
     // ── Digital product purchase ──────────────────────────────────────
     else if ((type === "digital_product" || type === "digital_purchase") && meta.product_id) {
-      const priceTotal = (s.amount_total ?? 0) / 100;
-      const platformFee = Math.round(priceTotal * 0.05 * 100) / 100;
-      const creatorEarns = Math.round((priceTotal - platformFee) * 100) / 100;
+      const priceTotal = (s.amount_total ?? 0) / 100; // what the fan paid (incl. card fee)
+      const platformFee = 0; // 0% on digital — fan covers the card fee, creator keeps 100%
+      const creatorEarns = meta.net_usd ? Number(meta.net_usd) : priceTotal;
 
       const { data: purchase } = await (supabase as any)
         .from("digital_purchases")

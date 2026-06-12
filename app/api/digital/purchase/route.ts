@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
-const PLATFORM_CUT = 0.05;
+import { grossUpForStripe } from "@/lib/fees";
+
+// Digital is 0% to Spotlightly: the fan covers the card fee and the creator
+// keeps 100% (matches the "0% cut" promise on the niche pages).
+// NOTE: very large files cost real BunnyCDN storage/bandwidth. A size-based
+// hosting fee can be added here once a threshold + amount are decided.
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -24,14 +29,15 @@ export async function POST(req: NextRequest) {
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
-  const platformFee = Math.round(product.price * PLATFORM_CUT * 100);
+  const netCents = Math.round(product.price * 100);
+  const fanCents = grossUpForStripe(netCents); // fan covers the card fee
 
   const params = new URLSearchParams({
     "payment_method_types[0]": "card",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": product.title,
     "line_items[0][price_data][product_data][description]": (product.description ?? "").slice(0, 255),
-    "line_items[0][price_data][unit_amount]": String(Math.round(product.price * 100)),
+    "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][quantity]": "1",
     mode: "payment",
     success_url: `${appUrl}/downloads?session_id={CHECKOUT_SESSION_ID}`,
@@ -41,11 +47,12 @@ export async function POST(req: NextRequest) {
     "metadata[fan_user_id]": user?.id ?? "",
     "metadata[fan_email]": user?.email ?? "",
     "metadata[type]": "digital_purchase",
+    "metadata[net_usd]": String(product.price),
   });
 
   if (product.creator.stripe_account_id) {
-    params.set("payment_intent_data[application_fee_amount]", String(platformFee));
     params.set("payment_intent_data[transfer_data][destination]", product.creator.stripe_account_id);
+    params.set("payment_intent_data[transfer_data][amount]", String(netCents)); // creator keeps 100%
   }
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
 import { getSecrets } from "@/lib/settings";
 import { createHash } from "crypto";
+import { grossUpForStripe, appFeePercentForGrossUp } from "@/lib/fees";
 
 function hashContact(value: string) {
   return createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
@@ -11,11 +12,17 @@ function hashContact(value: string) {
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const creatorProfileId = formData.get("creator_profile_id");
+  const channelId = formData.get("channel_id");
   const tierId = formData.get("tier_id") as string | null;
   const billingPeriod = (formData.get("billing_period") as string) || "monthly";
 
   if (typeof creatorProfileId !== "string") {
     return NextResponse.json({ error: "Missing creator_profile_id" }, { status: 400 });
+  }
+
+  const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
+  if (!STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: "Subscriptions not yet available." }, { status: 503 });
   }
 
   const supabase = await createClient();
@@ -62,11 +69,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Creator not found" }, { status: 404 });
   }
 
-  let priceCents = Math.round((Number(profile.subscription_price) || 9.99) * 100);
-  let subscriptionLabel = "subscription";
-  const stripePriceId: string | null = null;
+  if (!profile.stripe_account_id || !profile.stripe_onboarded) {
+    return NextResponse.json({ error: "Creator has not connected Stripe yet." }, { status: 503 });
+  }
 
-  // ── Resolve tier pricing ─────────────────────────────────────────
+  let priceCents = Math.round((Number(profile.subscription_price) || 9.99) * 100);
+  let channelName = "subscription";
+  let stripePriceId: string | null = null;
+  let tierName = "";
+
+  // ── Check for tier-based pricing ─────────────────────────────────
   if (tierId) {
     const { data: tier } = await (supabase as any)
       .from("subscription_tiers")
@@ -77,44 +89,24 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (tier) {
+      tierName = tier.name;
       const monthly = Number(tier.price_monthly);
       const yearly = tier.price_yearly != null ? Number(tier.price_yearly) : null;
-      const chosen = billingPeriod === "yearly" ? (yearly ?? monthly * 10) : monthly;
-      priceCents = Math.round(chosen * 100);
-      subscriptionLabel = tier.name;
+      priceCents = billingPeriod === "yearly"
+        ? Math.round((yearly ?? monthly * 10) * 100)
+        : Math.round(monthly * 100);
+      channelName = tier.name;
     }
-  }
-
-  // ── Free tier: grant membership directly, no Stripe needed ───────
-  if (priceCents <= 0) {
-    const { data: existing } = await (supabase as any)
-      .from("subscriptions")
-      .select("id, status")
-      .eq("fan_user_id", user.id)
-      .eq("creator_profile_id", creatorProfileId)
+  } else if (typeof channelId === "string" && channelId.length > 0) {
+    const { data: ch } = await supabase
+      .from("channels")
+      .select("name, subscription_price")
+      .eq("id", channelId)
       .maybeSingle();
-
-    if (!(existing && existing.status === "active")) {
-      await (supabase as any).from("subscriptions").upsert({
-        creator_profile_id: creatorProfileId,
-        fan_user_id: user.id,
-        status: "active",
-        tier: "free",
-        tier_id: tierId || null,
-        billing_period: billingPeriod,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "fan_user_id,creator_profile_id" });
+    if (ch?.subscription_price) {
+      priceCents = Math.round(Number(ch.subscription_price) * 100);
+      channelName = ch.name;
     }
-    return NextResponse.redirect(new URL(`/${profile.handle}?subscribed=1`, req.url), { status: 303 });
-  }
-
-  // ── Paid tier: requires Stripe ───────────────────────────────────
-  const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
-  if (!STRIPE_SECRET_KEY) {
-    return NextResponse.json({ error: "Subscriptions not yet available." }, { status: 503 });
-  }
-  if (!profile.stripe_account_id || !profile.stripe_onboarded) {
-    return NextResponse.json({ error: "Creator has not connected Stripe yet." }, { status: 503 });
   }
 
   const origin = new URL(req.url).origin;
@@ -127,6 +119,7 @@ export async function POST(req: NextRequest) {
     "cancel_url": `${origin}/${profile.handle}`,
     "client_reference_id": user.id,
     "metadata[creator_profile_id]": creatorProfileId as string,
+    "metadata[channel_id]": typeof channelId === "string" ? channelId : "",
     "metadata[user_id]": user.id,
     "metadata[tier_id]": tierId ?? "",
     "metadata[billing_period]": billingPeriod,
@@ -137,9 +130,16 @@ export async function POST(req: NextRequest) {
     params.set("line_items[0][price]", stripePriceId);
     params.set("line_items[0][quantity]", "1");
   } else {
+    // Fan covers the card fee so the creator receives their full sticker price
+    // and Spotlightly nets ~$0. Gross up the fan's recurring charge, then keep
+    // the fee portion as the application fee (which Stripe deducts its cut from).
+    const fanCents = grossUpForStripe(priceCents);
+    const appFeePct = appFeePercentForGrossUp(priceCents);
+    params.set("subscription_data[application_fee_percent]", appFeePct.toFixed(4));
     params.set("line_items[0][price_data][currency]", "usd");
-    params.set("line_items[0][price_data][product_data][name]", `${profile.handle} · ${subscriptionLabel || "subscription"}`);
-    params.set("line_items[0][price_data][unit_amount]", String(priceCents));
+    params.set("line_items[0][price_data][product_data][name]", `${profile.handle} · ${channelName || "subscription"}`);
+    params.set("line_items[0][price_data][product_data][description]", `Includes the card fee so @${profile.handle} receives the full $${(priceCents / 100).toFixed(2)}/${interval}.`);
+    params.set("line_items[0][price_data][unit_amount]", String(fanCents));
     params.set("line_items[0][price_data][recurring][interval]", interval);
     params.set("line_items[0][quantity]", "1");
   }

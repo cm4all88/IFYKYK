@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
+import { MARKETPLACE_MIN_CENTS } from "@/lib/fees";
+
 const PLATFORM_FEE = 0.05; // 5%
 
 export async function POST(req: NextRequest) {
@@ -39,6 +41,9 @@ export async function POST(req: NextRequest) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
   const amountCents = Math.round(listing.price_usd * 100);
+  if (amountCents < MARKETPLACE_MIN_CENTS) {
+    return NextResponse.json({ error: "This item is priced below the minimum and can\u2019t be sold." }, { status: 400 });
+  }
   const feeCents = Math.round(amountCents * PLATFORM_FEE);
 
   const params = new URLSearchParams({

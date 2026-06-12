@@ -139,7 +139,7 @@ export default function TiersSection({ tiers, creatorHandle, creatorName }: Prop
                   {visiblePerks.map((perk, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                       <span style={{ color: tier.color ?? "var(--accent)", flexShrink: 0, marginTop: 1, fontSize: 13 }}>✓</span>
-                      <span style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.5 }}>{perk.replace(/^[\s•\-–—*]+/, "")}</span>
+                      <span style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.5 }}>{perk}</span>
                     </div>
                   ))}
                 </div>

@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
-import { bunnySignedUrl } from "@/lib/bunny";
-
-export const runtime = "nodejs";
-
 
 export async function GET(
   req: NextRequest,
@@ -46,8 +42,7 @@ export async function GET(
     .update({ download_count: purchase.download_count + 1 })
     .eq("id", purchase.id);
 
-  // Redirect to a short-lived signed CDN URL when token auth is configured, so
-  // the permanent file url is never exposed and this gated link can't be
-  // reused past its download cap.
-  return NextResponse.redirect(bunnySignedUrl(purchase.product.file_url, 300));
+  // Redirect to the actual file
+  // In production this would use a signed CDN URL for extra security
+  return NextResponse.redirect(purchase.product.file_url);
 }

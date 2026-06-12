@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
 import { getSecrets } from "@/lib/settings";
+import { grossUpForStripe } from "@/lib/fees";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -42,6 +43,9 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
   const price = billingPeriod === "yearly" ? tier.price_yearly : tier.price_monthly;
   const priceInCents = Math.round(Number(price) * 100);
+  // Direct charge on the creator's account — they bear Stripe's fee. Gross up
+  // the fan's charge so the creator nets their full sticker price (Spotlightly 0%).
+  const fanCents = grossUpForStripe(priceInCents);
   const interval = billingPeriod === "yearly" ? "year" : "month";
 
   const tierLabel = billingPeriod === "yearly"
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
   const params = new URLSearchParams({
     mode: "subscription",
     "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][unit_amount]": String(priceInCents),
+    "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][price_data][recurring][interval]": interval,
     "line_items[0][price_data][product_data][name]": `${tierLabel} — ${tier.creator.display_name ?? tier.creator.handle}`,
     "line_items[0][price_data][product_data][description]": tier.description ?? tier.perks?.join(" · ") ?? "",

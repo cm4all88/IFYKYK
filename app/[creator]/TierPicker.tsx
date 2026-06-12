@@ -28,12 +28,8 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
   const discountPct = (t: Tier) =>
     t.price_yearly ? Math.round((1 - t.price_yearly / (t.price_monthly * 12)) * 100) : 0;
 
-  const tierPrice = (t: Tier) => (billing === "yearly" && t.price_yearly ? t.price_yearly : t.price_monthly);
-  const selectedObj = tiers.find(t => t.id === selectedTier);
-  const selFree = !!selectedObj && Number(tierPrice(selectedObj)) <= 0;
-
   function subscribe() {
-    if (!selectedTier || (!selFree && !stripeReady)) return;
+    if (!selectedTier || !stripeReady) return;
     setLoading(true);
     // Submit a real top-level form so the browser follows Stripe's 303 redirect
     // with the URL #fragment intact. fetch() strips the fragment from res.url,
@@ -92,7 +88,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
           const price = billing === "yearly" && tier.price_yearly ? tier.price_yearly : tier.price_monthly;
           const period = billing === "yearly" && tier.price_yearly ? "yr" : "mo";
           const selected = selectedTier === tier.id;
-          const visiblePerks = (tier.perks ?? []).filter(p => norm(p) !== norm(tier.description ?? ""));
+          const visiblePerks = (tier.perks ?? []).filter(p => norm(p) !== norm(tier.description ?? "")).slice(0, 3);
 
           return (
             <button
@@ -117,21 +113,19 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
                   <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
                 )}
                 {visiblePerks.length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 24 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginLeft: 24 }}>
                     {visiblePerks.map((perk, i) => (
-                      <span key={i} style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>✓ {perk.replace(/^[\s•\-–—*]+/, "")}</span>
+                      <span key={i} style={{ fontSize: 11, color: "var(--muted)" }}>✓ {perk}</span>
                     ))}
                   </div>
                 )}
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
                 <p style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: selected ? "#F0B429" : "rgba(255,255,255,0.7)", lineHeight: 1 }}>
-                  {Number(price) <= 0 ? "Free" : `$${Number(price).toFixed(2)}`}
+                  ${Number(price).toFixed(2)}
                 </p>
-                {Number(price) > 0 && (
-                  <p style={{ fontFamily: "monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>/{period}</p>
-                )}
-                {billing === "yearly" && tier.price_yearly && Number(price) > 0 && (
+                <p style={{ fontFamily: "monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>/{period}</p>
+                {billing === "yearly" && tier.price_yearly && (
                   <p style={{ fontSize: 10, color: "#34D399", marginTop: 2 }}>{discountPct(tier)}% off</p>
                 )}
               </div>
@@ -142,20 +136,18 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
 
       <button
         onClick={subscribe}
-        disabled={loading || !selectedTier || (!selFree && !stripeReady)}
+        disabled={!stripeReady || loading || !selectedTier}
         style={{
           width: "100%", background: "#F0B429", color: "#09090C",
           fontWeight: 700, fontSize: 14, padding: "13px 0",
           borderRadius: 999, border: "none", cursor: "pointer",
-          opacity: loading || (!selFree && !stripeReady) ? 0.5 : 1,
+          opacity: !stripeReady || loading ? 0.5 : 1,
         }}
       >
-        {loading
-          ? (selFree ? "Joining…" : "Redirecting…")
-          : (selFree ? "Join free" : `Subscribe · ${billing}`)}
+        {loading ? "Redirecting…" : `Subscribe · ${billing}`}
       </button>
 
-      {!stripeReady && !selFree && (
+      {!stripeReady && (
         <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
           Payments coming soon
         </p>

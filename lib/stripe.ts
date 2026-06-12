@@ -39,32 +39,6 @@ export async function createOnboardingLink(accountId: string) {
 }
 
 /**
- * Create a subscription for a fan subscribing to a creator.
- */
-export async function createSubscription({
-  customerId,
-  priceId,
-  creatorAccountId,
-}: {
-  customerId: string;
-  priceId: string;
-  creatorAccountId: string;
-}) {
-  return stripe.subscriptions.create(
-    {
-      customer: customerId,
-      items: [{ price: priceId }],
-      application_fee_percent: 3,  // 3% Spotlightly fee charged to fan on top of creator's price
-      payment_settings: {
-        save_default_payment_method: "on_subscription",
-        payment_method_types: ["card"],
-      },
-    },
-    { stripeAccount: creatorAccountId }
-  );
-}
-
-/**
  * Verify a Stripe webhook signature.
  */
 export function verifyWebhook(body: string, signature: string) {

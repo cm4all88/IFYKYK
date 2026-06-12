@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { SUPER_TIP_MIN_CENTS, dollars } from "@/lib/fees";
 
 const PLATFORM_CUT = 0.15;
 
@@ -9,8 +10,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { creatorProfileId, amountUsd, message, fanDisplayName } = await req.json();
-  if (!creatorProfileId || !amountUsd || amountUsd < 1) {
-    return NextResponse.json({ error: "Minimum super tip is $1" }, { status: 400 });
+  if (!creatorProfileId || !amountUsd || Math.round(amountUsd * 100) < SUPER_TIP_MIN_CENTS) {
+    return NextResponse.json({ error: `Minimum super tip is ${dollars(SUPER_TIP_MIN_CENTS)}` }, { status: 400 });
   }
 
   const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
+import { grossUpForStripe } from "@/lib/fees";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -35,12 +36,16 @@ export async function POST(req: NextRequest) {
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
+  // Fan covers the card fee; creator nets the full tip.
+  const tipCents = Math.round(amountUsd * 100);
+  const fanCents = grossUpForStripe(tipCents);
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [{
       price_data: {
         currency: "usd",
-        unit_amount: Math.round(amountUsd * 100),
+        unit_amount: fanCents,
         product_data: {
           name: `Live tip${message ? ` — "${message.slice(0, 40)}"` : ""}`,
           description: `Tip during live stream`,
@@ -49,7 +54,7 @@ export async function POST(req: NextRequest) {
       quantity: 1,
     }],
     payment_intent_data: {
-      transfer_data: { destination: stripeAccount },
+      transfer_data: { destination: stripeAccount, amount: tipCents },
     },
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/live?tip=success`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/live?tip=cancelled`,
