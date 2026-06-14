@@ -45,10 +45,11 @@ async function togglePublished(formData: FormData) {
 async function createCreator(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
-  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+  let email = ((formData.get("email") as string) || "").trim().toLowerCase();
   const handle = ((formData.get("handle") as string) || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
   const displayName = ((formData.get("display_name") as string) || "").trim();
-  if (!email || !handle || !displayName) redirect("/admin/creators?err=missing");
+  if (!handle || !displayName) redirect("/admin/creators?err=missing");
+  if (!email) email = `concierge_${handle}@spotlightly.app`;
 
   const admin = await createServiceClient();
   const { data: existing } = await (admin as any)
@@ -59,13 +60,20 @@ async function createCreator(formData: FormData) {
   const { data: created, error: cErr } = await (admin as any).auth.admin.createUser({
     email, password: tempPassword, email_confirm: true,
   });
-  if (cErr || !created?.user) redirect("/admin/creators?err=auth");
+  if (cErr || !created?.user) {
+    const m = ((cErr as any)?.message || "").toLowerCase();
+    const dup = m.includes("already") || m.includes("registered") || m.includes("exists");
+    redirect(`/admin/creators?err=${dup ? "email" : "auth"}`);
+  }
 
   const { error: pErr } = await (admin as any).from("creator_profiles").insert({
     user_id: created.user.id, handle, display_name: displayName,
     creator_type: "spotlight", kind: "spotlight", published: false,
   });
-  if (pErr) redirect("/admin/creators?err=profile");
+  if (pErr) {
+    try { await (admin as any).auth.admin.deleteUser(created.user.id); } catch {}
+    redirect(`/admin/creators?err=profile&detail=${encodeURIComponent(((pErr as any).message || "").slice(0, 140))}`);
+  }
 
   revalidatePath("/admin/creators");
   redirect(`/admin/creators?created=${encodeURIComponent(handle)}&temp=${encodeURIComponent(tempPassword)}&email=${encodeURIComponent(email)}`);
@@ -98,6 +106,7 @@ export default async function CreatorsPage(props: {
   const tempPw = (sp as any).temp as string | undefined;
   const createdEmail = (sp as any).email as string | undefined;
   const errCode = (sp as any).err as string | undefined;
+  const detail = (sp as any).detail as string | undefined;
 
   const supabase = await createClient();
   let query = (supabase as any)
@@ -129,14 +138,18 @@ export default async function CreatorsPage(props: {
       )}
       {errCode && (
         <div className="adm-banner adm-banner--err" style={{ marginBottom: 20 }}>
-          {errCode === "handle" ? "That handle is taken." : errCode === "missing" ? "Email, handle, and name are all required." : "Could not create the account. Try again."}
+          {errCode === "handle" ? "That handle is taken."
+            : errCode === "email" ? "That email already has an account. Use a different one."
+            : errCode === "missing" ? "Handle and display name are required."
+            : errCode === "profile" ? `Could not create the page${detail ? ": " + detail : ""}. If that mentions the published column, run migration 037 in Supabase.`
+            : "Could not create the account. Try again."}
         </div>
       )}
 
       <details className="card" style={{ marginBottom: 20 }}>
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>Create a creator (concierge)</summary>
         <form action={createCreator} style={{ display: "grid", gap: 10, marginTop: 14, maxWidth: 420 }}>
-          <input name="email" type="email" placeholder="Their email" className="adm-input" required />
+          <input name="email" type="email" placeholder="Their email (optional, add later)" className="adm-input" />
           <input name="handle" placeholder="handle (no @)" className="adm-input" required />
           <input name="display_name" placeholder="Display name" className="adm-input" required />
           <button type="submit" className="adm-btn adm-btn--primary">Create preview account</button>
