@@ -3925,7 +3925,7 @@ function SettingsPane({ profile, userEmail }: { profile: Profile; userEmail: str
             <a href="https://dashboard.stripe.com" target="_blank" className="settings-link" style={{ fontSize:12 }}>Stripe Dashboard →</a>
           </div>
         ) : (
-          <a href="/api/stripe/connect/start" target="_blank" rel="noopener noreferrer" className="btn btn--primary btn--small">Connect Stripe — 3 minutes</a>
+          <a href="/connect-stripe" className="btn btn--primary btn--small">Connect Stripe — 3 minutes</a>
         )}
       </div>
 
@@ -3968,22 +3968,8 @@ function PaymentsPane({ profile }: { profile: Profile }) {
   async function connectStripe() {
     setConnecting(true);
     setErr(null);
-    // Open the tab synchronously on click so the popup blocker doesn't kill it,
-    // then point it at Stripe once the onboarding link is ready.
-    const w = window.open("about:blank", "_blank");
-    try {
-      const res = await fetch("/api/stripe/connect/start", { method: "POST" });
-      let data: any = {};
-      try { data = await res.json(); } catch { /* empty body */ }
-      if (!res.ok || data.error) throw new Error(data.error ?? `Server error ${res.status}`);
-      if (!data.url) throw new Error("No redirect URL returned from Stripe");
-      if (w) w.location.href = data.url; else window.location.href = data.url;
-      setConnecting(false);
-    } catch (e: any) {
-      if (w) w.close();
-      setErr(e.message ?? "Could not connect Stripe. Check your Stripe API key in Vercel env vars.");
-      setConnecting(false);
-    }
+    // Embedded onboarding lives on its own page on Spotlightly, no redirect to Stripe.
+    window.location.href = "/connect-stripe";
   }
 
   return (

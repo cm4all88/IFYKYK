@@ -29,7 +29,7 @@ export async function createConnectAccount(email: string) {
  * Generate an onboarding link for a Stripe Connect account.
  */
 export async function createOnboardingLink(accountId: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.spotlightly.app";
   return stripe.accountLinks.create({
     account: accountId,
     refresh_url: `${base}/api/stripe/connect/start`,

@@ -133,13 +133,14 @@ export default async function CreatorsPage(props: {
 
       {created && (
         <div className="adm-banner adm-banner--ok" style={{ marginBottom: 20, lineHeight: 1.8 }}>
-          <strong style={{ display: "block", marginBottom: 6 }}>Preview created for @{created}</strong>
-          Send them this to claim it (they set their own email and password):<br />
+          <strong style={{ display: "block", marginBottom: 10 }}>Preview created for @{created}</strong>
+          <strong>1. Build the page first.</strong> Log in as them with email <code>{createdEmail}</code> and temp password <code>{tempPw}</code>, then add their posts and details.<br />
+          Preview as you go (not in Explore yet): <a href={`/${created}`} target="_blank" style={{ color: "var(--spot)" }}>spotlightly.app/{created}</a>
+          <br /><br />
+          <strong>2. Then hand it off.</strong> Once it looks good, send them this claim link so they set their own email and password:<br />
           <a href={`/claim/${claimCodeParam}`} target="_blank" style={{ color: "var(--spot)", wordBreak: "break-all" }}>spotlightly.app/claim/{claimCodeParam}</a>
           <br /><br />
-          To build the page yourself first, log in as them with email <code>{createdEmail}</code> and temp password <code>{tempPw}</code>.<br />
-          Preview link (not in Explore yet): <a href={`/${created}`} target="_blank" style={{ color: "var(--spot)" }}>spotlightly.app/{created}</a><br />
-          When ready, hit Go live on their row below.
+          <strong>3. Go live.</strong> When the page is ready, hit Go live on their row below.
         </div>
       )}
       {errCode && (
@@ -266,6 +267,13 @@ export default async function CreatorsPage(props: {
                           {c.published ? "Unpublish" : "Go live"}
                         </button>
                       </form>
+                      <a
+                        href={`/admin/creators/${c.id}/build`}
+                        className="adm-btn adm-btn--ghost"
+                        style={{ padding: "5px 12px" }}
+                      >
+                        Build
+                      </a>
                       {!c.veriff_verified && (
                         <form action={toggleVerified}>
                           <input type="hidden" name="id" value={c.id} />

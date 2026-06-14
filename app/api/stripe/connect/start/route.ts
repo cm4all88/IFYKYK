@@ -33,7 +33,10 @@ async function startOnboarding(): Promise<{ url?: string; error?: string; status
           transfers: { requested: true },
         },
         business_profile: {
-          url: profile.handle ? `https://spotlightly.app/${profile.handle}` : undefined,
+          url: profile.handle
+            ? `https://www.spotlightly.app/${profile.handle}`
+            : "https://www.spotlightly.app",
+          mcc: "5815",
           product_description: "Subscriptions, tips, and exclusive content for my audience on Spotlightly.",
         },
       });
@@ -49,7 +52,7 @@ async function startOnboarding(): Promise<{ url?: string; error?: string; status
   }
 
   try {
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.spotlightly.app";
     const link = await stripe.accountLinks.create({
       account: accountId,
       // refresh_url regenerates a fresh link if this one expires.
@@ -57,6 +60,7 @@ async function startOnboarding(): Promise<{ url?: string; error?: string; status
       // return marks stripe_onboarded=true, then bounces to the dashboard.
       return_url: `${base}/api/stripe/connect/return`,
       type: "account_onboarding",
+      collection_options: { fields: "currently_due" },
     });
     return { url: link.url };
   } catch (e: any) {
