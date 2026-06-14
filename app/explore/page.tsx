@@ -17,6 +17,7 @@ export default async function ExplorePage() {
     .from("creator_profiles")
     .select("id, handle, display_name, bio, avatar_url, subscription_price, tags, location_city, location_country")
     .eq("kind", "spotlight")
+    .eq("published", true)
     .not("handle", "is", null)
     .order("created_at", { ascending: false })
     .limit(48);

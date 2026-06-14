@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase-server";
+import { createClient, createServiceClient } from "@/lib/supabase-server";
 import { isAdmin } from "@/lib/admin";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -29,6 +29,48 @@ async function toggleVerified(formData: FormData) {
   revalidatePath("/admin/creators");
 }
 
+async function togglePublished(formData: FormData) {
+  "use server";
+  if (!(await isAdmin())) throw new Error("Not authorized");
+  const id = formData.get("id") as string;
+  const published = formData.get("published") === "true";
+  const supabase = await createClient();
+  await (supabase as any)
+    .from("creator_profiles")
+    .update({ published: !published, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  revalidatePath("/admin/creators");
+}
+
+async function createCreator(formData: FormData) {
+  "use server";
+  if (!(await isAdmin())) throw new Error("Not authorized");
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+  const handle = ((formData.get("handle") as string) || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const displayName = ((formData.get("display_name") as string) || "").trim();
+  if (!email || !handle || !displayName) redirect("/admin/creators?err=missing");
+
+  const admin = await createServiceClient();
+  const { data: existing } = await (admin as any)
+    .from("creator_profiles").select("id").eq("handle", handle).maybeSingle();
+  if (existing) redirect("/admin/creators?err=handle");
+
+  const tempPassword = "Sl" + Math.random().toString(36).slice(2, 9) + Math.floor(Math.random() * 90 + 10) + "!";
+  const { data: created, error: cErr } = await (admin as any).auth.admin.createUser({
+    email, password: tempPassword, email_confirm: true,
+  });
+  if (cErr || !created?.user) redirect("/admin/creators?err=auth");
+
+  const { error: pErr } = await (admin as any).from("creator_profiles").insert({
+    user_id: created.user.id, handle, display_name: displayName,
+    creator_type: "spotlight", kind: "spotlight", published: false,
+  });
+  if (pErr) redirect("/admin/creators?err=profile");
+
+  revalidatePath("/admin/creators");
+  redirect(`/admin/creators?created=${encodeURIComponent(handle)}&temp=${encodeURIComponent(tempPassword)}&email=${encodeURIComponent(email)}`);
+}
+
 async function updateSubPrice(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
@@ -52,11 +94,15 @@ export default async function CreatorsPage(props: {
   const kind = sp.kind ?? "";
   const page = Math.max(1, parseInt(sp.page ?? "1"));
   const perPage = 25;
+  const created = (sp as any).created as string | undefined;
+  const tempPw = (sp as any).temp as string | undefined;
+  const createdEmail = (sp as any).email as string | undefined;
+  const errCode = (sp as any).err as string | undefined;
 
   const supabase = await createClient();
   let query = (supabase as any)
     .from("creator_profiles")
-    .select("id, handle, display_name, kind, creator_type, is_active, veriff_verified, subscription_price, stripe_account_id, created_at", { count: "exact" })
+    .select("id, handle, display_name, kind, creator_type, is_active, veriff_verified, subscription_price, stripe_account_id, published, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range((page - 1) * perPage, page * perPage - 1);
 
@@ -71,6 +117,31 @@ export default async function CreatorsPage(props: {
       <p className="kicker">Admin · Creators</p>
       <h1 className="adm-page-title">Creator <em>Management.</em></h1>
       <p className="adm-page-lede">Search, ban, verify, and adjust subscription prices for any creator.</p>
+
+      {created && (
+        <div className="adm-banner adm-banner--ok" style={{ marginBottom: 20, lineHeight: 1.8 }}>
+          <strong style={{ display: "block", marginBottom: 6 }}>Preview created for @{created}</strong>
+          Login email: {createdEmail}<br />
+          Temp password: <code>{tempPw}</code> (log in as them to build the page, then have them change it)<br />
+          Preview link (not in Explore yet): <a href={`/${created}`} target="_blank" style={{ color: "var(--spot)" }}>spotlightly.app/{created}</a><br />
+          When they are ready, hit Go live on their row below.
+        </div>
+      )}
+      {errCode && (
+        <div className="adm-banner adm-banner--err" style={{ marginBottom: 20 }}>
+          {errCode === "handle" ? "That handle is taken." : errCode === "missing" ? "Email, handle, and name are all required." : "Could not create the account. Try again."}
+        </div>
+      )}
+
+      <details className="card" style={{ marginBottom: 20 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>Create a creator (concierge)</summary>
+        <form action={createCreator} style={{ display: "grid", gap: 10, marginTop: 14, maxWidth: 420 }}>
+          <input name="email" type="email" placeholder="Their email" className="adm-input" required />
+          <input name="handle" placeholder="handle (no @)" className="adm-input" required />
+          <input name="display_name" placeholder="Display name" className="adm-input" required />
+          <button type="submit" className="adm-btn adm-btn--primary">Create preview account</button>
+        </form>
+      </details>
 
       {/* Filters */}
       <form method="GET" style={{ display: "flex", gap: 10, marginBottom: 20 }}>
@@ -156,6 +227,17 @@ export default async function CreatorsPage(props: {
                           style={{ padding: "5px 12px" }}
                         >
                           {c.is_active ? "Ban" : "Unban"}
+                        </button>
+                      </form>
+                      <form action={togglePublished}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <input type="hidden" name="published" value={String(c.published)} />
+                        <button
+                          type="submit"
+                          className={`adm-btn ${c.published ? "adm-btn--ghost" : "adm-btn--primary"}`}
+                          style={{ padding: "5px 12px" }}
+                        >
+                          {c.published ? "Unpublish" : "Go live"}
                         </button>
                       </form>
                       {!c.veriff_verified && (
