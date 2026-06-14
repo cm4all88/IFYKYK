@@ -62,9 +62,10 @@ async function createCreator(formData: FormData) {
     email, password: tempPassword, email_confirm: true,
   });
   if (cErr || !created?.user) {
-    const m = ((cErr as any)?.message || "").toLowerCase();
+    const msg = (cErr as any)?.message || "auth returned no user";
+    const m = msg.toLowerCase();
     const dup = m.includes("already") || m.includes("registered") || m.includes("exists");
-    redirect(`/admin/creators?err=${dup ? "email" : "auth"}`);
+    redirect(`/admin/creators?err=${dup ? "email" : "auth"}&detail=${encodeURIComponent(String(msg).slice(0, 160))}`);
   }
 
   const { error: pErr } = await (admin as any).from("creator_profiles").insert({
@@ -144,10 +145,17 @@ export default async function CreatorsPage(props: {
       {errCode && (
         <div className="adm-banner adm-banner--err" style={{ marginBottom: 20 }}>
           {errCode === "handle" ? "That handle is taken."
-            : errCode === "email" ? "That email already has an account. Use a different one."
             : errCode === "missing" ? "Handle and display name are required."
-            : errCode === "profile" ? `Could not create the page${detail ? ": " + detail : ""}. If that mentions the published column, run migration 037 in Supabase.`
-            : "Could not create the account. Try again."}
+            : (
+              <>
+                <strong>Create failed (code: {errCode}).</strong>
+                {detail ? <><br />Reason: {detail}</> : null}
+                <br />
+                {/claim_code|published|column/i.test(detail || "") ? "That column is missing, so run the latest migration (037 and 038) in Supabase." :
+                 errCode === "email" ? "That email already has an account. Use a different email, or delete the old login in Supabase Authentication." :
+                 "Check Supabase migrations 037 and 038 have run, and that there is no leftover login on this handle in Authentication."}
+              </>
+            )}
         </div>
       )}
 
