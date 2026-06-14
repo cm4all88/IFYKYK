@@ -57,6 +57,7 @@ async function createCreator(formData: FormData) {
   if (existing) redirect("/admin/creators?err=handle");
 
   const tempPassword = "Sl" + Math.random().toString(36).slice(2, 9) + Math.floor(Math.random() * 90 + 10) + "!";
+  const claimCode = (globalThis.crypto as any).randomUUID().replace(/-/g, "");
   const { data: created, error: cErr } = await (admin as any).auth.admin.createUser({
     email, password: tempPassword, email_confirm: true,
   });
@@ -69,6 +70,7 @@ async function createCreator(formData: FormData) {
   const { error: pErr } = await (admin as any).from("creator_profiles").insert({
     user_id: created.user.id, handle, display_name: displayName,
     creator_type: "spotlight", kind: "spotlight", published: false,
+    claim_code: claimCode,
   });
   if (pErr) {
     try { await (admin as any).auth.admin.deleteUser(created.user.id); } catch {}
@@ -76,7 +78,7 @@ async function createCreator(formData: FormData) {
   }
 
   revalidatePath("/admin/creators");
-  redirect(`/admin/creators?created=${encodeURIComponent(handle)}&temp=${encodeURIComponent(tempPassword)}&email=${encodeURIComponent(email)}`);
+  redirect(`/admin/creators?created=${encodeURIComponent(handle)}&temp=${encodeURIComponent(tempPassword)}&email=${encodeURIComponent(email)}&claim=${encodeURIComponent(claimCode)}`);
 }
 
 async function updateSubPrice(formData: FormData) {
@@ -107,6 +109,7 @@ export default async function CreatorsPage(props: {
   const createdEmail = (sp as any).email as string | undefined;
   const errCode = (sp as any).err as string | undefined;
   const detail = (sp as any).detail as string | undefined;
+  const claimCodeParam = (sp as any).claim as string | undefined;
 
   const supabase = await createClient();
   let query = (supabase as any)
@@ -130,10 +133,12 @@ export default async function CreatorsPage(props: {
       {created && (
         <div className="adm-banner adm-banner--ok" style={{ marginBottom: 20, lineHeight: 1.8 }}>
           <strong style={{ display: "block", marginBottom: 6 }}>Preview created for @{created}</strong>
-          Login email: {createdEmail}<br />
-          Temp password: <code>{tempPw}</code> (log in as them to build the page, then have them change it)<br />
+          Send them this to claim it (they set their own email and password):<br />
+          <a href={`/claim/${claimCodeParam}`} target="_blank" style={{ color: "var(--spot)", wordBreak: "break-all" }}>spotlightly.app/claim/{claimCodeParam}</a>
+          <br /><br />
+          To build the page yourself first, log in as them with email <code>{createdEmail}</code> and temp password <code>{tempPw}</code>.<br />
           Preview link (not in Explore yet): <a href={`/${created}`} target="_blank" style={{ color: "var(--spot)" }}>spotlightly.app/{created}</a><br />
-          When they are ready, hit Go live on their row below.
+          When ready, hit Go live on their row below.
         </div>
       )}
       {errCode && (
