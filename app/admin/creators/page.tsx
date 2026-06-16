@@ -83,6 +83,18 @@ async function createCreator(formData: FormData) {
   redirect(`/admin/creators?created=${encodeURIComponent(handle)}&id=${createdRow?.id ?? ""}`);
 }
 
+async function regenClaim(formData: FormData) {
+  "use server";
+  if (!(await isAdmin())) return;
+  const id = String(formData.get("id") || "");
+  if (!id) return;
+  const admin = await createServiceClient();
+  const code = (globalThis.crypto as any).randomUUID().replace(/-/g, "");
+  await (admin as any).from("creator_profiles").update({ claim_code: code, claimed_at: null }).eq("id", id);
+  revalidatePath("/admin/creators");
+  redirect("/admin/creators?relink=1");
+}
+
 async function updateSubPrice(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
@@ -108,6 +120,7 @@ export default async function CreatorsPage(props: {
   const perPage = 25;
   const created = (sp as any).created as string | undefined;
   const createdId = (sp as any).id as string | undefined;
+  const relink = (sp as any).relink as string | undefined;
   const errCode = (sp as any).err as string | undefined;
   const detail = (sp as any).detail as string | undefined;
 
@@ -139,6 +152,11 @@ export default async function CreatorsPage(props: {
             )}
             <a href={`/${created}`} target="_blank" className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }}>Preview</a>
           </div>
+        </div>
+      )}
+      {relink && (
+        <div className="adm-banner adm-banner--ok" style={{ marginBottom: 24 }}>
+          New claim link generated. Copy it from the creator&apos;s row below, then send it to them. The old link (if any) no longer works.
         </div>
       )}
       {errCode && (
@@ -275,11 +293,28 @@ export default async function CreatorsPage(props: {
                       >
                         Build
                       </a>
-                      {!c.claimed_at && c.claim_code ? (
-                        <ClaimLinkButton code={c.claim_code} />
-                      ) : c.claimed_at ? (
-                        <span style={{ fontSize: 11, color: "var(--accent-open)", alignSelf: "center" }}>Claimed</span>
-                      ) : null}
+                      {c.claimed_at ? (
+                        <>
+                          <span style={{ fontSize: 11, color: "var(--accent-open)", alignSelf: "center" }}>Claimed</span>
+                          <form action={regenClaim}>
+                            <input type="hidden" name="id" value={c.id} />
+                            <button type="submit" className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px" }} title="Issue a fresh link so they can re-claim with a new email/password">Re-issue link</button>
+                          </form>
+                        </>
+                      ) : c.claim_code ? (
+                        <>
+                          <ClaimLinkButton code={c.claim_code} />
+                          <form action={regenClaim}>
+                            <input type="hidden" name="id" value={c.id} />
+                            <button type="submit" className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px" }} title="Generate a new link, invalidates the old one">New</button>
+                          </form>
+                        </>
+                      ) : (
+                        <form action={regenClaim}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <button type="submit" className="adm-btn adm-btn--primary" style={{ padding: "5px 12px" }}>Generate claim link</button>
+                        </form>
+                      )}
                       {!c.veriff_verified && (
                         <form action={toggleVerified}>
                           <input type="hidden" name="id" value={c.id} />

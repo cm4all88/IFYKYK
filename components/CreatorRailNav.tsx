@@ -58,17 +58,6 @@ export default function CreatorRailNav({
             <p style={{ fontSize: 14, color: "var(--text-soft)", margin: "6px 0 0", lineHeight: 1.4 }}>
               {price ? <>Subscribe from <strong style={{ color: "var(--text)" }}>${price.toFixed(2)}/mo</strong></> : "Not subscribed yet"}
             </p>
-            <button
-              onClick={() => jump("sec-support")}
-              style={{
-                marginTop: 12, width: "100%", padding: "11px 0", border: "none",
-                background: "linear-gradient(180deg, #F5C55A, #F2B84B)", color: "#09090C",
-                fontFamily: "var(--font-display, sans-serif)", fontWeight: 800, fontSize: 14, borderRadius: 9, cursor: "pointer",
-                boxShadow: "0 8px 22px rgba(242,184,75,0.22)",
-              }}
-            >
-              Subscribe
-            </button>
           </>
         )}
       </div>

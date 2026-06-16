@@ -11,7 +11,7 @@ import SuccessBanner from "./SuccessBanner";
 import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
-import TiersSection from "./TiersSection";
+import TierPicker from "./TierPicker";
 import ReferralTracker from "./ReferralTracker";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
@@ -344,18 +344,6 @@ export default async function CreatorPage(props: {
             >
               <></>
             </CreatorStageClient>
-
-            {subscriptionTiers.length > 0 && (
-              <section className="cp-center-section" id="sec-tiers">
-                <TiersSection
-                  tiers={subscriptionTiers}
-                  creatorHandle={spotlight.handle}
-                  creatorName={displayName}
-                  creatorProfileId={spotlight.id}
-                  loggedIn={!!data.viewerUserId}
-                />
-              </section>
-            )}
 
             {liveStream && (
               <div className="cp-live-banner">
@@ -825,14 +813,9 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
 
   const activeTiers = tiers ?? [];
 
-  // Has tiers — point to the membership options section in the main column
+  // Has tiers — show the tier cards (logged in or out)
   if (activeTiers.length > 0) {
-    const from = activeTiers.reduce((m: number, t: any) => Math.min(m, Number(t.price_monthly) || Infinity), Infinity);
-    return (
-      <a href="#sec-tiers" className="btn btn--primary" style={{ display: "block", textAlign: "center" }}>
-        Become a member{Number.isFinite(from) ? ` · from $${from.toFixed(2)}/mo` : ""}
-      </a>
-    );
+    return <TierPicker tiers={activeTiers} creatorProfileId={creatorProfileId} stripeReady={stripeReady} loggedIn={!!user} />;
   }
 
   // No tiers, not signed in — signup CTA
