@@ -15,9 +15,11 @@ interface Props {
   tiers: Tier[];
   creatorHandle: string;
   creatorName: string;
+  creatorProfileId: string;
+  loggedIn?: boolean;
 }
 
-export default function TiersSection({ tiers, creatorHandle, creatorName }: Props) {
+export default function TiersSection({ tiers, creatorHandle, creatorName, creatorProfileId, loggedIn = true }: Props) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -25,6 +27,10 @@ export default function TiersSection({ tiers, creatorHandle, creatorName }: Prop
 
   async function subscribe(tier: Tier) {
     if (billing === "yearly" && !tier.price_yearly) return;
+    if (!loggedIn) {
+      window.location.href = `/fan-signup?return=${encodeURIComponent(`/?subscribe=${creatorProfileId}`)}`;
+      return;
+    }
     setLoading(tier.id);
 
     const res = await fetch("/api/subscribe/tier", {

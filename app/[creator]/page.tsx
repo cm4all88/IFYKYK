@@ -13,7 +13,6 @@ import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
 import TiersSection from "./TiersSection";
 import ReferralTracker from "./ReferralTracker";
-import TierPicker from "./TierPicker";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
 import UnlockButton from "./UnlockButton";
@@ -345,6 +344,18 @@ export default async function CreatorPage(props: {
             >
               <></>
             </CreatorStageClient>
+
+            {subscriptionTiers.length > 0 && (
+              <section className="cp-center-section" id="sec-tiers">
+                <TiersSection
+                  tiers={subscriptionTiers}
+                  creatorHandle={spotlight.handle}
+                  creatorName={displayName}
+                  creatorProfileId={spotlight.id}
+                  loggedIn={!!data.viewerUserId}
+                />
+              </section>
+            )}
 
             {liveStream && (
               <div className="cp-live-banner">
@@ -814,9 +825,14 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
 
   const activeTiers = tiers ?? [];
 
-  // Has tiers — always show the cards, logged in or out, so every visitor sees what's offered
+  // Has tiers — point to the membership options section in the main column
   if (activeTiers.length > 0) {
-    return <TierPicker tiers={activeTiers} creatorProfileId={creatorProfileId} stripeReady={stripeReady} loggedIn={!!user} />;
+    const from = activeTiers.reduce((m: number, t: any) => Math.min(m, Number(t.price_monthly) || Infinity), Infinity);
+    return (
+      <a href="#sec-tiers" className="btn btn--primary" style={{ display: "block", textAlign: "center" }}>
+        Become a member{Number.isFinite(from) ? ` · from $${from.toFixed(2)}/mo` : ""}
+      </a>
+    );
   }
 
   // No tiers, not signed in — signup CTA
