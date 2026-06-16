@@ -79,6 +79,17 @@ async function createCreator(formData: FormData) {
     redirect(`/admin/creators?err=profile&detail=${encodeURIComponent(((pErr as any).message || "").slice(0, 140))}`);
   }
 
+  // Trial billing row so the public page isn't billing-locked (free first year).
+  const trialEnds = new Date(Date.now() + 365 * 86400000).toISOString();
+  await (admin as any).from("creator_billing").upsert({
+    user_id: created.user.id,
+    status: "trial",
+    tier: "starter",
+    trial_ends_at: trialEnds,
+    current_period_end: trialEnds,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id" });
+
   revalidatePath("/admin/creators");
   redirect(`/admin/creators?created=${encodeURIComponent(handle)}&id=${createdRow?.id ?? ""}`);
 }
