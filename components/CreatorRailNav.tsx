@@ -5,7 +5,6 @@ type NavLink = { id: string; label: string };
 export default function CreatorRailNav({
   isSubscribed,
   tierName,
-  price,
   canUpgrade,
   links,
 }: {
@@ -30,37 +29,29 @@ export default function CreatorRailNav({
         marginBottom: 16,
       }}
     >
-      {/* subscription status */}
-      <div style={{ paddingBottom: 14, borderBottom: "1px solid var(--border)", marginBottom: 14 }}>
-        <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>
-          Your access
-        </span>
-        {isSubscribed ? (
-          <>
-            <p style={{ fontFamily: "var(--font-serif, serif)", fontSize: 22, color: "var(--text)", margin: "6px 0 0", lineHeight: 1.1 }}>
-              {tierName || "Subscribed"}
-            </p>
-            {canUpgrade && (
-              <button
-                onClick={() => jump("sec-support")}
-                style={{
-                  marginTop: 12, width: "100%", padding: "10px 0", border: "1px solid var(--accent)",
-                  background: "var(--accent-soft, rgba(242,184,75,0.08))", color: "var(--accent)",
-                  fontFamily: "var(--font-display, sans-serif)", fontWeight: 700, fontSize: 13, borderRadius: 9, cursor: "pointer",
-                }}
-              >
-                Upgrade tier ↑
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: 14, color: "var(--text-soft)", margin: "6px 0 0", lineHeight: 1.4 }}>
-              {price ? <>Subscribe from <strong style={{ color: "var(--text)" }}>${price.toFixed(2)}/mo</strong></> : "Not subscribed yet"}
-            </p>
-          </>
-        )}
-      </div>
+      {/* subscription status — only for subscribers; non-subs subscribe via the tier cards */}
+      {isSubscribed && (
+        <div style={{ paddingBottom: 14, borderBottom: "1px solid var(--border)", marginBottom: 14 }}>
+          <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>
+            Your access
+          </span>
+          <p style={{ fontFamily: "var(--font-serif, serif)", fontSize: 22, color: "var(--text)", margin: "6px 0 0", lineHeight: 1.1 }}>
+            {tierName || "Subscribed"}
+          </p>
+          {canUpgrade && (
+            <button
+              onClick={() => jump("sec-support")}
+              style={{
+                marginTop: 12, width: "100%", padding: "10px 0", border: "1px solid var(--accent)",
+                background: "var(--accent-soft, rgba(242,184,75,0.08))", color: "var(--accent)",
+                fontFamily: "var(--font-display, sans-serif)", fontWeight: 700, fontSize: 13, borderRadius: 9, cursor: "pointer",
+              }}
+            >
+              Upgrade tier ↑
+            </button>
+          )}
+        </div>
+      )}
 
       {/* section navigation */}
       <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>

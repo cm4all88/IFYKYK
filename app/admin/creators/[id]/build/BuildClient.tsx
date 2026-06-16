@@ -74,9 +74,11 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   const [tierMonthly, setTierMonthly] = useState("");
   const [tierYearly, setTierYearly] = useState("");
   const [tierPerks, setTierPerks] = useState("");
+  const [editTierId, setEditTierId] = useState<string | null>(null);
   const [addingTier, setAddingTier] = useState(false);
   const [tierMsg, setTierMsg] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedPreview, setCopiedPreview] = useState(false);
 
   async function onUpload(file: File | undefined, target: "avatar" | "cover" | "post" | "pick") {
     if (!file) return;
@@ -184,19 +186,43 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
     if (res.ok) setSocialPosts(socialPosts.filter((sp) => sp.id !== id));
   }
 
+  function resetTierForm() {
+    setEditTierId(null);
+    setTierName(""); setTierDesc(""); setTierMonthly(""); setTierYearly(""); setTierPerks("");
+  }
+
+  function startEditTier(t: Tier) {
+    setEditTierId(t.id);
+    setTierName(t.name ?? "");
+    setTierDesc(t.description ?? "");
+    setTierMonthly(t.price_monthly != null ? String(t.price_monthly) : "");
+    setTierYearly(t.price_yearly != null ? String(t.price_yearly) : "");
+    setTierPerks((t.perks ?? []).join("\n"));
+    setTierMsg("");
+  }
+
   async function addTier() {
     setAddingTier(true); setTierMsg("");
     try {
+      const editing = !!editTierId;
+      const perks = tierPerks.split("\n").map((p) => p.trim()).filter(Boolean);
       const res = await fetch("/api/admin/creators/tier", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ creator_profile_id: creator.id, name: tierName, description: tierDesc, price_monthly: tierMonthly, price_yearly: tierYearly, perks: tierPerks.split("\n").map((p) => p.trim()).filter(Boolean) }),
+        method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editing
+          ? { id: editTierId, name: tierName, description: tierDesc, price_monthly: tierMonthly, price_yearly: tierYearly, perks }
+          : { creator_profile_id: creator.id, name: tierName, description: tierDesc, price_monthly: tierMonthly, price_yearly: tierYearly, perks }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Add failed");
-      setTiers([...tiers, data.tier]);
-      setTierName(""); setTierDesc(""); setTierMonthly(""); setTierYearly(""); setTierPerks("");
-      setTierMsg("Added.");
-    } catch (e: any) { setTierMsg(e.message || "Add failed"); }
+      if (!res.ok) throw new Error(data?.error || "Save failed");
+      if (editing) {
+        setTiers(tiers.map((t) => (t.id === editTierId ? data.tier : t)));
+        setTierMsg("Saved.");
+      } else {
+        setTiers([...tiers, data.tier]);
+        setTierMsg("Added.");
+      }
+      resetTierForm();
+    } catch (e: any) { setTierMsg(e.message || "Save failed"); }
     setAddingTier(false);
   }
 
@@ -207,8 +233,12 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   }
 
   const claimLink = creator.claim_code ? `https://www.spotlightly.app/claim/${creator.claim_code}` : "";
+  const previewLink = `https://www.spotlightly.app/${creator.handle}`;
   async function copyClaim() {
     try { await navigator.clipboard.writeText(claimLink); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  }
+  async function copyPreview() {
+    try { await navigator.clipboard.writeText(previewLink); setCopiedPreview(true); setTimeout(() => setCopiedPreview(false), 1500); } catch {}
   }
 
   const label: React.CSSProperties = { fontSize: 12, color: "var(--muted, #888)", marginBottom: 6, display: "block", textTransform: "uppercase", letterSpacing: "0.04em" };
@@ -228,13 +258,21 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
 
       {!creator.claimed_at && creator.claim_code ? (
         <div className="adm-banner adm-banner--ok" style={{ marginBottom: 24, lineHeight: 1.7 }}>
-          <strong style={{ display: "block", marginBottom: 8 }}>Claim link to send them</strong>
+          <strong style={{ display: "block", marginBottom: 10 }}>Two links to send them</strong>
+
+          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 4 }}>1. Their page, to preview</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+            <code style={{ wordBreak: "break-all", flex: 1, minWidth: 220 }}>{previewLink}</code>
+            <button className="adm-btn adm-btn--ghost" style={{ padding: "5px 14px" }} onClick={copyPreview}>{copiedPreview ? "Copied" : "Copy"}</button>
+          </div>
+
+          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 4 }}>2. Claim link, sets their own login</div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <code style={{ wordBreak: "break-all", flex: 1, minWidth: 220 }}>{claimLink}</code>
             <button className="adm-btn adm-btn--primary" style={{ padding: "5px 14px" }} onClick={copyClaim}>{copied ? "Copied" : "Copy"}</button>
           </div>
-          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 6 }}>
-            They set their own email and password here. Single use, works until claimed.
+          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 8 }}>
+            Send the preview first so they see their page, then the claim link. The claim link is single use and works until claimed.
           </div>
         </div>
       ) : creator.claimed_at ? (
@@ -295,8 +333,11 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         <label style={{ fontSize: 11, color: "var(--muted, #888)", display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>Perks (one per line)</label>
         <textarea className="adm-input" value={tierPerks} onChange={(e) => setTierPerks(e.target.value)} rows={4} placeholder={"All posts and videos\nExclusive Discord channel\nMonthly live Q&A"} style={{ width: "100%", marginBottom: 12, resize: "vertical" }} />
         <button className="adm-btn adm-btn--primary" onClick={addTier} disabled={addingTier || !tierName || !tierMonthly}>
-          {addingTier ? "Adding…" : "Add tier"}
+          {addingTier ? "Saving…" : editTierId ? "Save changes" : "Add tier"}
         </button>
+        {editTierId && (
+          <button className="adm-btn adm-btn--ghost" onClick={resetTierForm} style={{ marginLeft: 8 }}>Cancel</button>
+        )}
         {tierMsg && <span style={{ marginLeft: 12, fontSize: 13 }}>{tierMsg}</span>}
         {tiers.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
@@ -307,6 +348,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
                   {t.description ? <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 2 }}>{t.description}</div> : null}
                   {t.perks && t.perks.length ? <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 2 }}>{t.perks.join(" · ")}</div> : null}
                 </div>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => startEditTier(t)}>Edit</button>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deleteTier(t.id)}>Remove</button>
               </div>
             ))}

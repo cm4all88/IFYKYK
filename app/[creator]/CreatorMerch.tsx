@@ -84,17 +84,30 @@ export default function CreatorMerch({
   handle: string;
 }) {
   const [items, setItems] = useState<MerchItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let alive = true;
     fetch(`/api/merch?profileId=${creatorProfileId}`)
       .then((r) => r.json())
-      .then((d) => { if (alive) setItems(d.products ?? []); })
-      .catch(() => {});
+      .then((d) => { if (alive) { setItems(d.products ?? []); setLoaded(true); } })
+      .catch(() => { if (alive) setLoaded(true); });
     return () => { alive = false; };
   }, [creatorProfileId]);
 
-  if (items.length === 0) return null;
+  if (!loaded) return null;
+  if (items.length === 0) {
+    return (
+      <div className="cp-rail-section">
+        <span className="cp-rail-kicker">Merch</span>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "22px 18px", textAlign: "center" }}>
+          <div style={{ fontSize: 26, marginBottom: 6, opacity: 0.5 }}>🧢</div>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>Merch coming soon</p>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>Branded gear is on the way.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="cp-rail-section">

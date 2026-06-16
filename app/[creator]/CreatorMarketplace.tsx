@@ -33,15 +33,29 @@ export default function CreatorMarketplace({
   const [selected, setSelected] = useState<Listing | null>(null);
   const [processing, setProcessing] = useState(false);
   const [purchased, setPurchased] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch(`/api/marketplace?profileId=${creatorProfileId}`)
       .then(r => r.json())
-      .then(d => setListings(d.listings ?? []));
+      .then(d => { setListings(d.listings ?? []); setLoaded(true); })
+      .catch(() => setLoaded(true));
   }, [creatorProfileId]);
 
   const visible = listings.filter(l => !l.subscriber_only || isSubscribed);
-  if (visible.length === 0) return null;
+  if (!loaded) return null;
+  if (visible.length === 0) {
+    return (
+      <div className="cp-rail-section">
+        <span className="cp-rail-kicker">Marketplace</span>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: "22px 18px", textAlign: "center" }}>
+          <div style={{ fontSize: 26, marginBottom: 6, opacity: 0.5 }}>🛍️</div>
+          <p style={{ fontFamily: "var(--font-serif, serif)", fontSize: 15, fontWeight: 600, color: "var(--text)", margin: "0 0 4px" }}>Nothing listed yet</p>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: 0 }}>{displayName}&apos;s marketplace items will show here.</p>
+        </div>
+      </div>
+    );
+  }
 
   const mono = "var(--font-mono, DM Mono, monospace)";
   const serif = "var(--font-serif, Cormorant Garamond, Georgia, serif)";
