@@ -13,6 +13,7 @@
   --surface:     #1E2024;
   --surface-2:   #252830;
   --surface-3:   #2C2F38;
+  --field:       #5f5f68;   /* fillable areas, matches admin */
 
   /* Borders */
   --border:        rgba(255,255,255,0.07);
@@ -206,7 +207,7 @@ img { max-width: 100%; display: block; }
 /* ── FORMS ── */
 .input,.textarea,.select {
   width: 100%;
-  background: var(--surface);
+  background: var(--field);
   border: 1px solid var(--border);
   border-radius: var(--r-2);
   padding: 12px 16px;
@@ -221,7 +222,7 @@ img { max-width: 100%; display: block; }
   border-color: var(--accent-border);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
-.input::placeholder,.textarea::placeholder { color: var(--muted-faint); }
+.input::placeholder,.textarea::placeholder { color: var(--text-faint); }
 
 .label {
   display: block;

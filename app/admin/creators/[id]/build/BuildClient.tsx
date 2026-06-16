@@ -12,7 +12,7 @@ type Creator = {
 type Post = { id: string; caption: string | null; media_url: string | null; media_type: string | null; created_at: string };
 type Pick = { id: string; label: string; url: string | null; image_url: string | null; note: string | null };
 type SocialPost = { id: string; url: string; platform: string };
-type Tier = { id: string; name: string; price_monthly: number; price_yearly: number | null; perks: string[] | null };
+type Tier = { id: string; name: string; description: string | null; price_monthly: number; price_yearly: number | null; perks: string[] | null };
 
 async function uploadFile(file: File): Promise<string> {
   const fd = new FormData();
@@ -62,6 +62,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
 
   const [tiers, setTiers] = useState<Tier[]>(initialTiers);
   const [tierName, setTierName] = useState("");
+  const [tierDesc, setTierDesc] = useState("");
   const [tierMonthly, setTierMonthly] = useState("");
   const [tierYearly, setTierYearly] = useState("");
   const [tierPerks, setTierPerks] = useState("");
@@ -180,12 +181,12 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
     try {
       const res = await fetch("/api/admin/creators/tier", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ creator_profile_id: creator.id, name: tierName, price_monthly: tierMonthly, price_yearly: tierYearly, perks: tierPerks }),
+        body: JSON.stringify({ creator_profile_id: creator.id, name: tierName, description: tierDesc, price_monthly: tierMonthly, price_yearly: tierYearly, perks: tierPerks.split("\n").map((p) => p.trim()).filter(Boolean) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Add failed");
       setTiers([...tiers, data.tier]);
-      setTierName(""); setTierMonthly(""); setTierYearly(""); setTierPerks("");
+      setTierName(""); setTierDesc(""); setTierMonthly(""); setTierYearly(""); setTierPerks("");
       setTierMsg("Added.");
     } catch (e: any) { setTierMsg(e.message || "Add failed"); }
     setAddingTier(false);
@@ -242,7 +243,10 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         <label style={label}>Bio</label>
         <textarea className="adm-input" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} style={{ marginBottom: 14, width: "100%", resize: "vertical" }} />
         <label style={label}>Monthly subscription price (USD)</label>
-        <input className="adm-input" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} style={{ marginBottom: 14, width: 200 }} />
+        <input className="adm-input" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} style={{ marginBottom: 6, width: 200 }} />
+        <p style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 16, lineHeight: 1.5 }}>
+          The simple subscribe price on their page. Named upgrade tiers (with perks) live in the Subscription tiers section below.
+        </p>
 
         <label style={label}>Amazon wishlist link (optional)</label>
         <input className="adm-input" value={wishlistUrl} onChange={(e) => setWishlistUrl(e.target.value)} placeholder="https://www.amazon.com/hz/wishlist/ls/..." style={{ marginBottom: 14, width: "100%" }} />
@@ -272,14 +276,16 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
       <div className="card" style={{ marginBottom: 20, padding: 20 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Subscription tiers</h2>
         <p style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 14, lineHeight: 1.6 }}>
-          Optional named tiers on top of the base price. Each has a monthly price, optional yearly, and perks.
+          Optional upgrade tiers, the same editor the creator gets. The simple subscribe price is up in Profile, these are named tiers fans can pick instead. Each has a description, price, optional yearly, and perks.
         </p>
         <input className="adm-input" value={tierName} onChange={(e) => setTierName(e.target.value)} placeholder="Tier name (e.g. VIP)" style={{ width: "100%", marginBottom: 10 }} />
+        <input className="adm-input" value={tierDesc} onChange={(e) => setTierDesc(e.target.value)} placeholder={'Description (optional), e.g. "For fans who want exclusive access"'} style={{ width: "100%", marginBottom: 10 }} />
         <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
           <input className="adm-input" type="number" min="0" step="0.01" value={tierMonthly} onChange={(e) => setTierMonthly(e.target.value)} placeholder="Monthly $" style={{ width: 130 }} />
           <input className="adm-input" type="number" min="0" step="0.01" value={tierYearly} onChange={(e) => setTierYearly(e.target.value)} placeholder="Yearly $ (optional)" style={{ width: 180 }} />
         </div>
-        <input className="adm-input" value={tierPerks} onChange={(e) => setTierPerks(e.target.value)} placeholder="Perks, comma separated" style={{ width: "100%", marginBottom: 12 }} />
+        <label style={{ fontSize: 11, color: "var(--muted, #888)", display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.04em" }}>Perks (one per line)</label>
+        <textarea className="adm-input" value={tierPerks} onChange={(e) => setTierPerks(e.target.value)} rows={4} placeholder={"All posts and videos\nExclusive Discord channel\nMonthly live Q&A"} style={{ width: "100%", marginBottom: 12, resize: "vertical" }} />
         <button className="adm-btn adm-btn--primary" onClick={addTier} disabled={addingTier || !tierName || !tierMonthly}>
           {addingTier ? "Adding…" : "Add tier"}
         </button>
@@ -290,6 +296,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
               <div key={t.id} style={{ display: "flex", gap: 12, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
                 <div style={{ flex: 1, fontSize: 14 }}>
                   {t.name} · ${t.price_monthly}/mo{t.price_yearly ? ` · $${t.price_yearly}/yr` : ""}
+                  {t.description ? <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 2 }}>{t.description}</div> : null}
                   {t.perks && t.perks.length ? <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 2 }}>{t.perks.join(" · ")}</div> : null}
                 </div>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deleteTier(t.id)}>Remove</button>

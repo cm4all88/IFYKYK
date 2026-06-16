@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     perks,
     sort_order: count ?? 0,
     is_active: true,
-  }).select("id, name, price_monthly, price_yearly, perks").single();
+  }).select("id, name, description, price_monthly, price_yearly, perks").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, tier: data });
 }

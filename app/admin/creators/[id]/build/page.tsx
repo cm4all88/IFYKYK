@@ -40,7 +40,7 @@ export default async function BuildPage(props: { params: Promise<{ id: string }>
 
   const { data: tiers } = await (admin as any)
     .from("subscription_tiers")
-    .select("id, name, price_monthly, price_yearly, perks")
+    .select("id, name, description, price_monthly, price_yearly, perks")
     .eq("creator_profile_id", id)
     .order("sort_order", { ascending: true });
 
