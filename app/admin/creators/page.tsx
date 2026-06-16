@@ -69,18 +69,18 @@ async function createCreator(formData: FormData) {
     redirect(`/admin/creators?err=${dup ? "email" : "auth"}&detail=${encodeURIComponent(String(msg).slice(0, 160))}`);
   }
 
-  const { error: pErr } = await (admin as any).from("creator_profiles").insert({
+  const { data: createdRow, error: pErr } = await (admin as any).from("creator_profiles").insert({
     user_id: created.user.id, handle, display_name: displayName,
     creator_type: "spotlight", kind: "spotlight", published: false,
     claim_code: claimCode,
-  });
+  }).select("id").single();
   if (pErr) {
     try { await (admin as any).auth.admin.deleteUser(created.user.id); } catch {}
     redirect(`/admin/creators?err=profile&detail=${encodeURIComponent(((pErr as any).message || "").slice(0, 140))}`);
   }
 
   revalidatePath("/admin/creators");
-  redirect(`/admin/creators?created=${encodeURIComponent(handle)}&temp=${encodeURIComponent(tempPassword)}&email=${encodeURIComponent(email)}&claim=${encodeURIComponent(claimCode)}`);
+  redirect(`/admin/creators?created=${encodeURIComponent(handle)}&id=${createdRow?.id ?? ""}`);
 }
 
 async function updateSubPrice(formData: FormData) {
@@ -107,11 +107,9 @@ export default async function CreatorsPage(props: {
   const page = Math.max(1, parseInt(sp.page ?? "1"));
   const perPage = 25;
   const created = (sp as any).created as string | undefined;
-  const tempPw = (sp as any).temp as string | undefined;
-  const createdEmail = (sp as any).email as string | undefined;
+  const createdId = (sp as any).id as string | undefined;
   const errCode = (sp as any).err as string | undefined;
   const detail = (sp as any).detail as string | undefined;
-  const claimCodeParam = (sp as any).claim as string | undefined;
 
   const supabase = await createClient();
   let query = (supabase as any)
@@ -130,18 +128,17 @@ export default async function CreatorsPage(props: {
     <div>
       <p className="kicker">Admin · Creators</p>
       <h1 className="adm-page-title">Creator <em>Management.</em></h1>
-      <p className="adm-page-lede">Search, ban, verify, and adjust subscription prices for any creator.</p>
+      <p className="adm-page-lede">Create concierge accounts, build their pages, and manage every creator.</p>
 
       {created && (
-        <div className="adm-banner adm-banner--ok" style={{ marginBottom: 20, lineHeight: 1.8 }}>
-          <strong style={{ display: "block", marginBottom: 10 }}>Preview created for @{created}</strong>
-          <strong>1. Build the page first.</strong> Log in as them with email <code>{createdEmail}</code> and temp password <code>{tempPw}</code>, then add their posts and details.<br />
-          Preview as you go (not in Explore yet): <a href={`/${created}`} target="_blank" style={{ color: "var(--spot)" }}>spotlightly.app/{created}</a>
-          <br /><br />
-          <strong>2. Then hand it off.</strong> Once it looks good, send them this claim link so they set their own email and password:<br />
-          <a href={`/claim/${claimCodeParam}`} target="_blank" style={{ color: "var(--spot)", wordBreak: "break-all" }}>spotlightly.app/claim/{claimCodeParam}</a>
-          <br /><br />
-          <strong>3. Go live.</strong> When the page is ready, hit Go live on their row below.
+        <div className="adm-banner adm-banner--ok" style={{ marginBottom: 24, lineHeight: 1.7 }}>
+          <strong>Preview account created for @{created}.</strong> Build their page, then send the claim link (it is on the Build page and on their row below). Go live when ready.
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            {createdId && (
+              <a href={`/admin/creators/${createdId}/build`} className="adm-btn adm-btn--primary" style={{ padding: "6px 14px" }}>Build their page →</a>
+            )}
+            <a href={`/${created}`} target="_blank" className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }}>Preview</a>
+          </div>
         </div>
       )}
       {errCode && (
@@ -161,11 +158,14 @@ export default async function CreatorsPage(props: {
         </div>
       )}
 
-      <details className="card" style={{ marginBottom: 20 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>Create a creator (concierge)</summary>
+      <details className="card" style={{ marginBottom: 24, padding: "16px 20px" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 15 }}>+ Create a creator (concierge)</summary>
+        <p style={{ color: "var(--muted)", fontSize: 13, margin: "10px 0 0" }}>
+          Makes a preview account you build from here. Email is optional, they set their own when they claim it.
+        </p>
         <form action={createCreator} style={{ display: "grid", gap: 10, marginTop: 14, maxWidth: 420 }}>
-          <input name="email" type="email" placeholder="Their email (optional, add later)" className="adm-input" />
-          <input name="handle" placeholder="handle (no @)" className="adm-input" required />
+          <input name="email" type="email" placeholder="Their email (optional)" className="adm-input" />
+          <input name="handle" placeholder="Handle (no @)" className="adm-input" required />
           <input name="display_name" placeholder="Display name" className="adm-input" required />
           <button type="submit" className="adm-btn adm-btn--primary">Create preview account</button>
         </form>

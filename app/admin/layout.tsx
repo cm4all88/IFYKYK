@@ -26,7 +26,7 @@ export default async function AdminLayout({
           --border: rgba(255,255,255,0.07);
           --border-strong: rgba(255,255,255,0.15);
           --text: #e8e8f0;
-          --muted: #6b6b80;
+          --muted: #9a9ab2;
           --spot: #f5c842;
           --open: #6ee7b7;
           --back: #c084fc;
