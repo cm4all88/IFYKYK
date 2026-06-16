@@ -28,6 +28,11 @@ const PLATFORMS: { key: string; label: string; color: string; href: (v: string) 
     icon: ico(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 4 3 14 0 18M12 3c-3 4-3 14 0 18" /></>), href: v => v },
 ];
 
+function pick(links: Record<string, string>, key: string) {
+  const bare = key.replace(/^social_/, "");
+  return links[key] ?? links[bare] ?? "";
+}
+
 function normalize(v: string) {
   const t = (v || "").trim();
   if (!t) return "";
@@ -36,7 +41,7 @@ function normalize(v: string) {
 
 export default function SocialLinks({ links }: { links?: Record<string, string> | null }) {
   if (!links) return null;
-  const items = PLATFORMS.filter(p => links[p.key] && String(links[p.key]).trim());
+  const items = PLATFORMS.filter(p => { const v = pick(links, p.key); return v && String(v).trim(); });
   if (items.length === 0) return null;
 
   return (
@@ -47,7 +52,7 @@ export default function SocialLinks({ links }: { links?: Record<string, string> 
         <a
           key={p.key}
           className="sl-link"
-          href={normalize(links[p.key])}
+          href={normalize(pick(links, p.key))}
           target="_blank"
           rel="noopener noreferrer me"
           aria-label={p.label}

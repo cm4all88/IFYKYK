@@ -814,6 +814,12 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
 
   const activeTiers = tiers ?? [];
 
+  // Has tiers — always show the cards, logged in or out, so every visitor sees what's offered
+  if (activeTiers.length > 0) {
+    return <TierPicker tiers={activeTiers} creatorProfileId={creatorProfileId} stripeReady={stripeReady} loggedIn={!!user} />;
+  }
+
+  // No tiers, not signed in — signup CTA
   if (!user) {
     return (
       <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -827,18 +833,13 @@ async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string 
     );
   }
 
-  // No tiers — simple subscribe button
-  if (activeTiers.length === 0) {
-    return (
-      <form action="/api/subscribe" method="post">
-        <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
-        <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
-          Subscribe
-        </button>
-      </form>
-    );
-  }
-
-  // Has tiers — show tier cards with monthly/yearly toggle (client component)
-  return <TierPicker tiers={activeTiers} creatorProfileId={creatorProfileId} stripeReady={stripeReady} />;
+  // No tiers, signed in — simple subscribe button
+  return (
+    <form action="/api/subscribe" method="post">
+      <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
+      <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
+        Subscribe
+      </button>
+    </form>
+  );
 }

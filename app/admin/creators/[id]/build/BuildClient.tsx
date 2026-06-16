@@ -49,7 +49,15 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   const [addingPick, setAddingPick] = useState(false);
   const [pickMsg, setPickMsg] = useState("");
 
-  const [links, setLinks] = useState<Record<string, string>>(((creator.social_links as any) || {}));
+  const [links, setLinks] = useState<Record<string, string>>(() => {
+    const raw = ((creator.social_links as any) || {}) as Record<string, string>;
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (!v) continue;
+      out[k.startsWith("social_") ? k : `social_${k}`] = String(v);
+    }
+    return out;
+  });
   const [savingLinks, setSavingLinks] = useState(false);
   const [linksMsg, setLinksMsg] = useState("");
 
@@ -309,10 +317,19 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
       {/* SOCIAL LINKS */}
       <div className="card" style={{ marginBottom: 20, padding: 20 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Social links</h2>
-        {["instagram", "tiktok", "youtube", "twitter", "twitch", "snapchat", "discord", "website"].map((k) => (
+        {([
+          ["social_instagram", "Instagram"],
+          ["social_tiktok", "TikTok"],
+          ["social_youtube", "YouTube"],
+          ["social_twitter", "X (Twitter)"],
+          ["social_twitch", "Twitch"],
+          ["social_snapchat", "Snapchat"],
+          ["social_discord", "Discord"],
+          ["social_website", "Website"],
+        ] as [string, string][]).map(([k, lbl]) => (
           <div key={k} style={{ marginBottom: 10 }}>
-            <label style={label}>{k}</label>
-            <input className="adm-input" value={links[k] || ""} onChange={(e) => setLinks({ ...links, [k]: e.target.value })} placeholder={`${k} URL`} style={{ width: "100%" }} />
+            <label style={label}>{lbl}</label>
+            <input className="adm-input" value={links[k] || ""} onChange={(e) => setLinks({ ...links, [k]: e.target.value })} placeholder={`${lbl} URL`} style={{ width: "100%" }} />
           </div>
         ))}
         <button className="adm-btn adm-btn--primary" onClick={saveLinks} disabled={savingLinks} style={{ marginTop: 6 }}>

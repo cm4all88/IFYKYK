@@ -17,9 +17,10 @@ interface Props {
   tiers: Tier[];
   creatorProfileId: string;
   stripeReady: boolean;
+  loggedIn?: boolean;
 }
 
-export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Props) {
+export default function TierPicker({ tiers, creatorProfileId, stripeReady, loggedIn = true }: Props) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [selectedTier, setSelectedTier] = useState<string>(tiers[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
@@ -29,7 +30,12 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
     t.price_yearly ? Math.round((1 - t.price_yearly / (t.price_monthly * 12)) * 100) : 0;
 
   function subscribe() {
-    if (!selectedTier || !stripeReady) return;
+    if (!selectedTier) return;
+    if (!loggedIn) {
+      window.location.href = `/fan-signup?return=${encodeURIComponent(`/?subscribe=${creatorProfileId}`)}`;
+      return;
+    }
+    if (!stripeReady) return;
     setLoading(true);
     // Submit a real top-level form so the browser follows Stripe's 303 redirect
     // with the URL #fragment intact. fetch() strips the fragment from res.url,
@@ -136,18 +142,18 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady }: Pro
 
       <button
         onClick={subscribe}
-        disabled={!stripeReady || loading || !selectedTier}
+        disabled={loading || !selectedTier || (loggedIn && !stripeReady)}
         style={{
           width: "100%", background: "#F0B429", color: "#09090C",
           fontWeight: 700, fontSize: 14, padding: "13px 0",
           borderRadius: 999, border: "none", cursor: "pointer",
-          opacity: !stripeReady || loading ? 0.5 : 1,
+          opacity: loading || (loggedIn && !stripeReady) ? 0.5 : 1,
         }}
       >
-        {loading ? "Redirecting…" : `Subscribe · ${billing}`}
+        {loading ? "Redirecting…" : !loggedIn ? "Sign up to subscribe" : `Subscribe · ${billing}`}
       </button>
 
-      {!stripeReady && (
+      {loggedIn && !stripeReady && (
         <p style={{ fontSize: 11, color: "var(--muted)", textAlign: "center" }}>
           Payments coming soon
         </p>
