@@ -22,7 +22,7 @@ export default async function AdminLayout({
         :root {
           --bg: #0a0a0f;
           --surface: #111118;
-          --surface-2: #161620;
+          --surface-2: #5f5f68;
           --border: rgba(255,255,255,0.07);
           --border-strong: rgba(255,255,255,0.15);
           --text: #e8e8f0;
