@@ -4,8 +4,11 @@ import { useState } from "react";
 type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
   avatar_url: string | null; cover_url: string | null; subscription_price: number | null; published: boolean;
+  social_links: Record<string, string> | null;
 };
 type Post = { id: string; caption: string | null; media_url: string | null; media_type: string | null; created_at: string };
+type Pick = { id: string; label: string; url: string | null; image_url: string | null; note: string | null };
+type SocialPost = { id: string; url: string; platform: string };
 
 async function uploadFile(file: File): Promise<string> {
   const fd = new FormData();
@@ -16,7 +19,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url as string;
 }
 
-export default function BuildClient({ creator, initialPosts }: { creator: Creator; initialPosts: Post[] }) {
+export default function BuildClient({ creator, initialPosts, initialPicks, initialSocialPosts }: { creator: Creator; initialPosts: Post[]; initialPicks: Pick[]; initialSocialPosts: SocialPost[] }) {
   const [displayName, setDisplayName] = useState(creator.display_name || "");
   const [bio, setBio] = useState(creator.bio || "");
   const [price, setPrice] = useState(creator.subscription_price != null ? String(creator.subscription_price) : "");
@@ -34,13 +37,31 @@ export default function BuildClient({ creator, initialPosts }: { creator: Creato
   const [postMsg, setPostMsg] = useState("");
   const [busyUpload, setBusyUpload] = useState("");
 
-  async function onUpload(file: File | undefined, target: "avatar" | "cover" | "post") {
+  const [picks, setPicks] = useState<Pick[]>(initialPicks);
+  const [pickUrl, setPickUrl] = useState("");
+  const [pickLabel, setPickLabel] = useState("");
+  const [pickImage, setPickImage] = useState("");
+  const [pickNote, setPickNote] = useState("");
+  const [addingPick, setAddingPick] = useState(false);
+  const [pickMsg, setPickMsg] = useState("");
+
+  const [links, setLinks] = useState<Record<string, string>>(((creator.social_links as any) || {}));
+  const [savingLinks, setSavingLinks] = useState(false);
+  const [linksMsg, setLinksMsg] = useState("");
+
+  const [socialPosts, setSocialPosts] = useState<SocialPost[]>(initialSocialPosts);
+  const [socialUrl, setSocialUrl] = useState("");
+  const [addingSocial, setAddingSocial] = useState(false);
+  const [socialMsg, setSocialMsg] = useState("");
+
+  async function onUpload(file: File | undefined, target: "avatar" | "cover" | "post" | "pick") {
     if (!file) return;
     setBusyUpload(target);
     try {
       const url = await uploadFile(file);
       if (target === "avatar") setAvatar(url);
       else if (target === "cover") setCover(url);
+      else if (target === "pick") setPickImage(url);
       else { setPostMedia(url); setPostMediaType(file.type.startsWith("video") ? "video" : "image"); }
     } catch (e: any) { alert(e.message || "Upload failed"); }
     setBusyUpload("");
@@ -80,6 +101,63 @@ export default function BuildClient({ creator, initialPosts }: { creator: Creato
     if (!confirm("Delete this post?")) return;
     const res = await fetch(`/api/admin/creators/post?id=${id}`, { method: "DELETE" });
     if (res.ok) setPosts(posts.filter((p) => p.id !== id));
+  }
+
+  async function addPick() {
+    setAddingPick(true); setPickMsg("");
+    try {
+      const res = await fetch("/api/admin/creators/pick", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creator_profile_id: creator.id, url: pickUrl, label: pickLabel, image_url: pickImage, note: pickNote }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Add failed");
+      setPicks([...picks, data.pick]);
+      setPickUrl(""); setPickLabel(""); setPickImage(""); setPickNote("");
+      setPickMsg("Added.");
+    } catch (e: any) { setPickMsg(e.message || "Add failed"); }
+    setAddingPick(false);
+  }
+
+  async function deletePick(id: string) {
+    if (!confirm("Remove this pick?")) return;
+    const res = await fetch(`/api/admin/creators/pick?id=${id}`, { method: "DELETE" });
+    if (res.ok) setPicks(picks.filter((p) => p.id !== id));
+  }
+
+  async function saveLinks() {
+    setSavingLinks(true); setLinksMsg("");
+    try {
+      const res = await fetch("/api/admin/creators/profile", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: creator.id, social_links: links }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d?.error || "Save failed"); }
+      setLinksMsg("Saved.");
+    } catch (e: any) { setLinksMsg(e.message || "Save failed"); }
+    setSavingLinks(false);
+  }
+
+  async function addSocial() {
+    setAddingSocial(true); setSocialMsg("");
+    try {
+      const res = await fetch("/api/admin/creators/social-post", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creator_profile_id: creator.id, url: socialUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Add failed");
+      setSocialPosts([data.post, ...socialPosts]);
+      setSocialUrl("");
+      setSocialMsg("Added.");
+    } catch (e: any) { setSocialMsg(e.message || "Add failed"); }
+    setAddingSocial(false);
+  }
+
+  async function deleteSocial(id: string) {
+    if (!confirm("Remove this post?")) return;
+    const res = await fetch(`/api/admin/creators/social-post?id=${id}`, { method: "DELETE" });
+    if (res.ok) setSocialPosts(socialPosts.filter((sp) => sp.id !== id));
   }
 
   const label: React.CSSProperties = { fontSize: 12, color: "var(--muted, #888)", marginBottom: 6, display: "block", textTransform: "uppercase", letterSpacing: "0.04em" };
@@ -128,6 +206,47 @@ export default function BuildClient({ creator, initialPosts }: { creator: Creato
         {profileMsg && <span style={{ marginLeft: 12, fontSize: 13 }}>{profileMsg}</span>}
       </div>
 
+      {/* SOCIAL LINKS */}
+      <div className="card" style={{ marginBottom: 20, padding: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Social links</h2>
+        {["instagram", "tiktok", "youtube", "twitter", "twitch", "snapchat", "discord", "website"].map((k) => (
+          <div key={k} style={{ marginBottom: 10 }}>
+            <label style={label}>{k}</label>
+            <input className="adm-input" value={links[k] || ""} onChange={(e) => setLinks({ ...links, [k]: e.target.value })} placeholder={`${k} URL`} style={{ width: "100%" }} />
+          </div>
+        ))}
+        <button className="adm-btn adm-btn--primary" onClick={saveLinks} disabled={savingLinks} style={{ marginTop: 6 }}>
+          {savingLinks ? "Saving…" : "Save links"}
+        </button>
+        {linksMsg && <span style={{ marginLeft: 12, fontSize: 13 }}>{linksMsg}</span>}
+      </div>
+
+      {/* SOCIAL POSTS */}
+      <div className="card" style={{ marginBottom: 20, padding: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Social posts (TikTok, Instagram, etc.)</h2>
+        <p style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 14, lineHeight: 1.6 }}>
+          Paste a TikTok, Instagram, YouTube, X, or Facebook post link. It embeds live on their page.
+        </p>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          <input className="adm-input" value={socialUrl} onChange={(e) => setSocialUrl(e.target.value)} placeholder="Paste a post link" style={{ flex: 1, minWidth: 240 }} />
+          <button className="adm-btn adm-btn--primary" onClick={addSocial} disabled={addingSocial || !socialUrl}>
+            {addingSocial ? "Adding…" : "Add"}
+          </button>
+        </div>
+        {socialMsg && <span style={{ fontSize: 13 }}>{socialMsg}</span>}
+        {socialPosts.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+            {socialPosts.map((sp) => (
+              <div key={sp.id} style={{ display: "flex", gap: 12, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+                <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--muted, #888)", width: 70, flexShrink: 0 }}>{sp.platform}</span>
+                <a href={sp.url} target="_blank" rel="noopener" style={{ flex: 1, fontSize: 12, color: "var(--muted, #888)", wordBreak: "break-all" }}>{sp.url}</a>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deleteSocial(sp.id)}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* ADD POST */}
       <div className="card" style={{ marginBottom: 20, padding: 20 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Add a post</h2>
@@ -159,6 +278,41 @@ export default function BuildClient({ creator, initialPosts }: { creator: Creato
                 {p.media_url ? <img src={p.media_url} alt="" style={{ width: 56, height: 56, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} /> : null}
                 <div style={{ flex: 1, fontSize: 14 }}>{p.caption || <em style={{ color: "var(--muted,#888)" }}>No caption</em>}</div>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deletePost(p.id)}>Delete</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ENDORSEMENTS */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Amazon endorsements</h2>
+        <p style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 16, lineHeight: 1.6 }}>
+          Paste an Amazon product link. It is auto tagged with the Spotlightly Associates tag, so purchases earn the commission. Shows on their page with the required disclosure.
+        </p>
+        <input className="adm-input" value={pickUrl} onChange={(e) => setPickUrl(e.target.value)} placeholder="Amazon product link" style={{ width: "100%", marginBottom: 10 }} />
+        <input className="adm-input" value={pickLabel} onChange={(e) => setPickLabel(e.target.value)} placeholder="Label (e.g. My ring light)" style={{ width: "100%", marginBottom: 10 }} />
+        <input className="adm-input" value={pickNote} onChange={(e) => setPickNote(e.target.value)} placeholder="Short note (optional)" style={{ width: "100%", marginBottom: 10 }} />
+        {pickImage ? <img src={pickImage} alt="" style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, display: "block", marginBottom: 8 }} /> : null}
+        <div style={{ marginBottom: 12 }}>
+          <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0], "pick")} />
+          {busyUpload === "pick" && <span style={{ fontSize: 12, marginLeft: 8 }}>Uploading…</span>}
+        </div>
+        <button className="adm-btn adm-btn--primary" onClick={addPick} disabled={addingPick || !pickUrl || !pickLabel}>
+          {addingPick ? "Adding…" : "Add endorsement"}
+        </button>
+        {pickMsg && <span style={{ marginLeft: 12, fontSize: 13 }}>{pickMsg}</span>}
+
+        {picks.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
+            {picks.map((p) => (
+              <div key={p.id} style={{ display: "flex", gap: 12, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
+                {p.image_url ? <img src={p.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} /> : null}
+                <div style={{ flex: 1, fontSize: 14 }}>
+                  {p.label}
+                  {p.url ? <a href={p.url} target="_blank" rel="noopener" style={{ display: "block", fontSize: 11, color: "var(--muted, #888)", wordBreak: "break-all" }}>{p.url}</a> : null}
+                </div>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deletePick(p.id)}>Remove</button>
               </div>
             ))}
           </div>

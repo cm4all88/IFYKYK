@@ -91,6 +91,14 @@ async function fetchEverything(handle: string) {
     .order("priority", { ascending: false })
     .order("created_at", { ascending: false });
 
+  // Affiliate endorsements (Amazon picks tagged with our Associates tag)
+  const { data: affiliatePicks } = await (supabase as any)
+    .from("affiliate_picks")
+    .select("id, label, url, image_url, note")
+    .eq("creator_profile_id", spotlight.id)
+    .order("sort", { ascending: true })
+    .order("created_at", { ascending: false });
+
   const { data: subscriptionTiers } = await (supabase as any)
     .from("subscription_tiers")
     .select("id, name, description, price_monthly, price_yearly, perks, color, sort_order")
@@ -207,6 +215,7 @@ async function fetchEverything(handle: string) {
     viewerTierId,
     campaigns: campaignsWithProgress,
     wishlistItems: wishlistItems ?? [],
+    affiliatePicks: affiliatePicks ?? [],
     digitalProducts: digitalProducts ?? [],
     subscriptionTiers: subscriptionTiers ?? [],
     liveStream: liveStream ?? null,
@@ -242,7 +251,7 @@ export default async function CreatorPage(props: {
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
-  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, digitalProducts, subscriptionTiers, liveStream, socialPosts } = data;
+  const { spotlight, backstageHandle, channels, posts, isSubscribed, campaigns, wishlistItems, affiliatePicks, digitalProducts, subscriptionTiers, liveStream, socialPosts } = data;
   const displayName = spotlight.display_name ?? spotlight.handle;
 
   // Tier-gating: map each tier to its rank (sort_order). A post locked to a tier
@@ -435,6 +444,32 @@ export default async function CreatorPage(props: {
                     <WishlistItemCard key={i.id} item={i} />
                   ))}
                 </div>
+              </div>
+            )}
+
+            {affiliatePicks.length > 0 && (
+              <div className="cp-rail-section">
+                <span className="cp-rail-kicker">Recommends</span>
+                <div className="cp-rail-grid">
+                  {affiliatePicks.map((p: any) => (
+                    <a
+                      key={p.id}
+                      href={p.url}
+                      target="_blank"
+                      rel="nofollow sponsored noopener"
+                      style={{ display: "block", textDecoration: "none", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}
+                    >
+                      {p.image_url ? (
+                        <img src={p.image_url} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", borderRadius: 6, marginBottom: 8 }} />
+                      ) : null}
+                      <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.4 }}>{p.label}</div>
+                      {p.note ? <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{p.note}</div> : null}
+                    </a>
+                  ))}
+                </div>
+                <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 10, lineHeight: 1.5 }}>
+                  As an Amazon Associate, Spotlightly earns from qualifying purchases.
+                </p>
               </div>
             )}
           </aside>

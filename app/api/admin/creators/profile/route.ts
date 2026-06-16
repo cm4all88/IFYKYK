@@ -18,6 +18,9 @@ export async function POST(req: Request) {
     const p = Number(body.subscription_price);
     if (!Number.isNaN(p)) fields.subscription_price = p;
   }
+  if (body.social_links && typeof body.social_links === "object") {
+    fields.social_links = body.social_links;
+  }
 
   const admin = await createServiceClient();
   const { error } = await (admin as any).from("creator_profiles").update(fields).eq("id", id);
