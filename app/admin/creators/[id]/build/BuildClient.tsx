@@ -5,10 +5,14 @@ type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
   avatar_url: string | null; cover_url: string | null; subscription_price: number | null; published: boolean;
   social_links: Record<string, string> | null;
+  wishlist_url: string | null;
+  claim_code: string | null;
+  claimed_at: string | null;
 };
 type Post = { id: string; caption: string | null; media_url: string | null; media_type: string | null; created_at: string };
 type Pick = { id: string; label: string; url: string | null; image_url: string | null; note: string | null };
 type SocialPost = { id: string; url: string; platform: string };
+type Tier = { id: string; name: string; price_monthly: number; price_yearly: number | null; perks: string[] | null };
 
 async function uploadFile(file: File): Promise<string> {
   const fd = new FormData();
@@ -19,7 +23,7 @@ async function uploadFile(file: File): Promise<string> {
   return data.url as string;
 }
 
-export default function BuildClient({ creator, initialPosts, initialPicks, initialSocialPosts }: { creator: Creator; initialPosts: Post[]; initialPicks: Pick[]; initialSocialPosts: SocialPost[] }) {
+export default function BuildClient({ creator, initialPosts, initialPicks, initialSocialPosts, initialTiers }: { creator: Creator; initialPosts: Post[]; initialPicks: Pick[]; initialSocialPosts: SocialPost[]; initialTiers: Tier[] }) {
   const [displayName, setDisplayName] = useState(creator.display_name || "");
   const [bio, setBio] = useState(creator.bio || "");
   const [price, setPrice] = useState(creator.subscription_price != null ? String(creator.subscription_price) : "");
@@ -54,6 +58,17 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   const [addingSocial, setAddingSocial] = useState(false);
   const [socialMsg, setSocialMsg] = useState("");
 
+  const [wishlistUrl, setWishlistUrl] = useState(creator.wishlist_url || "");
+
+  const [tiers, setTiers] = useState<Tier[]>(initialTiers);
+  const [tierName, setTierName] = useState("");
+  const [tierMonthly, setTierMonthly] = useState("");
+  const [tierYearly, setTierYearly] = useState("");
+  const [tierPerks, setTierPerks] = useState("");
+  const [addingTier, setAddingTier] = useState(false);
+  const [tierMsg, setTierMsg] = useState("");
+  const [copied, setCopied] = useState(false);
+
   async function onUpload(file: File | undefined, target: "avatar" | "cover" | "post" | "pick") {
     if (!file) return;
     setBusyUpload(target);
@@ -72,7 +87,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
     try {
       const res = await fetch("/api/admin/creators/profile", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: creator.id, display_name: displayName, bio, avatar_url: avatar, cover_url: cover, subscription_price: price }),
+        body: JSON.stringify({ id: creator.id, display_name: displayName, bio, avatar_url: avatar, cover_url: cover, subscription_price: price, wishlist_url: wishlistUrl }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Save failed");
@@ -160,6 +175,33 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
     if (res.ok) setSocialPosts(socialPosts.filter((sp) => sp.id !== id));
   }
 
+  async function addTier() {
+    setAddingTier(true); setTierMsg("");
+    try {
+      const res = await fetch("/api/admin/creators/tier", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creator_profile_id: creator.id, name: tierName, price_monthly: tierMonthly, price_yearly: tierYearly, perks: tierPerks }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Add failed");
+      setTiers([...tiers, data.tier]);
+      setTierName(""); setTierMonthly(""); setTierYearly(""); setTierPerks("");
+      setTierMsg("Added.");
+    } catch (e: any) { setTierMsg(e.message || "Add failed"); }
+    setAddingTier(false);
+  }
+
+  async function deleteTier(id: string) {
+    if (!confirm("Remove this tier?")) return;
+    const res = await fetch(`/api/admin/creators/tier?id=${id}`, { method: "DELETE" });
+    if (res.ok) setTiers(tiers.filter((t) => t.id !== id));
+  }
+
+  const claimLink = creator.claim_code ? `https://www.spotlightly.app/claim/${creator.claim_code}` : "";
+  async function copyClaim() {
+    try { await navigator.clipboard.writeText(claimLink); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+  }
+
   const label: React.CSSProperties = { fontSize: 12, color: "var(--muted, #888)", marginBottom: 6, display: "block", textTransform: "uppercase", letterSpacing: "0.04em" };
 
   return (
@@ -175,6 +217,23 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         Edit the page on their behalf. {creator.published ? "This page is live." : "This page is in preview (not in Explore)."}
       </p>
 
+      {!creator.claimed_at && creator.claim_code ? (
+        <div className="adm-banner adm-banner--ok" style={{ marginBottom: 24, lineHeight: 1.7 }}>
+          <strong style={{ display: "block", marginBottom: 8 }}>Claim link to send them</strong>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <code style={{ wordBreak: "break-all", flex: 1, minWidth: 220 }}>{claimLink}</code>
+            <button className="adm-btn adm-btn--primary" style={{ padding: "5px 14px" }} onClick={copyClaim}>{copied ? "Copied" : "Copy"}</button>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--muted, #888)", marginTop: 6 }}>
+            They set their own email and password here. Single use, works until claimed.
+          </div>
+        </div>
+      ) : creator.claimed_at ? (
+        <div style={{ marginBottom: 24, fontSize: 13, color: "var(--accent-open, #6ee7b7)" }}>
+          ✓ Claimed by the creator. They own this account now.
+        </div>
+      ) : null}
+
       {/* PROFILE */}
       <div className="card" style={{ marginBottom: 20, padding: 20 }}>
         <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Profile</h2>
@@ -184,6 +243,9 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         <textarea className="adm-input" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} style={{ marginBottom: 14, width: "100%", resize: "vertical" }} />
         <label style={label}>Monthly subscription price (USD)</label>
         <input className="adm-input" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} style={{ marginBottom: 14, width: 200 }} />
+
+        <label style={label}>Amazon wishlist link (optional)</label>
+        <input className="adm-input" value={wishlistUrl} onChange={(e) => setWishlistUrl(e.target.value)} placeholder="https://www.amazon.com/hz/wishlist/ls/..." style={{ marginBottom: 14, width: "100%" }} />
 
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 14 }}>
           <div>
@@ -204,6 +266,37 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
           {savingProfile ? "Saving…" : "Save profile"}
         </button>
         {profileMsg && <span style={{ marginLeft: 12, fontSize: 13 }}>{profileMsg}</span>}
+      </div>
+
+      {/* TIERS */}
+      <div className="card" style={{ marginBottom: 20, padding: 20 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>Subscription tiers</h2>
+        <p style={{ fontSize: 12, color: "var(--muted, #888)", marginBottom: 14, lineHeight: 1.6 }}>
+          Optional named tiers on top of the base price. Each has a monthly price, optional yearly, and perks.
+        </p>
+        <input className="adm-input" value={tierName} onChange={(e) => setTierName(e.target.value)} placeholder="Tier name (e.g. VIP)" style={{ width: "100%", marginBottom: 10 }} />
+        <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+          <input className="adm-input" type="number" min="0" step="0.01" value={tierMonthly} onChange={(e) => setTierMonthly(e.target.value)} placeholder="Monthly $" style={{ width: 130 }} />
+          <input className="adm-input" type="number" min="0" step="0.01" value={tierYearly} onChange={(e) => setTierYearly(e.target.value)} placeholder="Yearly $ (optional)" style={{ width: 180 }} />
+        </div>
+        <input className="adm-input" value={tierPerks} onChange={(e) => setTierPerks(e.target.value)} placeholder="Perks, comma separated" style={{ width: "100%", marginBottom: 12 }} />
+        <button className="adm-btn adm-btn--primary" onClick={addTier} disabled={addingTier || !tierName || !tierMonthly}>
+          {addingTier ? "Adding…" : "Add tier"}
+        </button>
+        {tierMsg && <span style={{ marginLeft: 12, fontSize: 13 }}>{tierMsg}</span>}
+        {tiers.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+            {tiers.map((t) => (
+              <div key={t.id} style={{ display: "flex", gap: 12, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+                <div style={{ flex: 1, fontSize: 14 }}>
+                  {t.name} · ${t.price_monthly}/mo{t.price_yearly ? ` · $${t.price_yearly}/yr` : ""}
+                  {t.perks && t.perks.length ? <div style={{ fontSize: 11, color: "var(--muted, #888)", marginTop: 2 }}>{t.perks.join(" · ")}</div> : null}
+                </div>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deleteTier(t.id)}>Remove</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* SOCIAL LINKS */}

@@ -21,6 +21,9 @@ export async function POST(req: Request) {
   if (body.social_links && typeof body.social_links === "object") {
     fields.social_links = body.social_links;
   }
+  if (typeof body.wishlist_url === "string") {
+    fields.wishlist_url = body.wishlist_url.trim() || null;
+  }
 
   const admin = await createServiceClient();
   const { error } = await (admin as any).from("creator_profiles").update(fields).eq("id", id);

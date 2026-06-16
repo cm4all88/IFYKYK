@@ -12,7 +12,7 @@ export default async function BuildPage(props: { params: Promise<{ id: string }>
 
   const { data: creator } = await (admin as any)
     .from("creator_profiles")
-    .select("id, handle, display_name, bio, avatar_url, cover_url, subscription_price, published, social_links")
+    .select("id, handle, display_name, bio, avatar_url, cover_url, subscription_price, published, social_links, wishlist_url, claim_code, claimed_at")
     .eq("id", id)
     .maybeSingle();
   if (!creator) notFound();
@@ -38,12 +38,19 @@ export default async function BuildPage(props: { params: Promise<{ id: string }>
     .order("created_at", { ascending: false })
     .limit(100);
 
+  const { data: tiers } = await (admin as any)
+    .from("subscription_tiers")
+    .select("id, name, price_monthly, price_yearly, perks")
+    .eq("creator_profile_id", id)
+    .order("sort_order", { ascending: true });
+
   return (
     <BuildClient
       creator={creator}
       initialPosts={posts || []}
       initialPicks={picks || []}
       initialSocialPosts={socialPosts || []}
+      initialTiers={tiers || []}
     />
   );
 }

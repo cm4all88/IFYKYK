@@ -472,6 +472,20 @@ export default async function CreatorPage(props: {
                 </p>
               </div>
             )}
+
+            {(spotlight as any).wishlist_url && (
+              <div className="cp-rail-section">
+                <span className="cp-rail-kicker">Amazon wishlist</span>
+                <a
+                  href={(spotlight as any).wishlist_url}
+                  target="_blank"
+                  rel="nofollow noopener"
+                  style={{ display: "inline-block", padding: "10px 16px", borderRadius: 8, border: "1px solid var(--border)", color: "var(--text)", textDecoration: "none", fontSize: 13 }}
+                >
+                  View {displayName}&apos;s wishlist →
+                </a>
+              </div>
+            )}
           </aside>
         </div>
 

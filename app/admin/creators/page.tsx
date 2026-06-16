@@ -1,4 +1,5 @@
 import { createClient, createServiceClient } from "@/lib/supabase-server";
+import ClaimLinkButton from "./ClaimLinkButton";
 import { isAdmin } from "@/lib/admin";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -115,7 +116,7 @@ export default async function CreatorsPage(props: {
   const supabase = await createClient();
   let query = (supabase as any)
     .from("creator_profiles")
-    .select("id, handle, display_name, kind, creator_type, is_active, veriff_verified, subscription_price, stripe_account_id, published, created_at", { count: "exact" })
+    .select("id, handle, display_name, kind, creator_type, is_active, veriff_verified, subscription_price, stripe_account_id, published, claim_code, claimed_at, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range((page - 1) * perPage, page * perPage - 1);
 
@@ -274,6 +275,11 @@ export default async function CreatorsPage(props: {
                       >
                         Build
                       </a>
+                      {!c.claimed_at && c.claim_code ? (
+                        <ClaimLinkButton code={c.claim_code} />
+                      ) : c.claimed_at ? (
+                        <span style={{ fontSize: 11, color: "var(--accent-open)", alignSelf: "center" }}>Claimed</span>
+                      ) : null}
                       {!c.veriff_verified && (
                         <form action={toggleVerified}>
                           <input type="hidden" name="id" value={c.id} />
