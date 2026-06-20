@@ -82,3 +82,23 @@ export async function sendMessageEmail(to: string, fromName: string, preview: st
   `);
   await send(to, `New message on Spotlightly from ${fromName}`, html);
 }
+
+// ── Admin alerts ────────────────────────────────────────────────────
+// Internal heads-up emails to the platform owner so they don't have to log in
+// to know something happened. Recipient is the configured admin address.
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@tahomaindustries.com";
+
+export async function sendAdminAlert(subject: string, headline: string, lines: string[]) {
+  const rows = lines
+    .filter(Boolean)
+    .map((l) => `<p style="font-size:14px;color:rgba(255,255,255,0.78);margin:0 0 8px;line-height:1.6;">${l}</p>`)
+    .join("");
+  const html = base(`
+    <h1 style="font-family:Georgia,serif;font-size:24px;font-weight:300;color:#ffffff;margin:0 0 16px;">${headline}</h1>
+    ${rows}
+    <p style="margin-top:28px;">
+      <a href="https://www.spotlightly.app/admin" style="display:inline-block;background:#F0B429;color:#0A0A0D;font-size:13px;font-weight:700;padding:12px 24px;border-radius:4px;text-decoration:none;">Open admin →</a>
+    </p>
+  `);
+  await send(ADMIN_EMAIL, `[Spotlightly] ${subject}`, html);
+}

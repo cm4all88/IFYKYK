@@ -192,6 +192,7 @@ export default function SignupPage() {
       if (insertErr) throw insertErr;
 
       fetch("/api/email/welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email }) }).catch(() => {});
+      fetch("/api/admin/new-creator-alert", { method: "POST" }).catch(() => {});
 
       const refHandle = typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")

@@ -24,6 +24,11 @@ export async function POST(req: Request) {
   if (typeof body.wishlist_url === "string") {
     fields.wishlist_url = body.wishlist_url.trim() || null;
   }
+  if (typeof body.free_tier_name === "string") fields.free_tier_name = body.free_tier_name.trim() || null;
+  if (typeof body.free_tier_blurb === "string") fields.free_tier_blurb = body.free_tier_blurb.trim() || null;
+  if (Array.isArray(body.free_tier_perks)) {
+    fields.free_tier_perks = body.free_tier_perks.map((s: any) => String(s).trim()).filter(Boolean);
+  }
 
   const admin = await createServiceClient();
   const { error } = await (admin as any).from("creator_profiles").update(fields).eq("id", id);

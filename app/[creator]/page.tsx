@@ -12,6 +12,7 @@ import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
 import TierPicker from "./TierPicker";
+import FreeTierCard from "./FreeTierCard";
 import ReferralTracker from "./ReferralTracker";
 import MessageButton from "./MessageButton";
 import TipButton from "./TipButton";
@@ -381,6 +382,13 @@ export default async function CreatorPage(props: {
 
             {/* Support — sticky so it stays in reach while reading the feed */}
             <div className="cp-support-block" id="sec-support" data-cat="sec-support">
+              <FreeTierCard
+                name={(spotlight as any).free_tier_name}
+                blurb={(spotlight as any).free_tier_blurb}
+                perks={(spotlight as any).free_tier_perks}
+                handle={spotlight.handle}
+                loggedIn={!!data.viewerUserId}
+              />
               <span className="cp-rail-kicker">Support {displayName}</span>
               <div className="cp-support-actions">
                 <SubscribeButton creatorProfileId={spotlight.id} />

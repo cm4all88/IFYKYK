@@ -4,6 +4,8 @@ export default async function AdminOverviewPage() {
   const supabase = await createClient();
 
   // Fetch counts in parallel
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+
   const [
     { count: totalCreators },
     { count: spotlightCreators },
@@ -13,6 +15,10 @@ export default async function AdminOverviewPage() {
     { data: recentCreators },
     { data: recentFlags },
     { data: tipStats },
+    { count: newCreators7d },
+    { count: newSubs7d },
+    { count: publishedCreators },
+    { data: recentSubs },
   ] = await Promise.all([
     (supabase as any).from("creator_profiles").select("*", { count: "exact", head: true }),
     (supabase as any).from("creator_profiles").select("*", { count: "exact", head: true }).eq("kind", "spotlight"),
@@ -33,7 +39,19 @@ export default async function AdminOverviewPage() {
       .from("tips")
       .select("amount, platform_receives, created_at")
       .gte("created_at", new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()),
+    (supabase as any).from("creator_profiles").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+    (supabase as any).from("subscriptions").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+    (supabase as any).from("creator_profiles").select("*", { count: "exact", head: true }).eq("published", true),
+    (supabase as any).from("subscriptions").select("creator_profile_id, tier, status, created_at").order("created_at", { ascending: false }).limit(8),
   ]);
+
+  // Resolve creator handles for the recent subscribers list
+  const subCreatorIds = Array.from(new Set((recentSubs ?? []).map((s: any) => s.creator_profile_id).filter(Boolean)));
+  let subHandleMap: Record<string, string> = {};
+  if (subCreatorIds.length) {
+    const { data: cps } = await (supabase as any).from("creator_profiles").select("id, handle").in("id", subCreatorIds);
+    subHandleMap = Object.fromEntries((cps ?? []).map((c: any) => [c.id, c.handle]));
+  }
 
   const monthlyRevenue = (tipStats ?? []).reduce(
     (sum: number, t: any) => sum + (parseFloat(t.platform_receives) || 0),
@@ -72,6 +90,19 @@ export default async function AdminOverviewPage() {
         <div className="stat-card">
           <div className="stat-label">Active Subs</div>
           <div className="stat-value">{activeSubs ?? 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">New Creators (7d)</div>
+          <div className="stat-value" style={{ color: "var(--accent-open, #6ee7b7)" }}>{newCreators7d ?? 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">New Subs (7d)</div>
+          <div className="stat-value" style={{ color: "var(--accent-open, #6ee7b7)" }}>{newSubs7d ?? 0}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Published</div>
+          <div className="stat-value">{publishedCreators ?? 0}</div>
+          <div className="stat-sub">of {totalCreators ?? 0} creators</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Platform Rev (30d)</div>
@@ -153,6 +184,33 @@ export default async function AdminOverviewPage() {
         </div>
       </div>
 
+      {/* Recent subscribers */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-title">Recent Subscribers</div>
+        <table className="adm-table">
+          <thead>
+            <tr>
+              <th>Creator</th>
+              <th>Tier</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(recentSubs ?? []).length === 0 ? (
+              <tr><td colSpan={3} style={{ color: "var(--muted)" }}>No subscribers yet.</td></tr>
+            ) : (
+              (recentSubs ?? []).map((s: any, i: number) => (
+                <tr key={i}>
+                  <td>@{subHandleMap[s.creator_profile_id] ?? "—"}</td>
+                  <td style={{ fontSize: 11, color: "var(--muted)" }}>{s.tier ?? "—"}</td>
+                  <td style={{ color: "var(--muted)", fontSize: 11 }}>{new Date(s.created_at).toLocaleDateString()}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
       {/* Quick nav */}
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-title">Quick Actions</div>
@@ -163,9 +221,12 @@ export default async function AdminOverviewPage() {
             { href: "/admin/coupons", label: "Create Coupon" },
             { href: "/admin/comms", label: "Send Announcement" },
             { href: "/admin/creators", label: "Manage Creators" },
+            { href: "/admin/subscribers", label: "View Subscribers" },
+            { href: "/admin/subscriptions", label: "Subscriptions" },
             { href: "/admin/moderation", label: "Review Flags" },
-
+            { href: "/admin/content", label: "Content Engine" },
             { href: "/admin/ads", label: "Manage Featured Slots" },
+            { href: "/admin/roadmap", label: "Roadmap" },
           ].map((a) => (
             <a key={a.href} href={a.href} className="adm-btn adm-btn--ghost">
               {a.label}

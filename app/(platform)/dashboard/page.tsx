@@ -746,6 +746,9 @@ function ProfilePane({
   const [locationCountry, setLocationCountry] = useState((profile as any).location_country ?? "");
   const [bookingUrl, setBookingUrl] = useState((profile as any).booking_url ?? "");
   const [bookingLabel, setBookingLabel] = useState((profile as any).booking_label ?? "");
+  const [freeTierName, setFreeTierName] = useState((profile as any).free_tier_name ?? "");
+  const [freeTierBlurb, setFreeTierBlurb] = useState((profile as any).free_tier_blurb ?? "");
+  const [freeTierPerks, setFreeTierPerks] = useState<string>(((profile as any).free_tier_perks ?? []).join("\n"));
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -775,6 +778,9 @@ function ProfilePane({
       booking_label: bookingLabel.trim() || null,
       offers_services: !!bookingUrl.trim(),
       social_links: socialLinks,
+      free_tier_name: freeTierName.trim() || null,
+      free_tier_blurb: freeTierBlurb.trim() || null,
+      free_tier_perks: freeTierPerks.split("\n").map((s) => s.trim()).filter(Boolean),
     }).eq("user_id", profile.user_id).eq("kind", profile.kind);
 
     if (error || error2) setErr((error || error2).message);
@@ -873,6 +879,26 @@ function ProfilePane({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* ── Free tier ── */}
+        <div style={{ borderBottom:"1px solid var(--border)", paddingBottom:"var(--s-7)", marginBottom:"var(--s-7)" }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-2)" }}>Free tier</p>
+          <p style={{ fontSize:13, color:"var(--muted)", lineHeight:1.6, marginBottom:"var(--s-5)" }}>
+            What people get just by joining for free. This shows on your page as your free option.
+          </p>
+          <div className="form-field">
+            <label className="label">Name</label>
+            <input className="input" type="text" value={freeTierName} onChange={(e) => setFreeTierName(e.target.value)} placeholder="General Admission" maxLength={40} />
+          </div>
+          <div className="form-field">
+            <label className="label">Description</label>
+            <textarea className="textarea" value={freeTierBlurb} onChange={(e) => setFreeTierBlurb(e.target.value)} placeholder="Follow along for free and never miss a post." maxLength={200} rows={2} />
+          </div>
+          <div className="form-field">
+            <label className="label">What they get <span style={{ color:"var(--muted)", fontWeight:300 }}>(one per line)</span></label>
+            <textarea className="textarea" value={freeTierPerks} onChange={(e) => setFreeTierPerks(e.target.value)} placeholder={"Every free post\nLive stream notifications\nComment on posts"} rows={4} />
           </div>
         </div>
 

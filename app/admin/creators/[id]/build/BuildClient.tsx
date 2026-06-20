@@ -8,6 +8,9 @@ type Creator = {
   wishlist_url: string | null;
   claim_code: string | null;
   claimed_at: string | null;
+  free_tier_name: string | null;
+  free_tier_blurb: string | null;
+  free_tier_perks: string[] | null;
 };
 type Post = { id: string; caption: string | null; media_url: string | null; media_type: string | null; created_at: string };
 type Pick = { id: string; label: string; url: string | null; image_url: string | null; note: string | null };
@@ -26,6 +29,9 @@ async function uploadFile(file: File): Promise<string> {
 export default function BuildClient({ creator, initialPosts, initialPicks, initialSocialPosts, initialTiers }: { creator: Creator; initialPosts: Post[]; initialPicks: Pick[]; initialSocialPosts: SocialPost[]; initialTiers: Tier[] }) {
   const [displayName, setDisplayName] = useState(creator.display_name || "");
   const [bio, setBio] = useState(creator.bio || "");
+  const [freeTierName, setFreeTierName] = useState(creator.free_tier_name || "");
+  const [freeTierBlurb, setFreeTierBlurb] = useState(creator.free_tier_blurb || "");
+  const [freeTierPerks, setFreeTierPerks] = useState((creator.free_tier_perks || []).join("\n"));
   const [price, setPrice] = useState(creator.subscription_price != null ? String(creator.subscription_price) : "");
   const [avatar, setAvatar] = useState(creator.avatar_url || "");
   const [cover, setCover] = useState(creator.cover_url || "");
@@ -98,7 +104,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
     try {
       const res = await fetch("/api/admin/creators/profile", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: creator.id, display_name: displayName, bio, avatar_url: avatar, cover_url: cover, subscription_price: price, wishlist_url: wishlistUrl }),
+        body: JSON.stringify({ id: creator.id, display_name: displayName, bio, avatar_url: avatar, cover_url: cover, subscription_price: price, wishlist_url: wishlistUrl, free_tier_name: freeTierName, free_tier_blurb: freeTierBlurb, free_tier_perks: freeTierPerks.split("\n").map((s) => s.trim()).filter(Boolean) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Save failed");
@@ -296,6 +302,13 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
 
         <label style={label}>Amazon wishlist link (optional)</label>
         <input className="adm-input" value={wishlistUrl} onChange={(e) => setWishlistUrl(e.target.value)} placeholder="https://www.amazon.com/hz/wishlist/ls/..." style={{ marginBottom: 14, width: "100%" }} />
+
+        <label style={label}>Free tier name</label>
+        <input className="adm-input" value={freeTierName} onChange={(e) => setFreeTierName(e.target.value)} placeholder="General Admission" style={{ marginBottom: 14, width: "100%" }} />
+        <label style={label}>Free tier description</label>
+        <textarea className="adm-input" value={freeTierBlurb} onChange={(e) => setFreeTierBlurb(e.target.value)} rows={2} placeholder="Follow along for free and never miss a post." style={{ marginBottom: 14, width: "100%", resize: "vertical" }} />
+        <label style={label}>What they get for free (one per line)</label>
+        <textarea className="adm-input" value={freeTierPerks} onChange={(e) => setFreeTierPerks(e.target.value)} rows={4} placeholder={"Every free post\nLive stream notifications\nComment on posts"} style={{ marginBottom: 14, width: "100%", resize: "vertical" }} />
 
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 14 }}>
           <div>

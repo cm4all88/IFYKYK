@@ -12,7 +12,7 @@ export default async function BuildPage(props: { params: Promise<{ id: string }>
 
   const { data: creator } = await (admin as any)
     .from("creator_profiles")
-    .select("id, handle, display_name, bio, avatar_url, cover_url, subscription_price, published, social_links, wishlist_url, claim_code, claimed_at")
+    .select("id, handle, display_name, bio, avatar_url, cover_url, subscription_price, published, social_links, wishlist_url, claim_code, claimed_at, free_tier_name, free_tier_blurb, free_tier_perks")
     .eq("id", id)
     .maybeSingle();
   if (!creator) notFound();

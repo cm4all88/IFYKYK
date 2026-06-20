@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notify";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { sendAdminAlert } from "@/lib/email";
 import crypto from "node:crypto";
 
 export const runtime = "nodejs";
@@ -161,6 +162,17 @@ export async function POST(req: NextRequest) {
         `✦ New subscriber${tierDisplay}`,
         "Someone just subscribed to your channel.",
         `A new fan just subscribed${tierDisplay ? ` to your <strong>${tierDisplay.slice(3)}</strong> tier` : ""}. They'll stay subscribed as long as you keep creating.`
+      );
+
+      const { data: subCreator } = await (supabase as any).from("creator_profiles").select("handle").eq("id", meta.creator_profile_id).maybeSingle();
+      await sendAdminAlert(
+        `New subscriber → @${subCreator?.handle ?? "?"}`,
+        "New subscriber. 🎉",
+        [
+          `Creator: <strong>@${subCreator?.handle ?? "unknown"}</strong>`,
+          `Tier: ${tierDisplay ? tierDisplay.slice(3) : "premium"}`,
+          `Billing: ${meta.billing_period || "monthly"}`,
+        ]
       );
     }
 
