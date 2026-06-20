@@ -9,19 +9,22 @@ const PLATFORM_COLORS: Record<string, string> = {
   x: '#fff', twitter: '#fff', facebook: '#1877F2',
 }
 
+function ttId(u: string) { const m = (u || '').match(/\/video\/(\d{6,25})/); return m ? m[1] : null }
 function ytId(u: string) { const m = (u || '').match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/); return m ? m[1] : null }
 function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : null }
 
-// Live iframes ONLY for the platforms that embed reliably.
-//  - YouTube: rock-solid, rendered in a responsive 16:9 box.
-//  - X/Twitter: reliable, natural height.
-// Instagram and TikTok intentionally return null so they fall through to the
-// static card below. Their live iframes are unreliable (IG serves login walls /
-// "content unavailable"; TikTok's fixed-height player clips inside a fluid
-// grid). enrichInstagram / enrichTikTok populate a real re-hosted thumbnail at
-// save-time; when that's absent we show a clean link card, never a broken frame.
-function embedFor(platform: string, url: string): { src: string; aspect?: string; height?: number; bg: string } | null {
+// Live embeds for the platforms that embed reliably.
+//  - TikTok: real live player, capped to its native width and centered so it
+//    never clips inside a fluid grid column (the old fixed-height-at-any-width
+//    bug). This is the "live" card.
+//  - YouTube: responsive 16:9.
+//  - X: live tweet, natural height.
+// Instagram is the one platform whose public iframe genuinely won't embed
+// reliably, so it uses a re-hosted thumbnail (from enrichInstagram) or a clean
+// link card — never a broken frame.
+function embedFor(platform: string, url: string): { src: string; aspect?: string; width?: number; height?: number; bg: string } | null {
   switch (platform) {
+    case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, width: 325, height: 740, bg: '#000' } : null }
     case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, aspect: '16 / 9', bg: '#000' } : null }
     case 'x':
     case 'twitter': { const id = xId(url); return id ? { src: `https://platform.twitter.com/embed/Tweet.html?id=${id}&theme=dark`, height: 560, bg: 'transparent' } : null }
@@ -62,7 +65,42 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
         )}
       </div>
 
-      {post.thumbnail_url ? (
+      {embed ? (
+        embed.aspect ? (
+          <div style={{ position: 'relative', width: '100%', aspectRatio: embed.aspect, background: embed.bg }}>
+            <iframe
+              src={embed.src}
+              title={`${label} post`}
+              loading="lazy"
+              allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
+              allowFullScreen
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+            />
+          </div>
+        ) : embed.width ? (
+          <div style={{ maxWidth: embed.width, margin: '0 auto', background: embed.bg }}>
+            <iframe
+              src={embed.src}
+              title={`${label} post`}
+              loading="lazy"
+              scrolling="no"
+              allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
+              allowFullScreen
+              style={{ display: 'block', width: '100%', height: embed.height, border: 0, background: embed.bg }}
+            />
+          </div>
+        ) : (
+          <iframe
+            src={embed.src}
+            title={`${label} post`}
+            loading="lazy"
+            scrolling="no"
+            allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
+            allowFullScreen
+            style={{ display: 'block', width: '100%', height: embed.height, border: 0, background: embed.bg }}
+          />
+        )
+      ) : post.thumbnail_url ? (
         <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
           <div style={{ position: 'relative', width: '100%', background: '#0d0d12' }}>
             <img
@@ -81,29 +119,6 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
             </p>
           )}
         </a>
-      ) : embed ? (
-        embed.aspect ? (
-          <div style={{ position: 'relative', width: '100%', aspectRatio: embed.aspect, background: embed.bg }}>
-            <iframe
-              src={embed.src}
-              title={`${label} post`}
-              loading="lazy"
-              allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
-              allowFullScreen
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-            />
-          </div>
-        ) : (
-          <iframe
-            src={embed.src}
-            title={`${label} post`}
-            loading="lazy"
-            scrolling="no"
-            allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
-            allowFullScreen
-            style={{ display: 'block', width: '100%', height: embed.height, border: 0, background: embed.bg }}
-          />
-        )
       ) : (
         <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '26px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}>

@@ -511,10 +511,8 @@ export default async function CreatorPage(props: {
           .cp-rail { min-width: 0; }
           .cp-center { min-width: 0; }
 
-          /* ── Rail-as-filter: show one category, collapse to a focused column ── */
+          /* ── Rail-as-filter: show one category in place, no layout shift ── */
           .cp-hidden { display: none !important; }
-          .cp-shell.cp-filtered { grid-template-columns: 1fr !important; max-width: 760px; }
-          .cp-shell.cp-filtered .cp-rail--left { display: none !important; }
           .cp-identity { display: flex; align-items: center; gap: 22px; margin-bottom: 20px; }
           .cp-identity-text { text-align: left; }
           .cp-stage-avatar { width: 120px; height: 120px; }

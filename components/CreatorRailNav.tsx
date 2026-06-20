@@ -27,12 +27,10 @@ export default function CreatorRailNav({
     const shell = document.querySelector(".cp-shell") as HTMLElement | null;
     if (!shell) return;
     const showAll = id === "all";
-    shell.classList.toggle("cp-filtered", !showAll);
     shell.querySelectorAll<HTMLElement>("[data-cat]").forEach((el) => {
       const cat = el.getAttribute("data-cat");
       el.classList.toggle("cp-hidden", !(showAll || cat === id));
     });
-    shell.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
