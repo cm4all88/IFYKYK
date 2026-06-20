@@ -125,3 +125,42 @@ export async function enrichInstagram(
     return empty;
   }
 }
+
+/**
+ * Fetch + re-host a TikTok post's thumbnail and caption via TikTok's public
+ * oEmbed endpoint (no token required, far more reliable than scraping). TikTok
+ * thumbnail CDN URLs expire, so we re-host on Bunny and render a static card
+ * instead of the fixed-height live player (which clips badly in a fluid grid).
+ *
+ * Best-effort: any failure returns nulls and the card falls back to a clean
+ * link card, never a broken iframe.
+ */
+export async function enrichTikTok(
+  url: string
+): Promise<{ thumbnail_url: string | null; caption: string | null }> {
+  const empty = { thumbnail_url: null, caption: null };
+  if (!/tiktok\.com/i.test(url || "")) return empty;
+  try {
+    const res = await fetch(
+      `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
+      { headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" } }
+    );
+    if (!res.ok) return empty;
+    const data: any = await res.json();
+    const img: string | null = data?.thumbnail_url || null;
+    const caption: string | null = data?.title
+      ? String(data.title).slice(0, 600)
+      : null;
+    let thumb: string | null = null;
+    if (img) {
+      const idm = (url || "").match(/\/video\/(\d{6,25})/);
+      const key = `tt-${idm ? idm[1] : Date.now().toString(36)}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+      thumb = await rehostToBunny(img, key);
+    }
+    return { thumbnail_url: thumb, caption };
+  } catch {
+    return empty;
+  }
+}

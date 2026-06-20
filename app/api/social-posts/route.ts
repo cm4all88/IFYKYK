@@ -68,7 +68,14 @@ export async function POST(req: NextRequest) {
       const enriched = await enrichInstagram(url)
       if (enriched.thumbnail_url) thumbnail_url = enriched.thumbnail_url
       if (!caption && enriched.caption) caption = enriched.caption
-    } catch { /* fall through to iframe */ }
+    } catch { /* fall through to card */ }
+  } else if (platform === 'tiktok' && !thumbnail_url) {
+    try {
+      const { enrichTikTok } = await import('@/lib/socialEnrich')
+      const enriched = await enrichTikTok(url)
+      if (enriched.thumbnail_url) thumbnail_url = enriched.thumbnail_url
+      if (!caption && enriched.caption) caption = enriched.caption
+    } catch { /* fall through to card */ }
   }
 
   const { data, error } = await (supabase as any)

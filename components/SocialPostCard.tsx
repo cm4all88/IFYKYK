@@ -9,22 +9,20 @@ const PLATFORM_COLORS: Record<string, string> = {
   x: '#fff', twitter: '#fff', facebook: '#1877F2',
 }
 
-function igEmbed(u: string) {
-  const m = (u || '').match(/instagram\.com\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
-  if (!m) return null;
-  let t = m[1].toLowerCase(); if (t === 'reels') t = 'reel';
-  return `https://www.instagram.com/${t}/${m[2]}/embed/`;
-}
-function ttId(u: string) { const m = (u || '').match(/\/video\/(\d{6,25})/); return m ? m[1] : null }
 function ytId(u: string) { const m = (u || '').match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/); return m ? m[1] : null }
 function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : null }
 
-// Direct iframe embeds — no third-party scripts, no oEmbed token, SPA-safe.
-function embedFor(platform: string, url: string): { src: string; height: number; bg: string } | null {
+// Live iframes ONLY for the platforms that embed reliably.
+//  - YouTube: rock-solid, rendered in a responsive 16:9 box.
+//  - X/Twitter: reliable, natural height.
+// Instagram and TikTok intentionally return null so they fall through to the
+// static card below. Their live iframes are unreliable (IG serves login walls /
+// "content unavailable"; TikTok's fixed-height player clips inside a fluid
+// grid). enrichInstagram / enrichTikTok populate a real re-hosted thumbnail at
+// save-time; when that's absent we show a clean link card, never a broken frame.
+function embedFor(platform: string, url: string): { src: string; aspect?: string; height?: number; bg: string } | null {
   switch (platform) {
-    case 'instagram': { const src = igEmbed(url); return src ? { src, height: 560, bg: '#fff' } : null }
-    case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, height: 740, bg: '#000' } : null }
-    case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, height: 320, bg: '#000' } : null }
+    case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, aspect: '16 / 9', bg: '#000' } : null }
     case 'x':
     case 'twitter': { const id = xId(url); return id ? { src: `https://platform.twitter.com/embed/Tweet.html?id=${id}&theme=dark`, height: 560, bg: 'transparent' } : null }
     default: return null
@@ -84,24 +82,39 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
           )}
         </a>
       ) : embed ? (
-        <iframe
-          src={embed.src}
-          title={`${label} post`}
-          loading="lazy"
-          scrolling="no"
-          allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
-          allowFullScreen
-          style={{ display: 'block', width: '100%', height: embed.height, border: 0, background: embed.bg }}
-        />
-      ) : (
-        <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', gap: 16, padding: 16, textDecoration: 'none', alignItems: 'center' }}>
-          {post.thumbnail_url && (
-            <img src={post.thumbnail_url} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} />
-          )}
-          <div>
-            {post.caption && <p style={{ color: 'var(--text-soft)', fontSize: 14, margin: '0 0 6px', lineHeight: 1.5 }}>{post.caption}</p>}
-            <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10, color: 'var(--muted)' }}>View on {label} →</span>
+        embed.aspect ? (
+          <div style={{ position: 'relative', width: '100%', aspectRatio: embed.aspect, background: embed.bg }}>
+            <iframe
+              src={embed.src}
+              title={`${label} post`}
+              loading="lazy"
+              allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
+              allowFullScreen
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+            />
           </div>
+        ) : (
+          <iframe
+            src={embed.src}
+            title={`${label} post`}
+            loading="lazy"
+            scrolling="no"
+            allow="encrypted-media; clipboard-write; picture-in-picture; fullscreen"
+            allowFullScreen
+            style={{ display: 'block', width: '100%', height: embed.height, border: 0, background: embed.bg }}
+          />
+        )
+      ) : (
+        <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none', padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '26px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}>
+            <span style={{ fontFamily: 'var(--font-display, sans-serif)', fontWeight: 700, fontSize: 15, color }}>View on {label}</span>
+            <span style={{ color, fontSize: 16 }}>↗</span>
+          </div>
+          {post.caption && (
+            <p style={{ color: 'var(--text-soft, rgba(232,232,240,0.78))', fontSize: 13, lineHeight: 1.55, margin: '12px 2px 0', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {post.caption}
+            </p>
+          )}
         </a>
       )}
 
