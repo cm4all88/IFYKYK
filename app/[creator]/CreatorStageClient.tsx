@@ -296,6 +296,7 @@ export default function CreatorStageClient({
           {/* THE SCREEN — active post displayed large (only when native posts exist) */}
           {visiblePosts.length > 0 && (
           <div
+            data-cat="sec-posts"
             onClick={() => activePost && setLightbox(activePost)}
             style={{
               width: "100%",
@@ -379,7 +380,7 @@ export default function CreatorStageClient({
 
       {/* Posts section */}
       {visiblePosts.length > 0 && (
-        <div style={{ background: "transparent", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <div data-cat="sec-posts" style={{ background: "transparent", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
           <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-soft)", textAlign: "center", padding: "24px 0 8px" }}>
             {filteredPosts.length} post{filteredPosts.length !== 1 ? "s" : ""}
           </p>

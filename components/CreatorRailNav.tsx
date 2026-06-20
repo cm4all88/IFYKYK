@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type NavLink = { id: string; label: string };
 
 export default function CreatorRailNav({
@@ -14,9 +16,23 @@ export default function CreatorRailNav({
   canUpgrade: boolean;
   links: NavLink[];
 }) {
-  function jump(id: string) {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  const [active, setActive] = useState<string>("all");
+
+  // Filter the page to a single category instead of scrolling to it.
+  // "all" (Everything) restores the full three-column page; any other value
+  // hides every other [data-cat] block and collapses the shell to one focused
+  // column so the chosen category reads in the main area, not the side rail.
+  function applyFilter(id: string) {
+    setActive(id);
+    const shell = document.querySelector(".cp-shell") as HTMLElement | null;
+    if (!shell) return;
+    const showAll = id === "all";
+    shell.classList.toggle("cp-filtered", !showAll);
+    shell.querySelectorAll<HTMLElement>("[data-cat]").forEach((el) => {
+      const cat = el.getAttribute("data-cat");
+      el.classList.toggle("cp-hidden", !(showAll || cat === id));
+    });
+    shell.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   return (
@@ -40,7 +56,7 @@ export default function CreatorRailNav({
           </p>
           {canUpgrade && (
             <button
-              onClick={() => jump("sec-support")}
+              onClick={() => applyFilter("sec-support")}
               style={{
                 marginTop: 12, width: "100%", padding: "10px 0", border: "1px solid var(--accent)",
                 background: "var(--accent-soft, rgba(242,184,75,0.08))", color: "var(--accent)",
@@ -53,26 +69,33 @@ export default function CreatorRailNav({
         </div>
       )}
 
-      {/* section navigation */}
+      {/* category filter — shows one part of the page at a time */}
       <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--muted)" }}>
-        On this page
+        Show
       </span>
       <nav style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: 8 }}>
-        {links.map((l) => (
-          <button
-            key={l.id}
-            onClick={() => jump(l.id)}
-            style={{
-              textAlign: "left", background: "transparent", border: "none", cursor: "pointer",
-              padding: "8px 8px", borderRadius: 7, color: "var(--text-soft)", fontSize: 14,
-              fontFamily: "var(--font-display, sans-serif)", transition: "all .12s ease",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--accent)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-soft)"; }}
-          >
-            {l.label}
-          </button>
-        ))}
+        {links.map((l) => {
+          const isActive = active === l.id;
+          return (
+            <button
+              key={l.id}
+              onClick={() => applyFilter(l.id)}
+              style={{
+                textAlign: "left", border: "none", cursor: "pointer",
+                padding: "8px 10px", borderRadius: 7, fontSize: 14,
+                fontFamily: "var(--font-display, sans-serif)",
+                background: isActive ? "rgba(242,184,75,0.12)" : "transparent",
+                color: isActive ? "var(--accent)" : "var(--text-soft)",
+                fontWeight: isActive ? 700 : 400,
+                transition: "all .12s ease",
+              }}
+              onMouseEnter={(e) => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--accent)"; } }}
+              onMouseLeave={(e) => { if (!isActive) { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-soft)"; } }}
+            >
+              {l.label}
+            </button>
+          );
+        })}
       </nav>
     </div>
   );

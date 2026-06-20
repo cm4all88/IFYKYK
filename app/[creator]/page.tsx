@@ -284,6 +284,7 @@ export default async function CreatorPage(props: {
 
   // Section links in order of importance — only those the creator actually has.
   const navLinks: { id: string; label: string }[] = [
+    { id: "all", label: "Everything" },
     { id: "sec-posts", label: "Posts" },
     ...(orderedSocialPosts.length ? [{ id: "sec-social", label: "Social posts" }] : []),
     ...((digitalProducts ?? []).length ? [{ id: "sec-store", label: "Store" }] : []),
@@ -360,7 +361,7 @@ export default async function CreatorPage(props: {
             )}
 
             {orderedSocialPosts.length > 0 && (
-              <section className="cp-center-section" id="sec-social">
+              <section className="cp-center-section" id="sec-social" data-cat="sec-social">
                 <span className="cp-rail-kicker">From around the web · {orderedSocialPosts.length}</span>
                 <SocialPostsGrid posts={orderedSocialPosts} />
               </section>
@@ -379,7 +380,7 @@ export default async function CreatorPage(props: {
             />
 
             {/* Support — sticky so it stays in reach while reading the feed */}
-            <div className="cp-support-block" id="sec-support">
+            <div className="cp-support-block" id="sec-support" data-cat="sec-support">
               <span className="cp-rail-kicker">Support {displayName}</span>
               <div className="cp-support-actions">
                 <SubscribeButton creatorProfileId={spotlight.id} />
@@ -395,10 +396,10 @@ export default async function CreatorPage(props: {
               </div>
             </div>
 
-            <div id="sec-merch"><CreatorMerch creatorProfileId={spotlight.id} handle={spotlight.handle} /></div>
+            <div id="sec-merch" data-cat="sec-merch"><CreatorMerch creatorProfileId={spotlight.id} handle={spotlight.handle} /></div>
 
             {digitalProducts.length > 0 && (
-              <div className="cp-rail-section" id="sec-store">
+              <div className="cp-rail-section" id="sec-store" data-cat="sec-store">
                 <span className="cp-rail-kicker">Digital products</span>
                 <div className="cp-rail-grid">
                   {digitalProducts.map((pr: any) => (
@@ -408,12 +409,12 @@ export default async function CreatorPage(props: {
               </div>
             )}
 
-            <div id="sec-market"><CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} /></div>
+            <div id="sec-market" data-cat="sec-market"><CreatorMarketplace creatorProfileId={spotlight.id} displayName={displayName} isSubscribed={isSubscribed} /></div>
 
-            <SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} />
+            <div data-cat="sec-addbacks"><SocialAddbacks creatorProfileId={spotlight.id} displayName={displayName} /></div>
 
             {campaigns.length > 0 && (
-              <div className="cp-rail-section" id="sec-campaigns">
+              <div className="cp-rail-section" id="sec-campaigns" data-cat="sec-campaigns">
                 <span className="cp-rail-kicker">Campaigns</span>
                 <div className="cp-campaign-list">
                   {campaigns.map((c: any) => {
@@ -509,6 +510,11 @@ export default async function CreatorPage(props: {
           }
           .cp-rail { min-width: 0; }
           .cp-center { min-width: 0; }
+
+          /* ── Rail-as-filter: show one category, collapse to a focused column ── */
+          .cp-hidden { display: none !important; }
+          .cp-shell.cp-filtered { grid-template-columns: 1fr !important; max-width: 760px; }
+          .cp-shell.cp-filtered .cp-rail--left { display: none !important; }
           .cp-identity { display: flex; align-items: center; gap: 22px; margin-bottom: 20px; }
           .cp-identity-text { text-align: left; }
           .cp-stage-avatar { width: 120px; height: 120px; }
