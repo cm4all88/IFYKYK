@@ -56,10 +56,29 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Clear implausible future post dates left by the old Instagram decoder.
+  const futureIso = new Date(Date.now() + 86_400_000).toISOString();
+  let datesCleared = 0;
+  try {
+    const { data: bad } = await (admin as any)
+      .from('social_posts')
+      .select('id')
+      .gt('original_posted_at', futureIso)
+      .limit(500);
+    for (const b of bad || []) {
+      const { error: e2 } = await (admin as any)
+        .from('social_posts')
+        .update({ original_posted_at: null })
+        .eq('id', b.id);
+      if (!e2) datesCleared++;
+    }
+  } catch { /* best-effort */ }
+
   return NextResponse.json({
     ok: true,
     scanned: posts?.length || 0,
     updated,
     failed: failed.length,
+    datesCleared,
   })
 }

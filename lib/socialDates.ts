@@ -3,8 +3,6 @@
 // stored original_posted_at is empty (oEmbed rarely provides it without a token).
 // BigInt() calls (not `123n` literals) keep this compatible with the build target.
 
-const IG_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-
 // TikTok: the high 32 bits of the numeric video id are the unix seconds.
 export function tiktokDateMs(url: string): number | null {
   const m = (url || "").match(/\/video\/(\d{6,25})/);
@@ -16,22 +14,12 @@ export function tiktokDateMs(url: string): number | null {
   return null;
 }
 
-// Instagram: the shortcode decodes (base64) to a media id whose high bits are
-// the timestamp (ms) offset from Instagram's epoch.
-export function instagramDateMs(url: string): number | null {
-  const m = (url || "").match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
-  if (!m) return null;
-  try {
-    let id = BigInt(0);
-    const sixtyFour = BigInt(64);
-    for (const ch of m[1].slice(0, 11)) {
-      const idx = IG_ALPHABET.indexOf(ch);
-      if (idx < 0) return null;
-      id = id * sixtyFour + BigInt(idx);
-    }
-    const ms = Number((id >> BigInt(22)) + BigInt("1314220021721"));
-    if (ms > 1_400_000_000_000 && ms < 4_000_000_000_000) return ms;
-  } catch { /* ignore */ }
+// Instagram: the shortcode-to-timestamp math is unreliable across IG's id
+// formats and was producing far-future dates (e.g. Sep 2040). We no longer
+// derive a date from the shortcode at all. IG posts order by a stored date
+// when present, otherwise by add order. Returning null keeps every caller
+// from writing or showing a garbage date.
+export function instagramDateMs(_url: string): number | null {
   return null;
 }
 
@@ -41,7 +29,8 @@ export function socialPostTimestamp(post: {
 }): number {
   if (post.original_posted_at) {
     const t = Date.parse(post.original_posted_at);
-    if (!Number.isNaN(t)) return t;
+    // Ignore implausible/future timestamps left by older buggy decoding.
+    if (!Number.isNaN(t) && t <= Date.now() + 86_400_000) return t;
   }
   const url = post.url || "";
   if (post.platform === "tiktok") return tiktokDateMs(url) ?? 0;

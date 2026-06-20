@@ -9,21 +9,26 @@ const PLATFORM_COLORS: Record<string, string> = {
   x: '#fff', twitter: '#fff', facebook: '#1877F2',
 }
 
+function igEmbed(u: string) {
+  const m = (u || '').match(/instagram\.com\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
+  if (!m) return null;
+  let t = m[1].toLowerCase(); if (t === 'reels') t = 'reel';
+  return `https://www.instagram.com/${t}/${m[2]}/embed/`;
+}
 function ttId(u: string) { const m = (u || '').match(/\/video\/(\d{6,25})/); return m ? m[1] : null }
 function ytId(u: string) { const m = (u || '').match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/); return m ? m[1] : null }
 function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : null }
 
-// Live embeds for the platforms that embed reliably.
-//  - TikTok: real live player, capped to its native width and centered so it
-//    never clips inside a fluid grid column (the old fixed-height-at-any-width
-//    bug). This is the "live" card.
-//  - YouTube: responsive 16:9.
-//  - X: live tweet, natural height.
-// Instagram is the one platform whose public iframe genuinely won't embed
-// reliably, so it uses a re-hosted thumbnail (from enrichInstagram) or a clean
-// link card — never a broken frame.
+// Live embeds, each sized for how that platform actually renders.
+//  - Instagram: real post/reel embed via the correct /reel/ or /p/ path,
+//    capped to IG's native width and centered (avoids the full-width stretch).
+//  - TikTok: live player, capped to native width, centered (no clip).
+//  - YouTube: responsive 16:9.  - X: live tweet.
+// If a URL can't be parsed we fall back to a thumbnail (if enriched) then a
+// clean link card — never a broken frame.
 function embedFor(platform: string, url: string): { src: string; aspect?: string; width?: number; height?: number; bg: string } | null {
   switch (platform) {
+    case 'instagram': { const src = igEmbed(url); return src ? { src, width: 540, height: 700, bg: '#fff' } : null }
     case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, width: 325, height: 740, bg: '#000' } : null }
     case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, aspect: '16 / 9', bg: '#000' } : null }
     case 'x':
@@ -48,8 +53,10 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
   const color = PLATFORM_COLORS[post.platform] || 'var(--accent, #F0B429)'
   const embed = embedFor(post.platform, post.url)
 
-  const formattedDate = post.original_posted_at
-    ? new Date(post.original_posted_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  // Only show a date we actually trust: parseable, after 2010, not in the future.
+  const ts = post.original_posted_at ? Date.parse(post.original_posted_at) : NaN
+  const formattedDate = (!Number.isNaN(ts) && ts > 1262304000000 && ts < Date.now() + 86400000)
+    ? new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : null
 
   return (
