@@ -332,6 +332,7 @@ export default async function CreatorPage(props: {
               bgUrl={(spotlight as any).bg_url ?? null}
               creatorProfileId={spotlight.id}
               subscriptionPrice={spotlight.subscription_price ? Number(spotlight.subscription_price) : null}
+              firstMonthOfferPct={Number((spotlight as any).first_month_offer_pct ?? 0)}
               backstageHandle={backstageHandle}
               bookingUrl={(spotlight as any).booking_url ?? null}
               bookingLabel={(spotlight as any).booking_label ?? null}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { entitlementsFor } from "@/lib/entitlements";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -17,30 +18,38 @@ export async function GET(req: NextRequest) {
 
   const profileId = profile.id;
 
-  // Last 30 days subscriber growth (daily counts)
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+  // Analytics window is gated by plan: Opening Act = 7 days, Starter+ = 30.
+  // lib/entitlements.ts is the source of truth. Enforced server-side so the cap
+  // cannot be exceeded by passing a larger ?days= value.
+  const { data: billing } = await (supabase as any)
+    .from("creator_billing").select("status, tier").eq("user_id", user.id).maybeSingle();
+  const maxDays = entitlementsFor(billing).analyticsMaxDays;
+  const requested = Number(new URL(req.url).searchParams.get("days")) || 30;
+  const windowDays = Math.min([7, 30, 90].includes(requested) ? requested : 30, maxDays);
+
+  const windowStart = new Date(Date.now() - windowDays * 86400000).toISOString();
 
   const [{ data: subs }, { data: tips }, { data: posts }] = await Promise.all([
     (supabase as any)
       .from("subscriptions")
       .select("created_at, status")
       .eq("creator_profile_id", profileId)
-      .gte("created_at", thirtyDaysAgo),
+      .gte("created_at", windowStart),
     (supabase as any)
       .from("tips")
       .select("amount_usd, created_at")
       .eq("creator_profile_id", profileId)
-      .gte("created_at", thirtyDaysAgo),
+      .gte("created_at", windowStart),
     (supabase as any)
       .from("posts")
       .select("created_at, status")
       .eq("creator_profile_id", profileId)
-      .gte("created_at", thirtyDaysAgo),
+      .gte("created_at", windowStart),
   ]);
 
-  // Build daily buckets for last 30 days
+  // Build daily buckets for the gated window
   const days: Record<string, { subs: number; tips: number; posts: number; revenue: number }> = {};
-  for (let i = 29; i >= 0; i--) {
+  for (let i = windowDays - 1; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000);
     const key = d.toISOString().slice(0, 10);
     days[key] = { subs: 0, tips: 0, posts: 0, revenue: 0 };
@@ -75,5 +84,5 @@ export async function GET(req: NextRequest) {
 
   const totalRevenue = (tips ?? []).reduce((s: number, t: any) => s + Number(t.amount_usd ?? 0), 0);
 
-  return NextResponse.json({ chart, totalSubs, totalRevenue });
+  return NextResponse.json({ chart, totalSubs, totalRevenue, days: windowDays, maxDays });
 }

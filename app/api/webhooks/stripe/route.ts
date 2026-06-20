@@ -114,8 +114,9 @@ export async function POST(req: NextRequest) {
     // ── Super Tip ────────────────────────────────────────────────────
     else if (type === "super_tip") {
       const amount = parseFloat(meta.amount_usd ?? "0");
-      const creatorReceives = Math.round(amount * 0.85 * 100) / 100;
-      const platformReceives = Math.round(amount * 0.15 * 100) / 100;
+      // Creator keeps 100% of the tip; platform revenue is the fan-paid recognition fee.
+      const creatorReceives = amount;
+      const platformReceives = parseFloat(meta.recognition_usd ?? "0");
       const badgeExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       await (supabase as any).from("super_tips").insert({
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
       await notifyCreator(supabase, meta.creator_profile_id,
         `⭐ Super Tip from ${meta.fan_display_name}: $${amount.toFixed(2)}`,
         `${meta.fan_display_name} just sent you a $${amount.toFixed(2)} Super Tip.`,
-        `<strong>${meta.fan_display_name}</strong> sent you a <strong>⭐ Super Tip of $${amount.toFixed(2)}</strong>. You receive $${creatorReceives.toFixed(2)} (85%).${msgNote}`
+        `<strong>${meta.fan_display_name}</strong> sent you a <strong>⭐ Super Tip of $${amount.toFixed(2)}</strong>. You receive $${creatorReceives.toFixed(2)} (100%).${msgNote}`
       );
     }
 

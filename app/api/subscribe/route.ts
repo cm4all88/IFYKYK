@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
+import { can } from "@/lib/entitlements";
+import { ensureFirstMonthCoupon } from "@/lib/offers";
 import { getSecrets } from "@/lib/settings";
 import { createHash } from "crypto";
 import { grossUpForStripe, appFeePercentForGrossUp } from "@/lib/fees";
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
-    .select("handle, kind, stripe_account_id, stripe_onboarded, subscription_price")
+    .select("handle, kind, user_id, stripe_account_id, stripe_onboarded, subscription_price, first_month_offer_pct")
     .eq("id", creatorProfileId)
     .maybeSingle();
 
@@ -142,6 +144,22 @@ export async function POST(req: NextRequest) {
     params.set("line_items[0][price_data][unit_amount]", String(fanCents));
     params.set("line_items[0][price_data][recurring][interval]", interval);
     params.set("line_items[0][quantity]", "1");
+  }
+
+  // ── First-month offer (Starter+ entitlement) ────────────────────
+  // A creator-set discount on the fan's FIRST invoice only. The creator keeps
+  // 100% of the discounted price; Spotlightly stays 0%. Applied only if the
+  // creator is CURRENTLY entitled, so a downgraded creator's stale offer never
+  // applies. Destination charge here runs on the platform account, so the
+  // coupon lives on the platform account (no Stripe-Account).
+  const offerPct = Number((profile as any).first_month_offer_pct) || 0;
+  if (offerPct > 0) {
+    const { data: cb } = await (supabase as any)
+      .from("creator_billing").select("status, tier").eq("user_id", (profile as any).user_id).maybeSingle();
+    if (can(cb, "firstMonthOffer")) {
+      const coupon = await ensureFirstMonthCoupon(STRIPE_SECRET_KEY, offerPct);
+      if (coupon) params.set("discounts[0][coupon]", coupon);
+    }
   }
 
   const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {

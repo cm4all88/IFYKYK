@@ -41,6 +41,7 @@ interface Props {
   bgUrl: string | null;
   creatorProfileId: string;
   subscriptionPrice: number | null;
+  firstMonthOfferPct?: number;
   backstageHandle: string | null;
   bookingUrl: string | null;
   bookingLabel: string | null;
@@ -58,7 +59,7 @@ interface Props {
 export default function CreatorStageClient({
   posts, isSubscribed, hasEarlyAccess, unlockedPostIds, likedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
-  creatorProfileId, subscriptionPrice, backstageHandle,
+  creatorProfileId, subscriptionPrice, firstMonthOfferPct = 0, backstageHandle,
   bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, totalLikes = 0, subscriberCount = 0, isFounder = false, socialLinks, children,
 }: Props) {
   const now = new Date();
@@ -489,6 +490,11 @@ export default function CreatorStageClient({
                                   <button type="submit" style={{ background: "var(--accent)", color: "#09090C", fontFamily: mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", padding: "9px 18px", borderRadius: 4, border: "none", cursor: "pointer" }}>
                                     Subscribe{subscriptionPrice ? ` · $${subscriptionPrice}/mo` : ""}
                                   </button>
+                                  {firstMonthOfferPct ? (
+                                    <span style={{ display: "block", marginTop: 6, fontFamily: mono, fontSize: 10, letterSpacing: "0.08em", color: "var(--accent)" }}>
+                                      ✦ First month {firstMonthOfferPct}% off
+                                    </span>
+                                  ) : null}
                                 </form>
                               )}
                               {purchaseLocked && <UnlockButton postId={p.id} price={p.unlock_price} viewerUserId={viewerUserId} />}

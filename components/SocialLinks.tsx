@@ -19,7 +19,7 @@ const PLATFORMS: { key: string; label: string; color: string; href: (v: string) 
   { key: "social_twitch", label: "Twitch", color: "#9146FF",
     icon: ico(<><path d="M5 4h14v9l-4 4h-3l-3 3v-3H5z" /><path d="M10 8.5v3.5M15 8.5v3.5" /></>), href: v => v },
   { key: "social_snapchat", label: "Snapchat", color: "#FFFC00",
-    icon: ico(<><path d="M12 3.2C8.3 3.2 6 5.8 6 9.4V16.6L7.5 18.1 9 16.6 10.5 18.1 12 16.6 13.5 18.1 15 16.6 16.5 18.1 18 16.6V9.4C18 5.8 15.7 3.2 12 3.2Z" fill="currentColor" stroke="none" /></>), href: v => v },
+    icon: ico(<><path d="M12 3.5C8.7 3.5 6.3 6.2 6.3 9.2V15.4Q8.2 18.2 10.1 15.4 12 18.2 13.9 15.4 15.8 18.2 17.7 15.4V9.2C17.7 6.2 15.3 3.5 12 3.5Z" /></>), href: v => v },
   { key: "social_discord", label: "Discord", color: "#5865F2",
     icon: ico(<><path d="M8 6h8a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3l-2 2v-2H8a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" /><circle cx="10" cy="12" r="0.7" fill="currentColor" stroke="none" /><circle cx="14" cy="12" r="0.7" fill="currentColor" stroke="none" /></>), href: v => v },
   { key: "social_substack", label: "Substack", color: "#FF6719",

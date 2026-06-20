@@ -27,6 +27,36 @@ export function nextTier(tier: TierKey): TierKey | null {
   return idx < order.length - 1 ? order[idx + 1] : null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Opening Act → Starter conversion threshold (Phase 1, item 2)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * A free (Opening Act) creator is "due for Starter" once they reach this many
+ * active paying subscribers — the moment Spotlightly is clearly working for
+ * them. Crossing it opens a RESPECTFUL conversion grace state: we ask them to
+ * move to Starter, but never lock their page, hide Subscribe, cancel fan subs,
+ * or interrupt supporters. They stay live indefinitely either way.
+ *
+ * ── Product knob ──
+ * Default 25 = roughly $125/mo at the $4.99 subscription floor, the point where
+ * Starter's $29 flat fee is clearly worth it (and well past it versus a 20% cut,
+ * which costs more than $29 once a creator earns about $145/mo). The first
+ * prompt should feel earned and fair, not like we are chasing the first dollar.
+ * This is the single place that decision lives.
+ */
+export const STARTER_CONVERSION_MIN_SUBS = 25;
+
+/**
+ * Is a free creator past the Starter threshold (and therefore in the conversion
+ * grace state)? Only ever true for status === "free": a creator who already
+ * pays (trial/active) is on a real plan, and a locked status is handled
+ * elsewhere. This never gates features and never locks anything.
+ */
+export function isStarterDue(status: string | null | undefined, subscriberCount: number): boolean {
+  return status === "free" && subscriberCount >= STARTER_CONVERSION_MIN_SUBS;
+}
+
 // Get or create Stripe Price IDs for each tier.
 // Called once at startup — caches IDs in env or creates them in Stripe.
 // Prices are stored as env vars: STRIPE_PRICE_STARTER, STRIPE_PRICE_GROWTH, etc.
@@ -93,18 +123,24 @@ export type BillingLockRow = {
   status?: string | null;
   trial_ends_at?: string | null;
   grace_ends_at?: string | null;
+  conversion_due_at?: string | null;
 } | null | undefined;
 
 /**
  * Is a creator locked out for non-payment?
+ *  - conversion grace (Starter-due)→ unlocked (never punish a creator the
+ *                                     moment Spotlightly starts working)
  *  - active                       → unlocked
  *  - trial (not expired)          → unlocked
  *  - past_due within grace window → unlocked (grace)
  *  - past_due, grace expired      → locked
+ *  - free (Opening Act)           → unlocked (no card, never billed)
  *  - cancelled / incomplete / no row → locked
  */
 export function isBillingLocked(b: BillingLockRow): boolean {
   if (!b || !b.status) return true;
+  if (b.conversion_due_at) return false;   // Starter-due grace — always live
+  if (b.status === "free") return false;   // Opening Act — free plan, always unlocked
   const now = Date.now();
   if (b.status === "active") return false;
   if (b.status === "trial") {
@@ -124,7 +160,7 @@ export async function isCreatorProfileLocked(supabase: any, creatorProfileId: st
     .from("creator_profiles").select("user_id").eq("id", creatorProfileId).maybeSingle();
   if (!prof?.user_id) return false; // unknown owner — don't block
   const { data: billing } = await supabase
-    .from("creator_billing").select("status, trial_ends_at, grace_ends_at").eq("user_id", prof.user_id).maybeSingle();
+    .from("creator_billing").select("status, trial_ends_at, grace_ends_at, conversion_due_at").eq("user_id", prof.user_id).maybeSingle();
   return isBillingLocked(billing);
 }
 

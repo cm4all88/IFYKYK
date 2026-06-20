@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { isBillingLocked } from "@/lib/billing";
+import { can } from "@/lib/entitlements";
 import { moderateChatMessage } from "@/lib/advisor";
 import { getSecrets } from "@/lib/settings";
 
@@ -77,12 +78,22 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: __billing } = await (supabase as any)
-    .from("creator_billing").select("status, trial_ends_at, grace_ends_at").eq("user_id", user.id).maybeSingle();
+    .from("creator_billing").select("status, tier, trial_ends_at, grace_ends_at").eq("user_id", user.id).maybeSingle();
   if (isBillingLocked(__billing)) {
     return NextResponse.json({ error: "Add a payment method in Billing to publish.", billingLocked: true }, { status: 402 });
   }
 
   const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt, tags, postType, expiresAt, scheduledAt, isPinned, campaignId, requiredTierId } = await req.json();
+
+  // Scheduling is a Starter entitlement. Publishing now stays free (Opening Act).
+  // Enforced here, not just in the UI, so the gate can't be bypassed.
+  if (scheduledAt && !can(__billing, "schedulePosts")) {
+    return NextResponse.json({
+      error: "Scheduling posts is a Starter feature. Upgrade to schedule ahead of time.",
+      upgradeRequired: true,
+      feature: "schedulePosts",
+    }, { status: 403 });
+  }
 
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")

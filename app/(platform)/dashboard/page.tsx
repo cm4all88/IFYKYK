@@ -5,6 +5,9 @@ import { useState, useEffect, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-client";
+import { entitlementsFor, type Entitlements } from "@/lib/entitlements";
+import { advisorRecsFor } from "@/lib/advisorRecs";
+import { FIRST_MONTH_OFFER_OPTIONS } from "@/lib/offers";
 import ThemeToggle from "@/components/ThemeToggle";
 import PaneTooltip from "@/components/PaneTooltip";
 import VideoUpload from "@/components/VideoUpload";
@@ -83,10 +86,11 @@ export default function DashboardPage() {
   }, []);
 
   // ── Billing lock — bounce a locked creator to the Billing pane ──
-  const [billingLock, setBillingLock] = useState<{ locked: boolean; graceDaysLeft: number | null; status?: string } | null>(null);
+  const [billingLock, setBillingLock] = useState<{ locked: boolean; graceDaysLeft: number | null; status?: string; canSchedule?: boolean; canFirstMonthOffer?: boolean; ent?: Entitlements; conversionDue?: boolean } | null>(null);
   useEffect(() => {
     fetch("/api/billing").then(r => r.json()).then(d => {
-      setBillingLock({ locked: !!d.locked, graceDaysLeft: d.graceDaysLeft ?? null, status: d.billing?.status });
+      const ent = entitlementsFor(d.billing);
+      setBillingLock({ locked: !!d.locked, graceDaysLeft: d.graceDaysLeft ?? null, status: d.billing?.status, canSchedule: ent.schedulePosts, canFirstMonthOffer: ent.firstMonthOffer, ent, conversionDue: !!d.conversionDue });
     }).catch(() => {});
   }, []);
   useEffect(() => {
@@ -376,6 +380,23 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Opening Act → Starter conversion grace (item 2): respectful, persistent, never a lock */}
+          {billingLock?.conversionDue && !billingLock?.locked && pane !== "billing" && (
+            <div style={{ display:"flex", alignItems:"flex-start", gap:"var(--s-4)", flexWrap:"wrap", border:"1px solid var(--accent-border)", background:"var(--accent-soft)", borderRadius:"var(--r-2)", padding:"14px 18px", marginBottom:"var(--s-5)" }}>
+              <div style={{ flex:1, minWidth:240 }}>
+                <p style={{ fontFamily:"var(--font-serif)", fontSize:19, color:"#fff", margin:"0 0 4px", lineHeight:1.3 }}>
+                  Your supporters are showing up.
+                </p>
+                <p style={{ fontSize:13, color:"var(--muted)", margin:0, lineHeight:1.55 }}>
+                  Spotlightly is working for you, so it's a good time to move to Starter. It unlocks post scheduling, first-month offers, and 30-day analytics. Your page stays live and your supporters keep their subscriptions either way. No rush.
+                </p>
+              </div>
+              <button type="button" onClick={() => setPane("billing")} className="btn btn--primary" style={{ flexShrink:0, alignSelf:"center" }}>
+                Set up Starter
+              </button>
+            </div>
+          )}
+
           {pane === "overview" && active && (
             <OverviewPane
               profile={active}
@@ -392,11 +413,13 @@ export default function DashboardPage() {
               profile={active}
               onSaved={refresh}
               setErr={setErrMsg}
+              canFirstMonthOffer={billingLock?.canFirstMonthOffer}
+              onUpgrade={() => setPane("billing")}
             />
           )}
 
           {pane === "posts" && active && (
-            <PostsPane profile={active} setErr={setErrMsg} />
+            <PostsPane profile={active} setErr={setErrMsg} canSchedule={billingLock?.canSchedule} onUpgrade={() => setPane("billing")} />
           )}
 
           {pane === "marketplace" && active && (
@@ -430,10 +453,10 @@ export default function DashboardPage() {
             <WishlistPane profile={active} />
           )}
           {pane === "analytics" && active && (
-            <AnalyticsPane profile={active} />
+            <AnalyticsPane profile={active} onUpgrade={() => setPane("billing")} />
           )}
           {pane === "advisor" && active && (
-            <AdvisorPane profile={active} />
+            <AdvisorPane profile={active} ent={billingLock?.ent} onUpgrade={() => setPane("billing")} onNavigate={(p) => setPane(p as Pane)} />
           )}
           {pane === "payments" && spotlight && (
             <PaymentsPane profile={spotlight} />
@@ -729,10 +752,14 @@ function ProfilePane({
   profile,
   onSaved,
   setErr,
+  canFirstMonthOffer,
+  onUpgrade,
 }: {
   profile: Profile;
   onSaved: () => void;
   setErr: (msg: string | null) => void;
+  canFirstMonthOffer?: boolean;
+  onUpgrade?: () => void;
 }) {
   const supabase = createClient();
   const [displayName, setDisplayName] = useState(profile.display_name ?? "");
@@ -751,6 +778,7 @@ function ProfilePane({
   const [freeTierPerks, setFreeTierPerks] = useState<string>(((profile as any).free_tier_perks ?? []).join("\n"));
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [firstMonthOfferPct, setFirstMonthOfferPct] = useState<number>((profile as any).first_month_offer_pct ?? 0);
 
   async function save(e: FormEvent) {
     e.preventDefault();
@@ -781,6 +809,7 @@ function ProfilePane({
       free_tier_name: freeTierName.trim() || null,
       free_tier_blurb: freeTierBlurb.trim() || null,
       free_tier_perks: freeTierPerks.split("\n").map((s) => s.trim()).filter(Boolean),
+      first_month_offer_pct: firstMonthOfferPct,
     }).eq("user_id", profile.user_id).eq("kind", profile.kind);
 
     if (error || error2) setErr((error || error2).message);
@@ -947,6 +976,34 @@ function ProfilePane({
               <input className="input" type="text" placeholder="Book a session" value={bookingLabel} onChange={e => setBookingLabel(e.target.value)} />
             </div>
           </div>
+        </div>
+
+        {/* First-month offer — Starter entitlement (lib/entitlements.ts).
+            Server enforces the real gate in the subscribe routes; this is the UI. */}
+        <div className="form-field">
+          <label className="label">First-month offer</label>
+          {canFirstMonthOffer === false ? (
+            <div style={{ border:"1px solid var(--accent-border)", background:"var(--accent-soft)", borderRadius:"var(--r-1)", padding:"12px 14px", maxWidth:420 }}>
+              <p style={{ fontSize:13, color:"var(--text)", margin:0, lineHeight:1.5 }}>
+                First-month offers are a <strong>Starter</strong> feature. Give new subscribers a discount on their first month to win them over. You keep 100% of whatever they pay.
+              </p>
+              <button type="button" onClick={() => onUpgrade?.()} className="btn btn--primary" style={{ marginTop:10, fontSize:12, padding:"6px 14px" }}>
+                See Starter
+              </button>
+            </div>
+          ) : (
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+              <button type="button" onClick={() => setFirstMonthOfferPct(0)} className={`composer-chip${firstMonthOfferPct===0?" composer-chip--on":""}`}>Off</button>
+              {FIRST_MONTH_OFFER_OPTIONS.map((p) => (
+                <button key={p} type="button" onClick={() => setFirstMonthOfferPct(p)} className={`composer-chip${firstMonthOfferPct===p?" composer-chip--on":""}`}>{p}% off</button>
+              ))}
+              <span style={{ fontSize:12, color:"var(--muted)" }}>
+                {firstMonthOfferPct > 0
+                  ? `New subscribers pay ${firstMonthOfferPct}% less their first month. You keep 100%.`
+                  : "No first-month discount."}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="form-actions">
@@ -1335,7 +1392,7 @@ function CampaignsPane({ profile }: { profile: Profile }) {
 // ──────────────────────────────────────────────────────────────────
 // PANE: Advisor — AI monetization strategist
 // ──────────────────────────────────────────────────────────────────
-function AdvisorPane({ profile }: { profile: Profile }) {
+function AdvisorPane({ profile, ent, onUpgrade, onNavigate }: { profile: Profile; ent?: Entitlements; onUpgrade?: () => void; onNavigate?: (pane: string) => void }) {
   const [messages, setMessages] = React.useState<{ role:"user"|"assistant"; content:string }[]>([]);
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -1420,6 +1477,41 @@ function AdvisorPane({ profile }: { profile: Profile }) {
           Personalized to your profile. Specific advice for your situation — not generic tips.
         </p>
       </div>
+
+      {/* Recommended next steps — rule-based leverage prompts, gated by plan */}
+      {ent && (
+        <div style={{ padding:"var(--s-5) var(--s-8)", borderBottom:"1px solid var(--border)", flexShrink:0 }}>
+          <p className="kicker" style={{ marginBottom:"var(--s-3)" }}>Recommended next steps</p>
+          <div style={{ display:"flex", gap:"var(--s-3)", overflowX:"auto", paddingBottom:4 }}>
+            {advisorRecsFor(ent).map(({ rec, locked }) => (
+              <div key={rec.id} style={{
+                flex:"0 0 268px", display:"flex", flexDirection:"column",
+                border:`1px solid ${locked ? "var(--accent-border)" : "var(--border)"}`,
+                background: locked ? "var(--accent-soft)" : "var(--surface)",
+                borderRadius:"var(--r-2)", padding:"14px 16px",
+              }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6 }}>
+                  <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".14em", textTransform:"uppercase", color: rec.lever === "earn" ? "var(--accent)" : "var(--muted)" }}>
+                    {rec.lever === "earn" ? "Earn more" : "Save time"}
+                  </span>
+                  {locked && <span style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".14em", textTransform:"uppercase", color:"var(--accent)" }}>· Starter</span>}
+                </div>
+                <p style={{ fontFamily:"var(--font-serif)", fontSize:17, color:"#fff", margin:"0 0 6px", lineHeight:1.25 }}>{rec.title}</p>
+                <p style={{ fontSize:12.5, color:"var(--muted)", lineHeight:1.55, margin:"0 0 12px", flex:1 }}>{rec.body}</p>
+                {locked ? (
+                  <button type="button" onClick={() => onUpgrade?.()} className="btn btn--primary" style={{ fontSize:12, padding:"6px 12px", alignSelf:"flex-start" }}>
+                    See Starter
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => onNavigate?.(rec.pane)} className="btn btn--secondary" style={{ fontSize:12, padding:"6px 12px", alignSelf:"flex-start" }}>
+                    {rec.actionLabel}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={{ flex:1, overflowY:"auto", padding:"var(--s-6) var(--s-8)", display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
@@ -2578,7 +2670,7 @@ function LivePane({ profile }: { profile: Profile }) {
 }
 
 
-function AnalyticsPane({ profile }: { profile: Profile }) {
+function AnalyticsPane({ profile, onUpgrade }: { profile: Profile; onUpgrade?: () => void }) {
   const [data, setData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [view, setView] = React.useState<"subs" | "revenue" | "posts">("subs");
@@ -2602,6 +2694,8 @@ function AnalyticsPane({ profile }: { profile: Profile }) {
   const chart = data?.chart ?? [];
   const totalSubs = data?.totalSubs ?? 0;
   const totalRevenue = data?.totalRevenue ?? 0;
+  const windowDays = data?.days ?? 30;
+  const canExpandAnalytics = (data?.maxDays ?? 30) >= 30;
 
   const maxVal = Math.max(...chart.map((d: any) => view === "subs" ? d.subs : view === "revenue" ? d.revenue : d.posts), 1);
 
@@ -2620,8 +2714,8 @@ function AnalyticsPane({ profile }: { profile: Profile }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, marginBottom: "var(--s-7)" }}>
         {[
           { label: "Active subscribers", val: totalSubs.toLocaleString() },
-          { label: "Tips earned (30d)", val: `$${totalRevenue.toFixed(2)}` },
-          { label: "Posts (30d)", val: chart.reduce((s: number, d: any) => s + d.posts, 0).toLocaleString() },
+          { label: `Tips earned (${windowDays}d)`, val: `$${totalRevenue.toFixed(2)}` },
+          { label: `Posts (${windowDays}d)`, val: chart.reduce((s: number, d: any) => s + d.posts, 0).toLocaleString() },
         ].map(s => (
           <div key={s.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-5) var(--s-5)" }}>
             <p style={{ fontFamily: serif, fontSize: 32, fontWeight: 300, color: "#fff", margin: "0 0 4px", lineHeight: 1 }}>{s.val}</p>
@@ -2629,6 +2723,18 @@ function AnalyticsPane({ profile }: { profile: Profile }) {
           </div>
         ))}
       </div>
+
+      {/* Opening Act → Starter: 30-day analytics upsell */}
+      {!canExpandAnalytics && (
+        <div style={{ border: "1px solid var(--accent-border)", background: "var(--accent-soft)", borderRadius: "var(--r-2)", padding: "12px 14px", marginBottom: "var(--s-5)", maxWidth: 540 }}>
+          <p style={{ fontSize: 13, color: "var(--text)", margin: 0, lineHeight: 1.5 }}>
+            You're seeing the last 7 days. <strong>Starter</strong> unlocks 30-day analytics so you can spot trends, not just this week.
+          </p>
+          <button type="button" onClick={() => onUpgrade?.()} className="btn btn--primary" style={{ marginTop: 10, fontSize: 12, padding: "6px 14px" }}>
+            See Starter
+          </button>
+        </div>
+      )}
 
       {/* Chart toggle */}
       <div style={{ display: "flex", gap: 2, marginBottom: "var(--s-4)" }}>
@@ -2645,7 +2751,7 @@ function AnalyticsPane({ profile }: { profile: Profile }) {
       {/* Bar chart */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6)" }}>
         <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--muted)", marginBottom: "var(--s-5)" }}>
-          Last 14 days
+          Last {Math.min(windowDays, 14)} days
         </p>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 140 }}>
           {visible.map((d: any) => {
@@ -3116,7 +3222,7 @@ function ChannelsPane({ profile }: { profile: Profile }) {
 // ──────────────────────────────────────────────────────────────────
 
 
-function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
+function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profile; setErr: (m: string | null) => void; canSchedule?: boolean; onUpgrade?: () => void }) {
   const supabase = createClient();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -3384,11 +3490,24 @@ function PostsPane({ profile, setErr }: { profile: Profile; setErr: (m: string |
                     className="composer-input" style={{ colorScheme:"dark", maxWidth:240 }} />
                 </div>
 
-                {/* Schedule */}
+                {/* Schedule — Starter entitlement (lib/entitlements.ts). Default picker
+                    while entitlement is still loading so paying creators are never nagged;
+                    the server enforces the real gate either way. */}
                 <div>
                   <p className="composer-label">Schedule <span className="composer-label-note">— leave blank to publish now</span></p>
-                  <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)}
-                    className="composer-input" style={{ colorScheme:"dark", maxWidth:240 }} />
+                  {canSchedule === false ? (
+                    <div style={{ border:"1px solid var(--accent-border)", background:"var(--accent-soft)", borderRadius:"var(--r-1)", padding:"12px 14px", maxWidth:360 }}>
+                      <p style={{ fontSize:13, color:"var(--text)", margin:0, lineHeight:1.5 }}>
+                        Scheduling is a <strong>Starter</strong> feature. Upgrade to line up posts ahead of time and keep a steady cadence.
+                      </p>
+                      <button type="button" onClick={() => onUpgrade?.()} className="btn btn--primary" style={{ marginTop:10, fontSize:12, padding:"6px 14px" }}>
+                        See Starter
+                      </button>
+                    </div>
+                  ) : (
+                    <input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)}
+                      className="composer-input" style={{ colorScheme:"dark", maxWidth:240 }} />
+                  )}
                 </div>
 
                 {/* Pin */}

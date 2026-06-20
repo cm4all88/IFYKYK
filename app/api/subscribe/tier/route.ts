@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
+import { can } from "@/lib/entitlements";
+import { ensureFirstMonthCoupon } from "@/lib/offers";
 import { getSecrets } from "@/lib/settings";
 import { grossUpForStripe } from "@/lib/fees";
 
@@ -18,7 +20,7 @@ export async function POST(req: NextRequest) {
   // Fetch tier + creator
   const { data: tier } = await (supabase as any)
     .from("subscription_tiers")
-    .select("*, creator:creator_profile_id(id, handle, display_name, stripe_account_id)")
+    .select("*, creator:creator_profile_id(id, handle, display_name, stripe_account_id, user_id, first_month_offer_pct)")
     .eq("id", tierId)
     .eq("is_active", true)
     .maybeSingle();
@@ -70,6 +72,21 @@ export async function POST(req: NextRequest) {
 
   if (user?.id) params.set("metadata[fan_user_id]", user.id);
   if (user?.email) params.set("customer_email", user.email);
+
+  // ── First-month offer (Starter+ entitlement) ────────────────────
+  // Discount the fan's FIRST invoice only. Creator keeps 100% of the discounted
+  // price; Spotlightly stays 0%. Applied only if the creator is currently
+  // entitled (handles downgrade). Direct charge here runs on the creator's
+  // connected account, so the coupon lives on that account.
+  const offerPct = Number(tier.creator.first_month_offer_pct) || 0;
+  if (offerPct > 0) {
+    const { data: cb } = await (supabase as any)
+      .from("creator_billing").select("status, tier").eq("user_id", tier.creator.user_id).maybeSingle();
+    if (can(cb, "firstMonthOffer")) {
+      const coupon = await ensureFirstMonthCoupon(STRIPE_SECRET_KEY, offerPct, tier.creator.stripe_account_id);
+      if (coupon) params.set("discounts[0][coupon]", coupon);
+    }
+  }
 
   // Create checkout session on the creator's connected account
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {

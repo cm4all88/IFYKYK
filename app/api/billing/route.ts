@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
-import { tierForCount, getPriceId, getOrCreateStripePrices, TIERS, type TierKey, isBillingLocked } from "@/lib/billing";
+import { tierForCount, getPriceId, getOrCreateStripePrices, TIERS, type TierKey, isBillingLocked, isStarterDue } from "@/lib/billing";
 
 // GET — current billing status for the logged-in creator
 export async function GET() {
@@ -29,6 +29,27 @@ export async function GET() {
   const correctTier = tierForCount(subscriberCount);
   const days = (iso: string | null) => iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)) : null;
 
+  // ── Opening Act → Starter conversion grace (item 2) ──
+  // A free creator who has crossed the Starter threshold is "Starter-due".
+  // We mark the moment (conversion_due_at) so the dashboard can prompt them
+  // respectfully. This NEVER locks the page, hides Subscribe, or touches a
+  // single fan subscription — the creator stays 'free' and fully live.
+  const starterDue = isStarterDue(billing.status, subscriberCount);
+  let conversionDueAt: string | null = billing.conversion_due_at ?? null;
+  try {
+    if (starterDue && !conversionDueAt) {
+      // First time across the line — stamp it.
+      conversionDueAt = new Date().toISOString();
+      await (supabase as any).from("creator_billing")
+        .update({ conversion_due_at: conversionDueAt }).eq("user_id", user.id);
+    } else if (!starterDue && conversionDueAt) {
+      // Dropped back below the threshold, or converted to a paid plan — ease off.
+      conversionDueAt = null;
+      await (supabase as any).from("creator_billing")
+        .update({ conversion_due_at: null }).eq("user_id", user.id);
+    }
+  } catch { /* marker is best-effort; the computed flag below still drives the UI */ }
+
   return NextResponse.json({
     billing,
     subscriberCount,
@@ -39,6 +60,8 @@ export async function GET() {
     graceDaysLeft: billing.status === "past_due" ? days(billing.grace_ends_at) : null,
     locked: isBillingLocked(billing),
     needsUpgrade: correctTier !== billing.tier && billing.status === "active",
+    conversionDue: starterDue,
+    conversionDueAt,
   });
 }
 
@@ -77,6 +100,7 @@ export async function POST(req: NextRequest) {
         trial_ends_at: trialEnd,
         current_period_end: trialEnd,
         grace_ends_at: null,
+        conversion_due_at: null,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
     }
@@ -96,7 +120,7 @@ export async function POST(req: NextRequest) {
     const trialEnd = new Date(Date.now() + 30 * 86400000).toISOString();
     const { data: billing } = await (supabase as any)
       .from("creator_billing")
-      .upsert({ user_id: user.id, status: "trial", tier: "starter", trial_ends_at: trialEnd }, { onConflict: "user_id" })
+      .upsert({ user_id: user.id, status: "trial", tier: "starter", trial_ends_at: trialEnd, conversion_due_at: null }, { onConflict: "user_id" })
       .select().single();
     return NextResponse.json({ billing });
   }

@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
-import { MARKETPLACE_MIN_CENTS } from "@/lib/fees";
-
-const PLATFORM_FEE = 0.05; // 5%
+import { MARKETPLACE_MIN_CENTS, grossUpForStripe } from "@/lib/fees";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -40,23 +38,25 @@ export async function POST(req: NextRequest) {
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
-  const amountCents = Math.round(listing.price_usd * 100);
+  const amountCents = Math.round(listing.price_usd * 100); // creator nets 100% of this
   if (amountCents < MARKETPLACE_MIN_CENTS) {
     return NextResponse.json({ error: "This item is priced below the minimum and can\u2019t be sold." }, { status: 400 });
   }
-  const feeCents = Math.round(amountCents * PLATFORM_FEE);
+  // Fan covers Stripe so the creator receives the full listed price; Spotlightly nets ~$0.
+  const totalCents = grossUpForStripe(amountCents); // what the fan pays
 
   const params = new URLSearchParams({
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": listing.title,
     "line_items[0][price_data][product_data][description]": listing.description || `From @${listing.creator.handle}`,
-    "line_items[0][price_data][unit_amount]": String(amountCents),
+    "line_items[0][price_data][unit_amount]": String(totalCents),
     "line_items[0][quantity]": "1",
     mode: "payment",
     success_url: `${appUrl}/${listing.creator.handle}?purchase=success`,
     cancel_url: `${appUrl}/${listing.creator.handle}`,
-    "payment_intent_data[application_fee_amount]": String(feeCents),
+    // Creator receives the full listed price; the grossed-up remainder covers Stripe.
     "payment_intent_data[transfer_data][destination]": listing.creator.stripe_account_id,
+    "payment_intent_data[transfer_data][amount]": String(amountCents),
     "shipping_address_collection[allowed_countries][0]": "US",
     "shipping_address_collection[allowed_countries][1]": "CA",
     "shipping_address_collection[allowed_countries][2]": "GB",
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     buyer_user_id: user.id,
     buyer_email: user.email,
     amount_usd: listing.price_usd,
-    platform_fee_usd: listing.price_usd * PLATFORM_FEE,
+    platform_fee_usd: 0,
     stripe_session_id: session.id,
   });
 

@@ -35,15 +35,23 @@ export function minChargeCents(cutPct: number): number {
   return Math.ceil(breakeven / 100) * 100;
 }
 
-// Percentage cuts on the streams where Spotlightly takes a share.
-export const DIGITAL_CUT = 0.05;
-export const MARKETPLACE_CUT = 0.05;
-export const SUPER_TIP_CUT = 0.15;
+// Spotlightly takes 0% of creator earnings. Subs, tips, campaigns, marketplace,
+// merch, digital products, and donations all net the creator 100% (fans cover
+// Stripe via grossUpForStripe). The only tip-related platform revenue is the
+// Super Tip recognition fee below, which the fan pays ON TOP of the tip and is
+// never deducted from the creator's tip.
 
-// Pre-computed price floors so each cut always clears Stripe.
-export const DIGITAL_MIN_CENTS = minChargeCents(DIGITAL_CUT);         // $15
-export const MARKETPLACE_MIN_CENTS = minChargeCents(MARKETPLACE_CUT); // $15
-export const SUPER_TIP_MIN_CENTS = minChargeCents(SUPER_TIP_CUT);     // $3
+// Super Tip recognition fee: a fan-paid premium for the badge / pin / highlight,
+// charged on top of the tip and kept by the platform. Tunable.
+export const SUPER_TIP_RECOGNITION_PCT = 0.15;
+export function superTipRecognitionCents(tipCents: number): number {
+  return Math.round(tipCents * SUPER_TIP_RECOGNITION_PCT);
+}
+
+// UX price floors. No longer tied to any platform cut (there is none); kept only
+// so micro-sales aren't dominated by Stripe's fixed $0.30 fee. Safe to lower.
+export const MARKETPLACE_MIN_CENTS = 1500; // $15
+export const SUPER_TIP_MIN_CENTS = 300;    // $3
 
 export function dollars(cents: number): string {
   return `$${(cents / 100).toFixed(0)}`;
