@@ -3612,9 +3612,12 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
 // ──────────────────────────────────────────────────────────────────
 function SocialPane({ profile }: { profile: Profile }) {
   const supabase = createClient();
-  const [tab, setTab] = React.useState<"posts" | "addbacks">("posts");
+  const [tab, setTab] = React.useState<"posts" | "addbacks" | "orders">("posts");
   const [addbacks, setAddbacks] = React.useState<any[]>([]);
   const [loadingAb, setLoadingAb] = React.useState(true);
+  const [orders, setOrders] = React.useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = React.useState(true);
+  const [marking, setMarking] = React.useState<string | null>(null);
   const [platform, setPlatform] = React.useState("instagram");
   const [priceUsd, setPriceUsd] = React.useState("9.99");
   const [description, setDescription] = React.useState("");
@@ -3640,7 +3643,30 @@ function SocialPane({ profile }: { profile: Profile }) {
     setLoadingAb(false);
   }
 
+  async function loadOrders() {
+    setLoadingOrders(true);
+    const res = await fetch(`/api/social-addbacks/orders`);
+    const data = await res.json();
+    setOrders(data.orders ?? []);
+    setLoadingOrders(false);
+  }
+
+  // Load orders on mount so the tab badge reflects what's waiting.
+  React.useEffect(() => { loadOrders(); }, []);
   React.useEffect(() => { if (tab === "addbacks") loadAddbacks(); }, [tab]);
+
+  async function markDelivered(orderId: string) {
+    setMarking(orderId);
+    await fetch(`/api/social-addbacks/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    await loadOrders();
+    setMarking(null);
+  }
+
+  const pendingCount = orders.filter(o => o.status === "paid").length;
 
   async function createAddback() {
     setSaving(true);
@@ -3668,19 +3694,66 @@ function SocialPane({ profile }: { profile: Profile }) {
       </div>
 
       <div style={{ display: "flex", gap: 2, marginBottom: "var(--s-7)", borderBottom: "1px solid var(--border)" }}>
-        {(["posts", "addbacks"] as const).map(t => (
+        {(["posts", "addbacks", "orders"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: "10px 20px", background: "none", border: "none", cursor: "pointer",
             fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase",
             color: tab === t ? "var(--accent)" : "var(--muted)",
             borderBottom: tab === t ? "2px solid var(--accent)" : "2px solid transparent",
           }}>
-            {t === "posts" ? "Social Posts" : "Sell Follow-Backs"}
+            {t === "posts" ? "Social Posts" : t === "addbacks" ? "Sell Follow-Backs" : "Orders to fulfill"}
+            {t === "orders" && pendingCount > 0 && (
+              <span style={{ marginLeft: 6, background: "var(--accent)", color: "#0a0a0d", borderRadius: 99, fontSize: 9, padding: "1px 6px", fontWeight: 700 }}>{pendingCount}</span>
+            )}
           </button>
         ))}
       </div>
 
       {tab === "posts" && <SocialPostsManager />}
+
+      {tab === "orders" && (
+        <div style={{ maxWidth: 600 }}>
+          <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: "var(--s-5)", lineHeight: 1.6 }}>
+            When a fan buys a follow-back, it shows up here with their handle. Go follow them on the platform, then mark it done. You keep 100%.
+          </p>
+
+          {loadingOrders ? (
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>
+          ) : orders.length === 0 ? (
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-10)", textAlign: "center" }}>
+              <p style={{ fontFamily: "var(--font-serif)", fontSize: 18, fontStyle: "italic", color: "#fff", marginBottom: "var(--s-2)" }}>No follow-back orders yet.</p>
+              <p style={{ fontSize: 13, color: "var(--muted)" }}>When someone buys one, you'll see exactly who to follow right here.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {orders.map(o => {
+                const meta = PLATFORMS.find(p => p.id === o.platform);
+                const done = o.status === "delivered";
+                return (
+                  <div key={o.id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, opacity: done ? 0.55 : 1 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, color: "var(--text)", margin: "0 0 2px" }}>
+                        {meta?.emoji} Follow <span style={{ color: "var(--accent)" }}>@{o.fan_handle}</span> on {meta?.label ?? o.platform}
+                      </p>
+                      <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)", margin: "0 0 2px" }}>
+                        ${Number(o.amount_usd).toFixed(2)} · {new Date(o.created_at).toLocaleDateString()}
+                      </p>
+                      {o.message && <p style={{ fontSize: 12, color: "var(--muted)", margin: 0, fontStyle: "italic" }}>“{o.message}”</p>}
+                    </div>
+                    {done ? (
+                      <span style={{ flexShrink: 0, fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--accent)" }}>✓ Done</span>
+                    ) : (
+                      <button onClick={() => markDelivered(o.id)} disabled={marking === o.id} className="btn btn--primary btn--small" style={{ flexShrink: 0, fontSize: 11 }}>
+                        {marking === o.id ? "Saving…" : "Mark as done"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {tab === "addbacks" && (
         <div style={{ maxWidth: 600 }}>

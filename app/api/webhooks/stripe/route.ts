@@ -293,6 +293,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Social follow-back (mark paid + tell the creator who to follow) ──
+    else if (type === "social_addback") {
+      const { data: order } = await (supabase as any)
+        .from("social_addback_orders")
+        .select("id, addback_id, fan_handle, message, amount_usd, status")
+        .eq("stripe_session_id", s.id)
+        .maybeSingle();
+
+      // Guard on 'pending' so webhook retries never double-notify.
+      if (order && order.status === "pending") {
+        await (supabase as any).from("social_addback_orders")
+          .update({ status: "paid" }).eq("id", order.id);
+
+        const { data: addback } = await (supabase as any)
+          .from("social_addbacks")
+          .select("platform, creator_profile_id")
+          .eq("id", order.addback_id)
+          .maybeSingle();
+
+        if (addback) {
+          const labels: Record<string, string> = {
+            instagram: "Instagram", tiktok: "TikTok", youtube: "YouTube",
+            twitter: "X / Twitter", twitch: "Twitch", discord: "Discord",
+            spotify: "Spotify", snapchat: "Snapchat",
+          };
+          const platformLabel = labels[addback.platform] ?? addback.platform;
+          const amt = Number(order.amount_usd ?? (s.amount_total ?? 0) / 100);
+          await notifyCreator(supabase, addback.creator_profile_id,
+            `${platformLabel} follow-back — $${amt.toFixed(2)}`,
+            `Follow @${order.fan_handle} on ${platformLabel}.`,
+            `New follow-back order. Follow <strong>@${order.fan_handle}</strong> on ${platformLabel}.${order.message ? `<br><br>Their note: <em>"${order.message}"</em>` : ""}<br><br>You keep 100%. Open Social in your dashboard to mark it done once you've followed back.`
+          );
+        }
+      }
+    }
+
     // ── Comment Boost ────────────────────────────────────────────────
     else if (type === "comment_boost") {
       const boostedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
