@@ -12,6 +12,21 @@ import CampaignDonateButton from "./CampaignDonateButton";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
 import TierPicker from "./TierPicker";
+import NowStrip from "./NowStrip";
+import TheRoom from "./TheRoom";
+
+// Coarse relative time for the NOW STRIP, computed server-side to avoid hydration drift.
+function ago(iso: string | null): string | null {
+  if (!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = diff / 3.6e6;
+  const d = diff / 8.64e7;
+  if (h < 1) return "just now";
+  if (h < 24) return `${Math.floor(h)}h ago`;
+  if (d < 2) return "yesterday";
+  if (d < 7) return `${Math.floor(d)}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
 import FreeTierCard from "./FreeTierCard";
 import ReferralTracker from "./ReferralTracker";
 import MessageButton from "./MessageButton";
@@ -295,6 +310,14 @@ export default async function CreatorPage(props: {
     { id: "sec-support", label: "Subscribe & message" },
   ];
 
+  const lastActiveLabel = ago((posts as any[])?.[0]?.created_at ?? null);
+  const c0: any = (campaigns ?? [])[0];
+  const campaignGoal = c0 ? Number(c0.goal_amount ?? c0.goal ?? 0) : 0;
+  const campaignNow = c0
+    ? { title: String(c0.title ?? "the goal"), pct: campaignGoal > 0 ? Math.round((Number(c0.raised ?? 0) / campaignGoal) * 100) : 0 }
+    : null;
+  const topSupporters = ((data.superTips ?? []) as any[]).map((t) => ({ name: String(t.fan_display_name ?? ""), amount: Number(t.amount_usd ?? 0) }));
+
   return (
     <>
       <SiteHeader />
@@ -317,6 +340,28 @@ export default async function CreatorPage(props: {
 
           {/* ── CENTER — the stage: who they are, and their work ── */}
           <div className="cp-center" id="sec-posts">
+            <NowStrip
+              isLive={!!liveStream}
+              liveTitle={(liveStream as any)?.title ?? null}
+              lastActiveLabel={lastActiveLabel}
+              postCount={(posts as any[]).length}
+              campaign={campaignNow}
+            />
+
+            {liveStream && (
+              <div className="cp-live-banner">
+                <LiveStreamView
+                  streamId={liveStream.bunny_stream_id}
+                  liveDbId={liveStream.id}
+                  playbackUrl={liveStream.playback_url}
+                  isCreator={false}
+                  creatorHandle={spotlight.handle}
+                  isBackstage={false}
+                  embedded
+                />
+              </div>
+            )}
+
             <CreatorStageClient
               posts={posts as any}
               isSubscribed={isSubscribed}
@@ -344,23 +389,19 @@ export default async function CreatorPage(props: {
               subscriberCount={subscriberCount}
               socialLinks={(spotlight as any).social_links ?? {}}
               isFounder={data.isFounder}
+              roomSlot={
+                <TheRoom
+                  subscriberCount={subscriberCount}
+                  totalLikes={totalLikes}
+                  medalCount={Number((spotlight as any).medal_count_total ?? 0)}
+                  isFounder={data.isFounder}
+                  topSupporters={topSupporters}
+                  handle={spotlight.handle}
+                />
+              }
             >
               <></>
             </CreatorStageClient>
-
-            {liveStream && (
-              <div className="cp-live-banner">
-                <LiveStreamView
-                  streamId={liveStream.bunny_stream_id}
-                  liveDbId={liveStream.id}
-                  playbackUrl={liveStream.playback_url}
-                  isCreator={false}
-                  creatorHandle={spotlight.handle}
-                  isBackstage={false}
-                  embedded
-                />
-              </div>
-            )}
 
             {orderedSocialPosts.length > 0 && (
               <section className="cp-center-section" id="sec-social" data-cat="sec-social">

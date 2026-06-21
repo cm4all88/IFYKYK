@@ -54,13 +54,14 @@ interface Props {
   isFounder?: boolean;
   socialLinks?: Record<string, string> | null;
   children: React.ReactNode; // subscribe/tip/supertip buttons
+  roomSlot?: React.ReactNode; // THE ROOM — community signals between stage and posts
 }
 
 export default function CreatorStageClient({
   posts, isSubscribed, hasEarlyAccess, unlockedPostIds, likedPostIds,
   viewerUserId, displayName, handle, bio, avatarUrl, coverUrl, bgUrl,
   creatorProfileId, subscriptionPrice, firstMonthOfferPct = 0, backstageHandle,
-  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, totalLikes = 0, subscriberCount = 0, isFounder = false, socialLinks, children,
+  bookingUrl, bookingLabel, viewerTierRank, tierRanks, medalPoints = 0, medalCount = 0, totalLikes = 0, subscriberCount = 0, isFounder = false, socialLinks, children, roomSlot,
 }: Props) {
   const now = new Date();
 
@@ -79,7 +80,10 @@ export default function CreatorStageClient({
       .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
   }, [posts]);
 
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(() => {
+    const i = visiblePosts.findIndex((p) => (p as any).is_pinned);
+    return i >= 0 ? i : 0;
+  });
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<Post | null>(null);
@@ -246,7 +250,7 @@ export default function CreatorStageClient({
           <SocialLinks links={socialLinks} />
 
           {/* Social proof — medals · likes · subscribers */}
-          {(isFounder || medalCount > 0 || totalLikes > 0 || subscriberCount > 0) && (
+          {!roomSlot && (isFounder || medalCount > 0 || totalLikes > 0 || subscriberCount > 0) && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center", alignSelf: "center", marginBottom: 16 }}>
               {isFounder && (
                 <span style={{ ...statPill, background: "rgba(192,132,252,0.10)", border: "1px solid rgba(192,132,252,0.35)", color: "#d7b8ff" }}>
@@ -378,6 +382,8 @@ export default function CreatorStageClient({
           )}
         </div>
       </section>
+
+      {roomSlot}
 
       {/* Posts section */}
       {visiblePosts.length > 0 && (
