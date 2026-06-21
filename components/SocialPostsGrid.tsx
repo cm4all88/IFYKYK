@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SocialPostCard from "@/components/SocialPostCard";
+import Lane from "@/components/Lane";
 
 export default function SocialPostsGrid({ posts, initial = 6 }: { posts: any[]; initial?: number }) {
   const [showAll, setShowAll] = useState(false);
@@ -10,11 +11,14 @@ export default function SocialPostsGrid({ posts, initial = 6 }: { posts: any[]; 
 
   return (
     <>
-      <div className="cp-social-grid">
-        {visible.map((sp) => (
-          <SocialPostCard key={sp.id} post={sp} />
-        ))}
-      </div>
+      <Lane
+        items={visible}
+        cardWidth={320}
+        cardHeight={460}
+        getKey={(sp) => sp.id}
+        ariaLabel="Social posts"
+        renderItem={(sp) => <SocialPostCard post={sp} />}
+      />
 
       {extra > 0 && (
         <button

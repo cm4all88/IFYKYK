@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import InterestPicker from "@/app/(auth)/fan-signup/InterestPicker";
 import LikeButton from "@/components/LikeButton";
 import MedalButton from "@/components/MedalButton";
+import Lane from "@/components/Lane";
 
 type Filter = "all" | "video" | "image" | "text" | "locked";
 
@@ -462,11 +463,14 @@ export default function FeedPage() {
             {grouped.map(({ label, posts: dayPosts }) => (
               <div key={label}>
                 <ActDivider label={label} />
-                <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                  {dayPosts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
+                <Lane
+                  items={dayPosts}
+                  cardWidth={360}
+                  cardHeight={470}
+                  getKey={(post) => post.id}
+                  ariaLabel={`${label} posts`}
+                  renderItem={(post) => <PostCard post={post} />}
+                />
               </div>
             ))}
 

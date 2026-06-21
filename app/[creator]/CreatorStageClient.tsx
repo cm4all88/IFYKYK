@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import UnlockButton from "./UnlockButton";
 import CommentSection from "./CommentSection";
 import LikeButton from "@/components/LikeButton";
@@ -93,6 +93,15 @@ export default function CreatorStageClient({
   const trackRef = useRef<HTMLDivElement>(null);
   const CARD_W = 340;
   const CARD_GAP = 16;
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduce(m.matches);
+    apply();
+    m.addEventListener("change", apply);
+    return () => m.removeEventListener("change", apply);
+  }, []);
 
   const filteredPosts = useMemo(() => {
     let r = visiblePosts;
@@ -117,11 +126,17 @@ export default function CreatorStageClient({
     ? activePost.media_url
     : null;
 
+  useEffect(() => {
+    trackRef.current?.scrollTo({ left: activeIdx * (CARD_W + CARD_GAP), behavior: "auto" });
+    // align to the initially spotlighted (pinned) card on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const scrollTo = useCallback((idx: number) => {
     const c = Math.max(0, Math.min(idx, filteredPosts.length - 1));
     setActiveIdx(c);
-    trackRef.current?.scrollTo({ left: c * (CARD_W + CARD_GAP), behavior: "smooth" });
-  }, [filteredPosts.length]);
+    trackRef.current?.scrollTo({ left: c * (CARD_W + CARD_GAP), behavior: reduce ? "auto" : "smooth" });
+  }, [filteredPosts.length, reduce]);
 
   async function sendTip() {
     setTipping(true);
@@ -422,8 +437,9 @@ export default function CreatorStageClient({
           <div style={{ position: "relative" }}>
             <div ref={trackRef}
               onScroll={e => setActiveIdx(Math.round(e.currentTarget.scrollLeft / (CARD_W + CARD_GAP)))}
-              style={{ display: "flex", gap: CARD_GAP, overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none", padding: "24px 40px 40px", WebkitOverflowScrolling: "touch" }}
+              style={{ display: "flex", gap: CARD_GAP, overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none", padding: "32px 0 44px", scrollBehavior: reduce ? "auto" : "smooth", WebkitOverflowScrolling: "touch" }}
             >
+              <div style={{ flexShrink: 0, width: "calc(50% - 170px)" }} aria-hidden />
               {filteredPosts.map((p, i) => {
                 const earlyAccessAt = p.early_access_at ? new Date(p.early_access_at) : null;
                 const regularAccessAt = earlyAccessAt ? new Date(earlyAccessAt.getTime() + 30 * 60 * 1000) : null;
@@ -442,17 +458,20 @@ export default function CreatorStageClient({
                   <div key={p.id}
                     onClick={() => { setActiveIdx(i); if (canView && p.media_url) setLightbox(p); }}
                     style={{
-                      flexShrink: 0, width: CARD_W, scrollSnapAlign: "start",
-                      background: "rgba(255,255,255,0.04)",
-                      border: `1px solid ${p.is_pinned ? "rgba(242,184,75,0.3)" : "rgba(255,255,255,0.08)"}`,
-                      borderRadius: 12, overflow: "hidden", cursor: "pointer",
-                      transform: isActive ? "scale(1.03)" : "scale(0.95)",
-                      transition: "transform 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease",
-                      opacity: isActive ? 1 : 0.65,
-                      boxShadow: isActive ? "0 24px 70px rgba(0,0,0,0.6), 0 0 0 1px rgba(242,184,75,0.2)" : "0 4px 20px rgba(0,0,0,0.3)",
+                      flexShrink: 0, width: CARD_W, scrollSnapAlign: "center",
+                      background: "var(--surface, rgba(255,255,255,0.04))",
+                      border: `1px solid ${p.is_pinned ? "rgba(242,184,75,0.35)" : "var(--border, rgba(255,255,255,0.08))"}`,
+                      borderRadius: 16, overflow: "hidden", cursor: "pointer",
+                      transform: reduce ? "none" : (isActive ? "translateY(-4px) scale(1.05)" : "scale(0.9)"),
+                      transition: reduce ? "none" : "transform 0.45s cubic-bezier(0.22,1,0.36,1), box-shadow 0.45s ease, opacity 0.45s ease",
+                      opacity: isActive ? 1 : 0.5,
+                      boxShadow: isActive
+                        ? "0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(242,184,75,0.25)"
+                        : "0 8px 24px rgba(0,0,0,0.35)",
+                      willChange: "transform",
                     }}
-                    onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = "scale(1.05)"; el.style.opacity = "1"; }}
-                    onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = isActive ? "scale(1.03)" : "scale(0.95)"; el.style.opacity = isActive ? "1" : "0.65"; }}
+                    onMouseEnter={reduce ? undefined : (e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = "translateY(-8px) scale(1.06)"; el.style.opacity = "1"; el.style.boxShadow = "0 36px 90px rgba(0,0,0,0.65), 0 0 0 1px rgba(242,184,75,0.3)"; })}
+                    onMouseLeave={reduce ? undefined : (e => { const el = e.currentTarget as HTMLDivElement; el.style.transform = isActive ? "translateY(-4px) scale(1.05)" : "scale(0.9)"; el.style.opacity = isActive ? "1" : "0.5"; el.style.boxShadow = isActive ? "0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(242,184,75,0.25)" : "0 8px 24px rgba(0,0,0,0.35)"; })}
                   >
                     {/* Badges */}
                     <div style={{ position: "relative" }}>
@@ -563,7 +582,7 @@ export default function CreatorStageClient({
                   </div>
                 );
               })}
-              <div style={{ flexShrink: 0, width: 24 }} />
+              <div style={{ flexShrink: 0, width: "calc(50% - 170px)" }} aria-hidden />
             </div>
 
             {/* Arrows */}

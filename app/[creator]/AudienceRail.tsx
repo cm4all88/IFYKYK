@@ -79,7 +79,7 @@ export default function AudienceRail({ currentHandle }: { currentHandle: string 
 
   return (
     <nav className="arail" aria-label="Your Spotlightly">
-      <Link href="/" className="brand-logo arail-logo">Spot<span>light</span>ly</Link>
+
 
       <div className="arail-nav">
         {NAV.map((item) => (
