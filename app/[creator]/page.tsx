@@ -341,7 +341,7 @@ export default async function CreatorPage(props: {
         className="cp"
         style={
           bgImg
-            ? { background: `linear-gradient(180deg, rgba(9,9,12,0.42) 0, rgba(9,9,12,0.72) 280px, rgba(9,9,12,0.97) 470px, #09090C 600px), url("${bgImg}") top center / cover no-repeat` }
+            ? { background: `linear-gradient(180deg, rgba(9,9,12,0.35) 0, rgba(9,9,12,0.58) 320px, rgba(9,9,12,0.82) 760px, rgba(9,9,12,0.9) 100%), url("${bgImg}") top center / cover no-repeat` }
             : undefined
         }
       >
