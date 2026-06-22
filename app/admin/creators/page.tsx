@@ -9,11 +9,12 @@ async function toggleActive(formData: FormData) {
   if (!(await isAdmin())) throw new Error("Not authorized");
   const id = formData.get("id") as string;
   const active = formData.get("active") === "true";
-  const supabase = await createClient();
-  await (supabase as any)
+  const supabase = await createServiceClient();
+  const { error } = await (supabase as any)
     .from("creator_profiles")
     .update({ is_active: !active, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/admin/creators");
 }
 
@@ -22,11 +23,12 @@ async function toggleVerified(formData: FormData) {
   if (!(await isAdmin())) throw new Error("Not authorized");
   const id = formData.get("id") as string;
   const verified = formData.get("verified") === "true";
-  const supabase = await createClient();
-  await (supabase as any)
+  const supabase = await createServiceClient();
+  const { error } = await (supabase as any)
     .from("creator_profiles")
     .update({ veriff_verified: !verified, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/admin/creators");
 }
 
@@ -35,11 +37,12 @@ async function togglePublished(formData: FormData) {
   if (!(await isAdmin())) throw new Error("Not authorized");
   const id = formData.get("id") as string;
   const published = formData.get("published") === "true";
-  const supabase = await createClient();
-  await (supabase as any)
+  const supabase = await createServiceClient();
+  const { error } = await (supabase as any)
     .from("creator_profiles")
     .update({ published: !published, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/admin/creators");
 }
 
@@ -112,11 +115,12 @@ async function updateSubPrice(formData: FormData) {
   const id = formData.get("id") as string;
   const price = parseFloat(formData.get("price") as string);
   if (isNaN(price) || price < 0) return;
-  const supabase = await createClient();
-  await (supabase as any)
+  const supabase = await createServiceClient();
+  const { error } = await (supabase as any)
     .from("creator_profiles")
     .update({ subscription_price: price, updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/admin/creators");
 }
 
