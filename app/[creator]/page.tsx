@@ -9,6 +9,8 @@ import Footer from "@/components/Footer";
 import CreatorFooter from "@/components/CreatorFooter";
 import SuccessBanner from "./SuccessBanner";
 import CampaignDonateButton from "./CampaignDonateButton";
+import CampaignTiers from "./CampaignTiers";
+import BackerCodeBanner from "./BackerCodeBanner";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
 import TierPicker from "./TierPicker";
@@ -150,9 +152,20 @@ async function fetchEverything(handle: string) {
     .eq("status", "active")
     .order("created_at", { ascending: false });
 
+  const campaignIds = (campaigns ?? []).map((c: any) => c.id);
+  const { data: campaignTiers } = campaignIds.length
+    ? await (supabase as any)
+        .from("campaign_tiers")
+        .select("*")
+        .in("campaign_id", campaignIds)
+        .order("sort_order", { ascending: true })
+        .order("amount", { ascending: true })
+    : { data: [] };
+
   const campaignsWithProgress = (campaigns ?? []).map((c: any) => ({
     ...c,
     raised: (c.donations ?? []).reduce((sum: number, d: any) => sum + Number(d.amount), 0),
+    tiers: (campaignTiers ?? []).filter((t: any) => t.campaign_id === c.id),
   }));
 
   // Check if current viewer is subscribed and which posts they've unlocked
@@ -322,6 +335,7 @@ export default async function CreatorPage(props: {
     <>
       <SiteHeader />
       <SuccessBanner />
+      <BackerCodeBanner />
       <ReferralTracker creatorHandle={spotlight.handle} />
       <main
         className="cp"
@@ -479,6 +493,9 @@ export default async function CreatorPage(props: {
                         {c.description && <p className="cp-campaign-desc">{c.description}</p>}
                         <div className="cp-campaign-bar"><span style={{ width: `${pct}%` }} /></div>
                         <div className="cp-campaign-meta">${Number(c.raised).toLocaleString()} raised{goal > 0 ? ` of $${goal.toLocaleString()} · ${pct}%` : ""}</div>
+                        {(c.tiers ?? []).length > 0 && (
+                          <CampaignTiers campaignId={c.id} campaignTitle={c.title} tiers={c.tiers} />
+                        )}
                       </div>
                     );
                   })}

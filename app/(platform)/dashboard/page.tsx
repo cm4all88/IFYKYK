@@ -14,6 +14,7 @@ import VideoUpload from "@/components/VideoUpload";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import SocialPostsManager from "@/components/dashboard/SocialPostsManager";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
+import { REWARD_TYPES, tierNeedsCode, type TierReward, type RewardType } from "@/lib/campaign-rewards";
 import ImageUpload from "@/components/ImageUpload";
 
 // ──────────────────────────────────────────────────────────────────
@@ -1328,6 +1329,7 @@ function CampaignsPane({ profile }: { profile: Profile }) {
                 {c.reward_description}
               </div>
             )}
+            {c.status === "active" && <CampaignTierManager campaign={c} profile={profile} />}
           </div>
         ))}
       </div>
@@ -1382,6 +1384,204 @@ function CampaignsPane({ profile }: { profile: Profile }) {
               <button className="btn btn--ghost" onClick={() => setCreating(false)}>Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// Campaign tier builder + backer-code lookup (per campaign)
+// The creator builds her own tiers and attaches rewards from a typed
+// menu. Physical / discount rewards generate a backer code she looks up
+// here when a backer redeems at her own counter.
+// ──────────────────────────────────────────────────────────────────
+function CampaignTierManager({ campaign, profile }: { campaign: any; profile: Profile }) {
+  const supabase = createClient();
+  const [open, setOpen] = React.useState(false);
+  const [tiers, setTiers] = React.useState<any[]>([]);
+  const [backers, setBackers] = React.useState<any[]>([]);
+  const [loaded, setLoaded] = React.useState(false);
+  const [adding, setAdding] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  const emptyDraft = { title: "", amount: "", description: "", backer_limit: "", rewards: [] as TierReward[] };
+  const [draft, setDraft] = React.useState(emptyDraft);
+
+  async function load() {
+    const [{ data: t }, { data: b }] = await Promise.all([
+      (supabase as any).from("campaign_tiers").select("*").eq("campaign_id", campaign.id).order("sort_order").order("amount"),
+      (supabase as any).from("campaign_donations").select("*").eq("campaign_id", campaign.id).order("created_at", { ascending: false }),
+    ]);
+    setTiers(t ?? []);
+    setBackers(b ?? []);
+    setLoaded(true);
+  }
+
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next && !loaded) load();
+  }
+
+  async function addTier() {
+    if (!draft.title.trim() || !draft.amount) return;
+    setSaving(true);
+    setErr(null);
+    const { data, error } = await (supabase as any).from("campaign_tiers").insert({
+      campaign_id: campaign.id,
+      title: draft.title.trim(),
+      amount: parseFloat(draft.amount),
+      description: draft.description.trim() || null,
+      rewards: draft.rewards.filter((r) => r.label.trim()),
+      backer_limit: draft.backer_limit ? parseInt(draft.backer_limit, 10) : null,
+      sort_order: tiers.length,
+    }).select().single();
+    if (error) { setErr(error.message); setSaving(false); return; }
+    setTiers((prev) => [...prev, data]);
+    setDraft(emptyDraft);
+    setAdding(false);
+    setSaving(false);
+  }
+
+  async function deleteTier(id: string) {
+    await (supabase as any).from("campaign_tiers").delete().eq("id", id);
+    setTiers((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function setReward(i: number, patch: Partial<TierReward>) {
+    setDraft((d) => ({ ...d, rewards: d.rewards.map((r, idx) => (idx === i ? { ...r, ...patch } : r)) }));
+  }
+  function addReward() {
+    setDraft((d) => ({ ...d, rewards: [...d.rewards, { type: "update" as RewardType, label: "" }] }));
+  }
+  function removeReward(i: number) {
+    setDraft((d) => ({ ...d, rewards: d.rewards.filter((_, idx) => idx !== i) }));
+  }
+
+  const tierTitle = (id: string | null) => (id ? tiers.find((t) => t.id === id)?.title ?? "Tier" : "Any amount");
+  const codeBackers = backers.filter((b) => b.backer_code);
+
+  return (
+    <div style={{ marginTop: "var(--s-4)", borderTop: "1px solid var(--border)", paddingTop: "var(--s-4)" }}>
+      <button
+        onClick={toggle}
+        style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--accent)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        {open ? "▾" : "▸"} Tiers &amp; backers
+      </button>
+
+      {open && (
+        <div style={{ marginTop: "var(--s-4)", display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+          {!loaded && <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>}
+
+          {/* Existing tiers */}
+          {tiers.map((t) => {
+            const rewards: TierReward[] = Array.isArray(t.rewards) ? t.rewards : [];
+            const claimed = backers.filter((b) => b.tier_id === t.id).length;
+            return (
+              <div key={t.id} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "var(--s-3)" }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "#fff", fontSize: 14 }}>
+                    {t.title} · <span style={{ color: "var(--accent)" }}>${Number(t.amount).toLocaleString()}</span>
+                  </span>
+                  <button onClick={() => deleteTier(t.id)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "3px 10px", borderRadius: "var(--r-1)", cursor: "pointer" }}>Delete</button>
+                </div>
+                {t.description && <p style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}>{t.description}</p>}
+                {rewards.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "var(--s-3)" }}>
+                    {rewards.map((r, i) => (
+                      <span key={i} style={{ fontSize: 11, color: "var(--text-soft)", border: "1px solid var(--border)", borderRadius: "var(--r-1)", padding: "3px 9px" }}>
+                        {r.label}
+                        {tierNeedsCode([r]) && <span style={{ color: "var(--accent)", marginLeft: 6, fontFamily: "var(--font-mono)", fontSize: 9 }}>code</span>}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", marginTop: "var(--s-3)" }}>
+                  {claimed} backed{t.backer_limit != null ? ` · ${Math.max(0, t.backer_limit - claimed)} of ${t.backer_limit} left` : ""}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Add a tier */}
+          {!adding ? (
+            <button className="btn btn--secondary" style={{ alignSelf: "flex-start", fontSize: 13 }} onClick={() => setAdding(true)}>+ Add tier</button>
+          ) : (
+            <div style={{ background: "var(--surface-2)", border: "1px solid var(--accent-border)", borderRadius: "var(--r-2)", padding: "var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "var(--s-3)" }}>
+                <div>
+                  <label className="label">Tier name</label>
+                  <input className="input" placeholder="Front Row" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Amount ($)</label>
+                  <input className="input" type="number" min="1" placeholder="100" value={draft.amount} onChange={(e) => setDraft((d) => ({ ...d, amount: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Limit (opt.)</label>
+                  <input className="input" type="number" min="1" placeholder="∞" value={draft.backer_limit} onChange={(e) => setDraft((d) => ({ ...d, backer_limit: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="label">What this tier is</label>
+                <input className="input" placeholder="Founding supporter — you helped open the doors" value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} />
+              </div>
+
+              {/* Rewards builder */}
+              <div>
+                <label className="label">Rewards (mix and match — you write the labels)</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+                  {draft.rewards.map((r, i) => {
+                    const meta = REWARD_TYPES.find((x) => x.type === r.type);
+                    return (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "150px 1fr auto", gap: "var(--s-3)", alignItems: "center" }}>
+                        <select
+                          className="input"
+                          value={r.type}
+                          onChange={(e) => setReward(i, { type: e.target.value as RewardType })}
+                        >
+                          {REWARD_TYPES.map((rt) => (
+                            <option key={rt.type} value={rt.type}>{rt.name}{rt.needsCode ? " (code)" : ""}</option>
+                          ))}
+                        </select>
+                        <input className="input" placeholder={meta?.hint ?? "Describe the reward"} value={r.label} onChange={(e) => setReward(i, { label: e.target.value })} />
+                        <button onClick={() => removeReward(i)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "6px 10px", borderRadius: "var(--r-1)", cursor: "pointer" }}>×</button>
+                      </div>
+                    );
+                  })}
+                  <button className="btn btn--ghost" style={{ alignSelf: "flex-start", fontSize: 12 }} onClick={addReward}>+ Add reward</button>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                  Physical and discount rewards generate a backer code at checkout. You look it up below and honor it at your counter. Spotlightly records the pledge — you own fulfillment.
+                </p>
+              </div>
+
+              {err && <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{err}</p>}
+              <div style={{ display: "flex", gap: "var(--s-3)" }}>
+                <button className="btn btn--primary" onClick={addTier} disabled={saving || !draft.title.trim() || !draft.amount}>{saving ? "Saving…" : "Save tier"}</button>
+                <button className="btn btn--ghost" onClick={() => { setAdding(false); setDraft(emptyDraft); }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Backer codes to redeem */}
+          {loaded && codeBackers.length > 0 && (
+            <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)" }}>
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", margin: "0 0 var(--s-3)" }}>Backer codes to redeem</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {codeBackers.map((b) => (
+                  <div key={b.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--s-4)", fontSize: 12, color: "var(--text-soft)" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", color: "var(--accent)", fontSize: 13, letterSpacing: ".06em" }}>{b.backer_code}</span>
+                    <span style={{ color: "var(--muted)" }}>{tierTitle(b.tier_id)} · ${Number(b.amount).toLocaleString()} · {new Date(b.created_at).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -203,6 +203,8 @@ export async function POST(req: NextRequest) {
         amount,
         message: meta.message || null,
         stripe_session_id: s.id,
+        tier_id: meta.tier_id || null,
+        backer_code: meta.backer_code || null,
       });
       const { data: camp } = await (supabase as any)
         .from("campaigns").select("raised_amount, goal_amount, title, creator_profile_id").eq("id", meta.campaign_id).maybeSingle();
