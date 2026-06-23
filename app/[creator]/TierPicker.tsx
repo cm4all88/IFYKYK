@@ -94,7 +94,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
           const price = billing === "yearly" && tier.price_yearly ? tier.price_yearly : tier.price_monthly;
           const period = billing === "yearly" && tier.price_yearly ? "yr" : "mo";
           const selected = selectedTier === tier.id;
-          const visiblePerks = (tier.perks ?? []).filter(p => norm(p) !== norm(tier.description ?? "")).slice(0, 3);
+          const visiblePerks = (tier.perks ?? []).filter(p => norm(p) !== norm(tier.description ?? ""));
 
           return (
             <button
@@ -119,9 +119,12 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
                   <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
                 )}
                 {visiblePerks.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginLeft: 24 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginLeft: 24 }}>
                     {visiblePerks.map((perk, i) => (
-                      <span key={i} style={{ fontSize: 11, color: "var(--muted)" }}>✓ {perk}</span>
+                      <span key={i} style={{ display: "flex", gap: 6, fontSize: 11, color: "var(--muted)", lineHeight: 1.5 }}>
+                        <span style={{ color: "var(--accent)", flexShrink: 0 }}>✓</span>
+                        <span>{perk}</span>
+                      </span>
                     ))}
                   </div>
                 )}

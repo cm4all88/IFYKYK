@@ -188,6 +188,7 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                 minHeight: "100vh",
                 position: "relative",
                 background: `linear-gradient(180deg, rgba(9,9,12,0.35) 0, rgba(9,9,12,0.58) 320px, rgba(9,9,12,0.82) 760px, rgba(9,9,12,0.9) 100%), url("${bgImg}") top center / cover no-repeat`,
+                backgroundAttachment: "fixed",
               }
             : { minHeight: "100vh", position: "relative", background: "#09090C" }
         }
@@ -226,6 +227,12 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                     <div style={{ fontSize: 12, color: "var(--muted)" }}>@{sp.handle}</div>
                   </div>
                 </div>
+
+                {sp.bio ? (
+                  <p style={{ fontSize: 14, lineHeight: 1.7, color: "rgba(247,243,236,0.62)", maxWidth: 540, margin: "0 auto 28px" }}>
+                    {clamp(String(sp.bio), 240)}
+                  </p>
+                ) : null}
 
                 {(() => {
                   const goal = Number(campaign.goal_amount ?? campaign.goal ?? 0);
