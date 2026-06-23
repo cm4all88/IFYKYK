@@ -218,9 +218,9 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                 <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
                   {sp.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={sp.avatar_url} alt="" width={34} height={34} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                    <img src={sp.avatar_url} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover" }} />
                   ) : (
-                    <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--surface)" }} />
+                    <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--surface)" }} />
                   )}
                   <div style={{ textAlign: "left" }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{displayName}</div>

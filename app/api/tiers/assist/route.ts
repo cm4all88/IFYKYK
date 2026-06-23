@@ -15,6 +15,7 @@ WRITING RULES:
 - Never use em-dashes or hyphens. Use periods, commas, or parentheses instead.
 - Never write "behind-the-scenes" with hyphens. Write "behind the scenes".
 - No marketing speak. No "powerful", "seamless", "unleash", "passionate about".
+- Where it genuinely fits the creator, lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness). Use an emoji only when it fits, never force one. Make names evocative and shareable, the kind a fan would screenshot.
 
 Return ONLY a JSON object, no preamble or backticks, exactly:
 {"tiers":[{"name":"...","price_monthly":5,"description":"...","perks":["...","..."]}]}`;

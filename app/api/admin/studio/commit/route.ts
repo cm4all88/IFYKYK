@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   if (!(await isAdmin())) return NextResponse.json({ error: "Not authorized" }, { status: 403 });
 
   const body = await req.json().catch(() => null);
-  const { creatorProfileId, bio, freeTier, tiers, includeCampaign, campaign } = body ?? {};
+  const { creatorProfileId, bio, freeTier, tiers, includeCampaign, campaign, live, merch, marketplace } = body ?? {};
   if (!creatorProfileId) return NextResponse.json({ error: "Missing creator" }, { status: 400 });
 
   const admin = await createServiceClient();
@@ -64,6 +64,19 @@ export async function POST(req: NextRequest) {
       if (rows.length) await (admin as any).from("campaign_tiers").insert(rows);
     }
   }
+
+  // 4) remember the venue pieces that finish elsewhere (live, merch, marketplace)
+  await (admin as any).from("creator_plans").upsert({
+    creator_profile_id: creatorProfileId,
+    wants_live: !!live?.want,
+    wants_merch: !!merch?.want,
+    wants_marketplace: !!marketplace?.want,
+    live_title: s(live?.title) || null,
+    live_at: live?.at || null,
+    merch_idea: s(merch?.idea) || null,
+    marketplace_idea: s(marketplace?.idea) || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "creator_profile_id" });
 
   return NextResponse.json({ ok: true, tiersCreated: tierRows.length, campaignId });
 }

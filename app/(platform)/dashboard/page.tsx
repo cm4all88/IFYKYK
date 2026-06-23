@@ -495,6 +495,43 @@ export default function DashboardPage() {
 // PANE: Overview — split panel earnings + identity link toggle
 // ──────────────────────────────────────────────────────────────────
 
+// ──────────────────────────────────────────────────────────────────
+// Finish setting up — reads the creator's plan and turns each piece
+// they chose (live, merch, marketplace) into a guided next step.
+// ──────────────────────────────────────────────────────────────────
+function SetupNextCard({ profile, onSetPane }: { profile: Profile; onSetPane: (p: Pane) => void }) {
+  const supabase = createClient();
+  const [plan, setPlan] = React.useState<any | null>(null);
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await (supabase as any).from("creator_plans").select("*").eq("creator_profile_id", profile.id).maybeSingle();
+      if (alive) setPlan(data ?? null);
+    })();
+    return () => { alive = false; };
+  }, [profile.id]);
+  if (!plan) return null;
+  const items: { label: string; desc: string; go: () => void }[] = [];
+  if (plan.wants_live) items.push({ label: "Schedule your live show", desc: plan.live_title || "Go live for your members.", go: () => onSetPane("live") });
+  if (plan.wants_merch) items.push({ label: "Open your merch store", desc: plan.merch_idea || "Design and publish your first product.", go: () => { window.location.href = "/merch"; } });
+  if (plan.wants_marketplace) items.push({ label: "List your first item", desc: plan.marketplace_idea || "Sell something from your collection.", go: () => onSetPane("marketplace") });
+  if (!items.length) return null;
+  return (
+    <div style={{ marginBottom: "var(--s-8)" }}>
+      <p className="kicker" style={{ marginBottom: "var(--s-4)" }}>Finish setting up your venue</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 2 }}>
+        {items.map((it, i) => (
+          <button key={i} onClick={it.go} style={{ textAlign: "left", background: "var(--surface)", border: "1px solid var(--border)", padding: "16px 18px", cursor: "pointer", color: "inherit", borderLeft: "3px solid var(--accent)" }}>
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 16, color: "#fff", margin: "0 0 4px" }}>{it.label}</p>
+            <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>{it.desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 function OverviewPane({
   profile,
   other,
@@ -539,6 +576,18 @@ function OverviewPane({
         if (rows.length) await (supabase as any).from("campaign_tiers").insert(rows);
       }
     }
+    // Remember the venue pieces that finish elsewhere (live, merch, marketplace).
+    await (supabase as any).from("creator_plans").upsert({
+      creator_profile_id: profile.id,
+      wants_live: payload.live.want,
+      wants_merch: payload.merch.want,
+      wants_marketplace: payload.marketplace.want,
+      live_title: payload.live.title.trim() || null,
+      live_at: payload.live.at || null,
+      merch_idea: payload.merch.idea.trim() || null,
+      marketplace_idea: payload.marketplace.idea.trim() || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "creator_profile_id" });
     return null;
   }
 
@@ -735,6 +784,8 @@ function OverviewPane({
       </div>
 
       <ReferralQuickCard handle={profile.handle} onOpen={() => onSetPane("refer")} />
+
+      <SetupNextCard profile={profile} onSetPane={onSetPane} />
 
       {/* Tools — a tidy grid, not a wall */}
       <p className="kicker" style={{ marginBottom: "var(--s-4)" }}>Your tools</p>

@@ -8,6 +8,9 @@ export interface StudioPayload {
   tiers: { name: string; price_monthly: number; price_yearly: number | null; description: string; perks: string[] }[];
   includeCampaign: boolean;
   campaign: { title: string; description: string; goal: number; category: string; tiers: { amount: number; title: string; description: string; rewards: { type: string; label: string }[] }[] };
+  live: { want: boolean; title: string; at: string | null };
+  merch: { want: boolean; idea: string };
+  marketplace: { want: boolean; idea: string };
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -32,12 +35,19 @@ export default function StudioSetup({ displayName, handle, onClose, onDone, onCo
   const [freeBlurb, setFreeBlurb] = React.useState("");
   const [freePerks, setFreePerks] = React.useState("");
   const [tiers, setTiers] = React.useState<{ name: string; price_monthly: number; price_yearly: number | null; description: string; perks: string[] }[]>([]);
-  const [includeCampaign, setIncludeCampaign] = React.useState(true);
+  const [includeCampaign, setIncludeCampaign] = React.useState(false);
   const [campTitle, setCampTitle] = React.useState("");
   const [campDesc, setCampDesc] = React.useState("");
   const [campGoal, setCampGoal] = React.useState("");
   const [campCategory, setCampCategory] = React.useState("other");
   const [campTiers, setCampTiers] = React.useState<{ amount: number; title: string; description: string; rewards: { type: string; label: string }[] }[]>([]);
+  const [liveWant, setLiveWant] = React.useState(true);
+  const [liveTitle, setLiveTitle] = React.useState("");
+  const [liveAt, setLiveAt] = React.useState("");
+  const [merchWant, setMerchWant] = React.useState(true);
+  const [merchIdea, setMerchIdea] = React.useState("");
+  const [mktWant, setMktWant] = React.useState(true);
+  const [mktIdea, setMktIdea] = React.useState("");
 
   const [saving, setSaving] = React.useState(false);
   const [saveErr, setSaveErr] = React.useState<string | null>(null);
@@ -63,7 +73,10 @@ export default function StudioSetup({ displayName, handle, onClose, onDone, onCo
       setCampCategory(String(c.category ?? "other"));
       const ct = (Array.isArray(c.tiers) ? c.tiers : []).map((t: any) => ({ amount: Number(t.amount) || 0, title: String(t.title ?? ""), description: String(t.description ?? ""), rewards: Array.isArray(t.rewards) ? t.rewards.map((r: any) => ({ type: String(r.type ?? "content"), label: String(r.label ?? "") })) : [] }));
       setCampTiers(ct);
-      setIncludeCampaign(ct.length > 0);
+      setIncludeCampaign(!!workingToward.trim());
+      setLiveTitle(String(d.live?.title ?? "")); setLiveWant(true);
+      setMerchIdea(String(d.merch?.idea ?? "")); setMerchWant(true);
+      setMktIdea(String(d.marketplace?.idea ?? "")); setMktWant(true);
       setStep("review");
     } catch { setGenErr("Couldn't build your page just now. Try again."); }
     setLoading(false);
@@ -82,6 +95,9 @@ export default function StudioSetup({ displayName, handle, onClose, onDone, onCo
       tiers: tiers.map((t) => ({ name: t.name, price_monthly: t.price_monthly, price_yearly: t.price_yearly, description: t.description, perks: t.perks })),
       includeCampaign,
       campaign: { title: campTitle, description: campDesc, goal: Number(campGoal) || 0, category: campCategory, tiers: campTiers },
+      live: { want: liveWant, title: liveTitle, at: liveAt || null },
+      merch: { want: merchWant, idea: merchIdea },
+      marketplace: { want: mktWant, idea: mktIdea },
     };
     const errMsg = await onCommit(payload);
     if (errMsg) { setSaveErr(errMsg); setSaving(false); return; }
@@ -177,8 +193,11 @@ export default function StudioSetup({ displayName, handle, onClose, onDone, onCo
             {/* Campaign */}
             <div style={sectionCard}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--s-3)" }}>
-                <p className="label" style={{ margin: 0 }}>Starter campaign</p>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-soft)", cursor: "pointer" }}>
+                <div>
+                  <p className="label" style={{ margin: 0 }}>Starter campaign <span style={{ color: "var(--muted)", fontWeight: 300 }}>(optional)</span></p>
+                  <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0 0" }}>Recommended only if you are raising money for something specific. Skip it if you just want a page.</p>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-soft)", cursor: "pointer", flexShrink: 0 }}>
                   <input type="checkbox" checked={includeCampaign} onChange={(e) => setIncludeCampaign(e.target.checked)} /> Include
                 </label>
               </div>
@@ -202,6 +221,52 @@ export default function StudioSetup({ displayName, handle, onClose, onDone, onCo
                       <p style={{ fontSize: 11, color: "var(--muted)", margin: "2px 0 0" }}>Fine tune these in the Campaigns tab after.</p>
                     </div>
                   )}
+                </>
+              )}
+            </div>
+
+            {/* Live show */}
+            <div style={sectionCard}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input type="checkbox" checked={liveWant} onChange={(e) => setLiveWant(e.target.checked)} />
+                <span className="label" style={{ margin: 0 }}>Do a live show</span>
+              </label>
+              {liveWant && (
+                <>
+                  <input className="input" value={liveTitle} placeholder="A live hangout with your members" onChange={(e) => setLiveTitle(e.target.value)} />
+                  <div>
+                    <label className="label">When (optional)</label>
+                    <input className="input" type="datetime-local" value={liveAt} onChange={(e) => setLiveAt(e.target.value)} />
+                  </div>
+                  <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>We will save this as your planned show. Go live from the Live tab when you are ready.</p>
+                </>
+              )}
+            </div>
+
+            {/* Merch store */}
+            <div style={sectionCard}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input type="checkbox" checked={merchWant} onChange={(e) => setMerchWant(e.target.checked)} />
+                <span className="label" style={{ margin: 0 }}>Open a merch store</span>
+              </label>
+              {merchWant && (
+                <>
+                  <input className="input" value={merchIdea} placeholder="A logo tee in your brand colors" onChange={(e) => setMerchIdea(e.target.value)} />
+                  <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>We will save this idea. Design and publish it in the Merch tab (no upfront cost).</p>
+                </>
+              )}
+            </div>
+
+            {/* Marketplace */}
+            <div style={sectionCard}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                <input type="checkbox" checked={mktWant} onChange={(e) => setMktWant(e.target.checked)} />
+                <span className="label" style={{ margin: 0 }}>Sell on the marketplace</span>
+              </label>
+              {mktWant && (
+                <>
+                  <input className="input" value={mktIdea} placeholder="Something from your collection your fans would want" onChange={(e) => setMktIdea(e.target.value)} />
+                  <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>We will save this idea. List it with photos in the Marketplace tab.</p>
                 </>
               )}
             </div>

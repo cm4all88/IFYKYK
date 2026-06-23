@@ -103,7 +103,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
               style={{
                 display: "flex", alignItems: "flex-start", justifyContent: "space-between",
                 padding: "14px 16px", borderRadius: 10, border: "1.5px solid", cursor: "pointer",
-                background: selected ? "rgba(240,180,41,0.06)" : "rgba(255,255,255,0.03)",
+                background: selected ? "var(--surface, #1E2024)" : "var(--surface-2, #16161c)",
                 borderColor: selected ? "rgba(240,180,41,0.4)" : "rgba(255,255,255,0.1)",
                 textAlign: "left", transition: "all 0.15s",
               }}

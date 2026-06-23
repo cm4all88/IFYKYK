@@ -24,6 +24,7 @@ WRITING RULES:
 - Never write "behind-the-scenes" with hyphens. Write "behind the scenes".
 - No marketing speak. No "powerful", "seamless", "unleash", "passionate about".
 - Tier titles are evocative and short (one to three words). Amounts climb sensibly (for example 10, 25, 50, 100, 250), tuned to the goal.
+- Where it genuinely fits the creator, lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness). Use an emoji only when it fits, never force one. Make names evocative and shareable, the kind a fan would screenshot.
 - Five tiers, each with a one line description and one to three rewards.
 
 Return ONLY a JSON object, no preamble or backticks, exactly:

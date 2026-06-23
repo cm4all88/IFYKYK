@@ -22,6 +22,7 @@ WRITING RULES:
 - Warm, specific, first person where natural, in the creator's voice. The creator is the hero, never the platform.
 - Never use em-dashes or hyphens. Use periods, commas, or parentheses. Write "behind the scenes" not the hyphenated form.
 - No marketing speak. No "powerful", "seamless", "unleash", "passionate about", "content creator".
+- Where it genuinely fits the creator, lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness). Use an emoji only when it fits, never force one. Make names evocative and shareable, the kind a fan would screenshot.
 
 Return ONLY a JSON object, no preamble or backticks, exactly this shape:
 {
@@ -36,7 +37,10 @@ Return ONLY a JSON object, no preamble or backticks, exactly this shape:
     "goal": 3000,
     "category": "one of: travel, music, creative, art-supplies, classroom, equipment, medical, moving, education, other",
     "tiers": [ { "amount": 10, "title": "...", "description": "1 line", "rewards": [ { "type": "update", "label": "..." } ] } ]
-  }
+  },
+  "live": { "title": "a first live show idea, short and specific to this creator" },
+  "merch": { "idea": "a first merch product idea, e.g. a logo tee or a tour hoodie" },
+  "marketplace": { "idea": "a first item they could sell, e.g. a worn stage outfit or a signed print" }
 }
 
 Rules: exactly 3 paid tiers (entry around $5 to $8, middle around $12 to $25, top around $40 to $75, each higher tier saying "Everything in [lower]" then adding more). Exactly 5 campaign tiers climbing in price, each with 1 to 3 rewards. Reward "type" must be one of: update, recognition, content, physical, discount.`;
@@ -70,6 +74,9 @@ function fallback(niche: string | null) {
     freeTier: { name: "Follow Along", blurb: "Follow for free and never miss a thing.", perks: ["Members only updates", "Public posts and announcements", "First to know when something new drops"] },
     tiers: n.tiers.map((t) => ({ ...t, perks: [...t.perks] })),
     campaign: { title: cat.titleIdea, description: cat.descriptionIdea, goal: cat.goal, category: cat.id, tiers: cat.tiers.map((t) => ({ amount: t.amount, title: t.title, description: t.description, rewards: t.rewards.map((r) => ({ ...r })) })) },
+    live: { title: "A live hangout with your members" },
+    merch: { idea: "A simple logo tee in your brand colors" },
+    marketplace: { idea: "Something from your collection your fans would want" },
   };
 }
 
@@ -129,6 +136,9 @@ export async function POST(req: NextRequest) {
         category: catId,
         tiers: campTiers.length ? campTiers : fb.campaign.tiers,
       },
+      live: { title: str(parsed?.live?.title) || fb.live.title },
+      merch: { idea: str(parsed?.merch?.idea) || fb.merch.idea },
+      marketplace: { idea: str(parsed?.marketplace?.idea) || fb.marketplace.idea },
     });
   } catch {
     return NextResponse.json({ ...fallback(null), generated: false });
