@@ -72,7 +72,7 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
               style={{
                 padding: "6px 16px", borderRadius: 999, border: "none", cursor: "pointer",
                 fontSize: 12, fontWeight: 600,
-                background: billing === period ? "#F0B429" : "transparent",
+                background: billing === period ? "var(--accent)" : "transparent",
                 color: billing === period ? "#09090C" : "rgba(255,255,255,0.5)",
                 transition: "all 0.15s",
               }}
@@ -104,16 +104,16 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
                 display: "flex", alignItems: "flex-start", justifyContent: "space-between",
                 padding: "14px 16px", borderRadius: 10, border: "1.5px solid", cursor: "pointer",
                 background: selected ? "var(--surface, #1E2024)" : "var(--surface-2, #16161c)",
-                borderColor: selected ? "rgba(240,180,41,0.4)" : "rgba(255,255,255,0.1)",
+                borderColor: selected ? "rgba(242,184,75,0.4)" : "rgba(255,255,255,0.1)",
                 textAlign: "left", transition: "all 0.15s",
               }}
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${selected ? "#F0B429" : "rgba(255,255,255,0.3)"}`, background: selected ? "#F0B429" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", border: `2px solid ${selected ? "var(--accent)" : "rgba(255,255,255,0.3)"}`, background: selected ? "var(--accent)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     {selected && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#09090C" }} />}
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: selected ? "#F0B429" : "#F2F2F0" }}>{tier.name}</span>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 700, color: selected ? "var(--accent)" : "var(--text)" }}>{tier.name}</span>
                 </div>
                 {tier.description && (
                   <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6, marginLeft: 24 }}>{tier.description}</p>
@@ -130,10 +130,10 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
                 )}
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                <p style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 700, color: selected ? "#F0B429" : "rgba(255,255,255,0.7)", lineHeight: 1 }}>
+                <p style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: selected ? "var(--accent)" : "var(--text-soft)", lineHeight: 1 }}>
                   ${Number(price).toFixed(2)}
                 </p>
-                <p style={{ fontFamily: "monospace", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>/{period}</p>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", marginTop: 2 }}>/{period}</p>
                 {billing === "yearly" && tier.price_yearly && (
                   <p style={{ fontSize: 10, color: "#34D399", marginTop: 2 }}>{discountPct(tier)}% off</p>
                 )}
@@ -147,8 +147,8 @@ export default function TierPicker({ tiers, creatorProfileId, stripeReady, logge
         onClick={subscribe}
         disabled={loading || !selectedTier || (loggedIn && !stripeReady)}
         style={{
-          width: "100%", background: "#F0B429", color: "#09090C",
-          fontWeight: 700, fontSize: 14, padding: "13px 0",
+          width: "100%", background: "var(--accent)", color: "#09090C",
+          fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, padding: "13px 0",
           borderRadius: 999, border: "none", cursor: "pointer",
           opacity: loading || (loggedIn && !stripeReady) ? 0.5 : 1,
         }}

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { type StudioPayload } from "@/components/StudioSetup";
 import PageBuilderQA from "@/components/PageBuilderQA";
+import AdminCampaignBuilder from "@/components/AdminCampaignBuilder";
 
 type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
@@ -88,6 +89,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   const [copied, setCopied] = useState(false);
   const [copiedPreview, setCopiedPreview] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [campaignOpen, setCampaignOpen] = useState(false);
 
   async function adminStudioCommit(payload: StudioPayload): Promise<string | null> {
     const res = await fetch("/api/admin/studio/commit", {
@@ -286,6 +288,16 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         />
       )}
 
+      {campaignOpen && (
+        <AdminCampaignBuilder
+          creatorProfileId={creator.id}
+          displayName={creator.display_name}
+          handle={creator.handle}
+          onClose={() => setCampaignOpen(false)}
+          onDone={() => { setCampaignOpen(false); window.location.reload(); }}
+        />
+      )}
+
       <div style={{ marginBottom: 24, background: "linear-gradient(180deg, rgba(240,180,41,0.10), rgba(240,180,41,0.03))", border: "1px solid var(--accent-border, rgba(240,180,41,0.25))", borderRadius: 12, padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent, #f0b429)", marginBottom: 6 }}>Build everything</div>
@@ -293,6 +305,15 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
           <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>A few quick questions, then a recommendation, a preview, and your approval. Sets up their bio, free tier, and paid tiers, and a campaign only when it actually makes sense.</div>
         </div>
         <button className="adm-btn adm-btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Interview and build</button>
+      </div>
+
+      <div style={{ marginBottom: 24, border: "1px solid var(--border, rgba(255,255,255,0.1))", borderRadius: 12, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted, #888)", marginBottom: 6 }}>Just a campaign</div>
+          <div style={{ fontSize: 16, color: "#fff", marginBottom: 2 }}>Add a campaign</div>
+          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>For creators who already have a page. Answer a few questions and let the assistant draft it, or enter what they already have.</div>
+        </div>
+        <button className="adm-btn adm-btn--ghost" style={{ flexShrink: 0 }} onClick={() => setCampaignOpen(true)}>+ Add a campaign</button>
       </div>
 
       {!creator.claimed_at && creator.claim_code ? (

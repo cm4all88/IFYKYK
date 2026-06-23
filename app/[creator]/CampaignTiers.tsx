@@ -85,7 +85,7 @@ export default function CampaignTiers({
               }}
             >
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "#fff" }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700, color: "var(--text)" }}>
                   {t.title}
                 </span>
                 <span style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 800, color: "var(--accent)" }}>
@@ -94,7 +94,7 @@ export default function CampaignTiers({
               </div>
 
               {t.description && (
-                <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "rgba(255,255,255,0.6)", margin: 0 }}>
+                <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--muted)", margin: 0 }}>
                   {t.description}
                 </p>
               )}
@@ -106,13 +106,13 @@ export default function CampaignTiers({
                       key={i}
                       style={{
                         fontSize: 12,
-                        color: "rgba(255,255,255,0.72)",
+                        color: "var(--muted)",
                         display: "flex",
                         gap: 7,
                         alignItems: "baseline",
                       }}
                     >
-                      <span style={{ color: "var(--accent)", flexShrink: 0 }}>›</span>
+                      <span style={{ color: "var(--accent)", flexShrink: 0 }}>✓</span>
                       <span>
                         {r.label}
                         {NEEDS_CODE[r.type] && (

@@ -249,17 +249,14 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
       <BackerCodeBanner />
       <ReferralTracker creatorHandle={sp.handle} />
 
-      <main
-        style={
-          bgImg
-            ? {
-                minHeight: "100vh", position: "relative",
-                background: `linear-gradient(180deg, rgba(9,9,12,0.28) 0, rgba(9,9,12,0.55) 360px, rgba(9,9,12,0.84) 820px, rgba(9,9,12,0.92) 100%), url("${bgImg}") top center / cover no-repeat`,
-                backgroundAttachment: "fixed",
-              }
-            : { minHeight: "100vh", position: "relative", background: "#09090C" }
-        }
-      >
+      <main style={{ minHeight: "100vh", position: "relative", background: "#09090C" }}>
+        {bgImg ? (
+          <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={bgImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(9,9,12,0.30) 0%, rgba(9,9,12,0.58) 34%, rgba(9,9,12,0.86) 72%, rgba(9,9,12,0.95) 100%)" }} />
+          </div>
+        ) : null}
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "0 24px" }}>
 
           {/* ── 1. THE CREATOR — the largest thing on the page. No ask yet. ── */}
