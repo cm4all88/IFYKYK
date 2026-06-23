@@ -35,6 +35,7 @@ export async function insertDraft(
     sourceUsername?: string | null;
     listing: DraftInput;
     images: string[];
+    needsReview?: boolean;
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const price = Math.max(Number(args.listing.price) || 0, 1); // column requires >= 1
@@ -52,6 +53,7 @@ export async function insertDraft(
     source_username: args.sourceUsername ?? null,
     source_url: args.listing.sourceUrl ?? null,
     needs_photos: args.images.length === 0,
+    needs_review: args.needsReview ?? false,
     status: "draft",
     import_run_id: args.importRunId,
     imported_at: new Date().toISOString(),

@@ -15,7 +15,7 @@ export async function GET() {
   const [{ data: drafts }, { data: runs }] = await Promise.all([
     (supabase as any)
       .from("marketplace_listings")
-      .select("id, title, description, price_usd, condition, category, images, brand, size, source_platform, source_url, needs_photos, imported_at")
+      .select("id, title, description, price_usd, condition, category, images, brand, size, source_platform, source_url, needs_photos, needs_review, imported_at")
       .eq("creator_profile_id", profile.id)
       .eq("status", "draft")
       .order("imported_at", { ascending: false, nullsFirst: false })

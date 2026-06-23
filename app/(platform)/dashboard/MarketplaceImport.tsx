@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 
 // "Import Existing Listings" — source-agnostic. The creator brings their store
-// (CSV export, photos + AI, or a marketplace they name) and reviews drafts with
-// full photo control before anything publishes. Photos are always copied into
-// Spotlightly storage by the API; this UI only ever handles Spotlightly URLs.
+// (CSV export, photos + AI, screenshots + AI, or a marketplace they name) and
+// reviews drafts with full photo control before anything publishes. Photos are
+// always copied into Spotlightly storage by the API; this UI only handles
+// Spotlightly URLs. Nothing auto-publishes.
 
 type Draft = {
   id: string;
@@ -19,6 +20,7 @@ type Draft = {
   size: string | null;
   source_platform: string | null;
   needs_photos: boolean;
+  needs_review?: boolean;
 };
 
 type SourceStat = { source: string; runs: number; imported: number; photosSaved: number; photosFailed: number; lastAt: string | null };
@@ -35,7 +37,20 @@ const SOURCES = [
 ];
 const CATEGORIES = ["clothing", "accessories", "prints", "gear", "signed", "personal", "other"];
 const CONDITIONS = ["new", "like_new", "good", "fair"];
-const SOURCE_LABEL: Record<string, string> = Object.fromEntries(SOURCES.map((s) => [s.id, s.label]));
+const SOURCE_LABEL: Record<string, string> = {
+  poshmark: "Poshmark", mercari: "Mercari", depop: "Depop", facebook: "Facebook Marketplace",
+  ebay: "eBay", etsy: "Etsy", other: "Other", csv: "CSV upload", photos: "Photos + AI",
+  screenshots: "Screenshots", capture: "Browser capture",
+};
+
+// The four import paths and their current status, shown in the guide.
+const GUIDE: { label: string; desc: string; status: "Available" | "Coming soon" | "Coming later" }[] = [
+  { label: "Upload a CSV", desc: "Export from eBay or Etsy. Image links are downloaded and stored.", status: "Available" },
+  { label: "Photos + AI", desc: "Upload an item's photos. AI drafts the title, price, and details.", status: "Available" },
+  { label: "Import from screenshots", desc: "Screenshot your listings. AI reads the visible info into drafts.", status: "Available" },
+  { label: "Marketplace capture", desc: "Pull straight from your logged-in Poshmark, Mercari, Depop, or Facebook closet.", status: "Coming soon" },
+  { label: "Etsy & eBay connectors", desc: "One-click connect to sync your shop directly.", status: "Coming later" },
+];
 
 function usd(n: number) { return "$" + Math.round(n).toLocaleString("en-US"); }
 
@@ -54,17 +69,32 @@ async function uploadFiles(files: File[]): Promise<{ urls: string[]; failed: num
   return { urls, failed };
 }
 
+function downloadTemplate() {
+  const lines = [
+    "title,description,price,brand,category,size,condition,images",
+    '"Vintage denim jacket","Lightly worn trucker jacket. Roomy medium.",48,Levis,clothing,M,good,"https://example.com/jacket-front.jpg https://example.com/jacket-back.jpg"',
+    '"Gold hoop earrings","14k plated. Never worn.",18,,accessories,,new,https://example.com/hoops.jpg',
+    '"Signed tour poster","From the 2019 run. Numbered.",65,,signed,,like_new,',
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "spotlightly-import-template.csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketplace?: () => void }) {
-  const [view, setView] = useState<"home" | "method" | "marketplace" | "running" | "review" | "summary">("home");
+  const [view, setView] = useState<"home" | "method" | "marketplace" | "running" | "review" | "failed">("home");
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [sources, setSources] = useState<SourceStat[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [errorRuns, setErrorRuns] = useState<{ source: string; errors: string[] }[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const [lastRun, setLastRun] = useState<{ found: number; imported: number; skipped: number; photosSaved: number; inventoryValue: number } | null>(null);
+  const [failedMsg, setFailedMsg] = useState<string | null>(null);
+  const [lastRun, setLastRun] = useState<{ found: number; imported: number; skipped: number; photosSaved: number } | null>(null);
   const [pickedSource, setPickedSource] = useState<string>("poshmark");
   const [storeName, setStoreName] = useState("");
+  const [reviewFilter, setReviewFilter] = useState<"all" | "needs" | "ready">("all");
 
   const load = useCallback(async () => {
     try {
@@ -74,7 +104,6 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
       setDrafts((data.drafts ?? []).map((d: any) => ({ ...d, price_usd: Number(d.price_usd) || 0, images: d.images ?? [] })));
       setSources(data.sources ?? []);
       setSummary(data.summary ?? null);
-      setErrorRuns(((data.runs ?? []) as any[]).filter((r) => (r.errors?.length)).map((r) => ({ source: r.source, errors: r.errors })).slice(0, 5));
     } catch { /* ignore */ }
   }, []);
 
@@ -94,11 +123,10 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
       if (storeName.trim()) fd.append("username", storeName.trim());
       const res = await fetch("/api/marketplace/import/csv", { method: "POST", body: fd });
       const data = await res.json();
-      if (data.error) { setNote(data.error); setView("method"); setBusy(false); return; }
-      setLastRun({ found: data.found, imported: data.imported, skipped: data.skipped, photosSaved: data.photosSaved, inventoryValue: 0 });
-      await load();
-      setView("review");
-    } catch { setNote("Import failed. Try again."); setView("method"); }
+      if (data.error) { setFailedMsg(data.error); setView("failed"); setBusy(false); return; }
+      setLastRun({ found: data.found, imported: data.imported, skipped: data.skipped, photosSaved: data.photosSaved });
+      await load(); setView("review");
+    } catch { setFailedMsg("The import didn't go through. Try again."); setView("failed"); }
     setBusy(false);
   }
 
@@ -106,17 +134,31 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
     setBusy(true); setView("running"); setNote(null);
     try {
       const { urls } = await uploadFiles(files);
-      if (urls.length === 0) { setNote("Those photos could not be uploaded."); setView("method"); setBusy(false); return; }
+      if (urls.length === 0) { setFailedMsg("Those photos couldn't be uploaded."); setView("failed"); setBusy(false); return; }
       const res = await fetch("/api/marketplace/import/photos", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrls: urls }),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrls: urls }),
       });
       const data = await res.json();
-      if (data.error) { setNote(data.error); setView("method"); setBusy(false); return; }
-      setLastRun({ found: 1, imported: data.imported, skipped: 0, photosSaved: data.photosSaved, inventoryValue: 0 });
-      await load();
-      setView("review");
-    } catch { setNote("Could not draft from those photos."); setView("method"); }
+      if (data.error) { setFailedMsg(data.error); setView("failed"); setBusy(false); return; }
+      setLastRun({ found: 1, imported: data.imported, skipped: 0, photosSaved: data.photosSaved });
+      await load(); setView("review");
+    } catch { setFailedMsg("Couldn't draft from those photos."); setView("failed"); }
+    setBusy(false);
+  }
+
+  async function runScreenshots(files: File[]) {
+    setBusy(true); setView("running"); setNote(null);
+    try {
+      const { urls } = await uploadFiles(files);
+      if (urls.length === 0) { setFailedMsg("Those screenshots couldn't be uploaded."); setView("failed"); setBusy(false); return; }
+      const res = await fetch("/api/marketplace/import/screenshots", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ imageUrls: urls }),
+      });
+      const data = await res.json();
+      if (data.error) { setFailedMsg(data.error); setView("failed"); setBusy(false); return; }
+      setLastRun({ found: data.found, imported: data.imported, skipped: data.skipped ?? 0, photosSaved: data.photosSaved ?? urls.length });
+      await load(); setView("review");
+    } catch { setFailedMsg("Couldn't read those screenshots."); setView("failed"); }
     setBusy(false);
   }
 
@@ -134,8 +176,9 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
       });
       const data = await res.json();
       if (data.error) { setNote(data.error); setBusy(false); return; }
+      setNote(null);
       if (action === "import" || action === "skip") setDrafts((ds) => ds.filter((x) => x.id !== d.id));
-      else setNote("Saved.");
+      else updateDraft(d.id, { needs_review: false });
       load();
     } catch { setNote("That didn't save. Try again."); }
     setBusy(false);
@@ -156,8 +199,28 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
     updateDraft(d.id, { images: d.images.filter((_, idx) => idx !== i) });
   }
 
-  // ── shared bits ────────────────────────────────────────────────────────────
+  // ── derived ────────────────────────────────────────────────────────────────
   const kicker = { fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase" as const, color: "var(--muted)" };
+  const isReady = (d: Draft) => d.images.length > 0 && d.price_usd >= 1;
+  const needsPics = (d: Draft) => d.needs_photos || d.images.length === 0;
+  const readyCount = drafts.filter(isReady).length;
+  const needsCount = drafts.filter(needsPics).length;
+  const reviewCount = drafts.filter((d) => d.needs_review).length;
+  const filtered = drafts.filter((d) => reviewFilter === "all" ? true : reviewFilter === "needs" ? needsPics(d) : isReady(d));
+  const everImported = sources.length > 0;
+
+  function statusPill(status: string) {
+    const live = status === "Available";
+    return (
+      <span style={{
+        fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase",
+        padding: "3px 8px", borderRadius: 999, whiteSpace: "nowrap",
+        color: live ? "var(--accent)" : "var(--muted)",
+        background: live ? "var(--accent-soft)" : "rgba(255,255,255,0.04)",
+        border: `1px solid ${live ? "var(--accent-border)" : "var(--border)"}`,
+      }}>{status}</span>
+    );
+  }
 
   // ===========================================================================
   return (
@@ -168,9 +231,7 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
         You already built your listings once. Import them here, photos and all, and review everything before a single one goes live.
       </p>
 
-      {note ? (
-        <div className="card card--accent" style={{ marginBottom: 16, fontSize: 13 }}>{note}</div>
-      ) : null}
+      {note ? <div className="card card--accent" style={{ marginBottom: 16, fontSize: 13 }}>{note}</div> : null}
 
       {/* Review banner — drafts waiting */}
       {summary && summary.draftCount > 0 && view !== "review" ? (
@@ -222,22 +283,46 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
         </div>
       ) : null}
 
-      {/* METHOD — choose how */}
+      {/* METHOD — guide + choose how */}
       {view === "method" ? (
         <div style={{ display: "grid", gap: 12 }}>
           <button className="btn btn--ghost btn--small" style={{ alignSelf: "flex-start" }} onClick={() => setView("home")}>← Back</button>
 
+          {/* Guide */}
+          <div className="card">
+            <div style={{ ...kicker, marginBottom: 12 }}>How importing works</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {GUIDE.map((g) => (
+                <div key={g.label} style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, color: "var(--text)", fontSize: 13.5 }}>{g.label}</div>
+                    <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5 }}>{g.desc}</div>
+                  </div>
+                  {statusPill(g.status)}
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "14px 0 0", lineHeight: 1.6 }}>
+              Every path saves your photos into Spotlightly and creates drafts. Nothing publishes until you approve it.
+            </p>
+          </div>
+
+          {/* CSV */}
           <div className="card">
             <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Upload a CSV of your listings</div>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
               eBay and Etsy can export one from your seller tools. If it has image links, we download and store every photo. Needs a <strong>title</strong> column at minimum.
             </p>
-            <label className="btn btn--primary btn--small" style={{ cursor: "pointer", display: "inline-block" }}>
-              Choose CSV
-              <input type="file" accept=".csv,text/csv" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) runCsv(f); }} />
-            </label>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <label className="btn btn--primary btn--small" style={{ cursor: "pointer", display: "inline-block" }}>
+                Choose CSV
+                <input type="file" accept=".csv,text/csv" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) runCsv(f); }} />
+              </label>
+              <button className="btn btn--ghost btn--small" onClick={downloadTemplate}>Download template</button>
+            </div>
           </div>
 
+          {/* Photos + AI */}
           <div className="card">
             <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Add photos and let us draft it</div>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
@@ -249,6 +334,19 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
             </label>
           </div>
 
+          {/* Screenshots */}
+          <div className="card">
+            <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Import from screenshots</div>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
+              Screenshot your listings from any app. AI reads the visible title, price, and details into drafts, and flags anything it wasn't sure about so you can confirm and add clean photos.
+            </p>
+            <label className="btn btn--primary btn--small" style={{ cursor: "pointer", display: "inline-block" }}>
+              Choose screenshots
+              <input type="file" accept="image/*" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); if (fs.length) runScreenshots(fs); }} />
+            </label>
+          </div>
+
+          {/* Marketplace */}
           <div className="card">
             <div style={{ fontWeight: 700, color: "var(--text)", marginBottom: 4 }}>Bring it from a marketplace</div>
             <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>Tell us where you sell so your imports stay organized.</p>
@@ -275,11 +373,11 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
           </div>
           {SOURCES.find((s) => s.id === pickedSource)?.export ? (
             <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>
-              {SOURCE_LABEL[pickedSource]} lets you export your listings to a CSV from your seller tools. Upload it below and we will bring the photos across.
+              {SOURCE_LABEL[pickedSource]} lets you export your listings to a CSV from your seller tools. Upload it below and we'll bring the photos across.
             </p>
           ) : (
             <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>
-              {SOURCE_LABEL[pickedSource]} has no export file. The in-browser importer that pulls these straight from your closet is on the way. For now, the photo drafter above is the fastest path, or upload a CSV if you keep one.
+              {SOURCE_LABEL[pickedSource]} has no export file. The in-browser importer that pulls these straight from your closet is on the way. For now, screenshots or the photo drafter are the fastest path.
             </p>
           )}
           <label className="btn btn--primary btn--small" style={{ cursor: "pointer", justifySelf: "flex-start", display: "inline-block" }}>
@@ -293,63 +391,102 @@ export default function MarketplaceImport({ onGoToMarketplace }: { onGoToMarketp
       {view === "running" ? (
         <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
           <div style={{ fontFamily: "var(--font-serif)", fontSize: 20, color: "var(--text)", marginBottom: 6 }}>Bringing your store across…</div>
-          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Downloading and saving every photo into your Spotlightly storage.</p>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Saving every photo into your Spotlightly storage. This can take a moment.</p>
         </div>
       ) : null}
 
-      {/* SUMMARY (last run quick recap appears atop review) */}
-      {lastRun && view === "review" ? (
-        <div className="card card--green" style={{ marginBottom: 16, fontSize: 13 }}>
-          Found {lastRun.found} · imported {lastRun.imported} as drafts{lastRun.skipped ? ` · skipped ${lastRun.skipped}` : ""} · {lastRun.photosSaved} photos saved. Nothing is live yet. Approve what you want below.
+      {/* FAILED */}
+      {view === "failed" ? (
+        <div className="card card--red" style={{ textAlign: "center", padding: "40px 24px" }}>
+          <div style={{ fontSize: 26, marginBottom: 8 }}>⚠️</div>
+          <div style={{ fontFamily: "var(--font-serif)", fontSize: 20, color: "var(--text)", marginBottom: 6 }}>That import didn't go through</div>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 18px", maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+            {failedMsg || "Something went wrong. Nothing was changed."}
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button className="btn btn--primary btn--small" onClick={() => setView("method")}>Try again</button>
+            <button className="btn btn--ghost btn--small" onClick={() => setView("home")}>Back</button>
+          </div>
         </div>
       ) : null}
 
       {/* REVIEW — the approval screen */}
       {view === "review" ? (
         <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
-            <div style={{ ...kicker }}>Review · {drafts.length} {drafts.length === 1 ? "draft" : "drafts"}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn btn--ghost btn--small" onClick={() => setView("home")}>Done for now</button>
+          {lastRun ? (
+            <div className="card card--green" style={{ marginBottom: 16, fontSize: 13 }}>
+              Found {lastRun.found} · imported {lastRun.imported} as drafts{lastRun.skipped ? ` · skipped ${lastRun.skipped}` : ""} · {lastRun.photosSaved} photos saved. Nothing is live yet. Approve what you want below.
             </div>
+          ) : null}
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
+            <div style={{ ...kicker }}>
+              {drafts.length} {drafts.length === 1 ? "draft" : "drafts"}
+              {drafts.length > 0 ? ` · ${readyCount} ready` : ""}
+              {needsCount > 0 ? ` · ${needsCount} need photos` : ""}
+              {reviewCount > 0 ? ` · ${reviewCount} to double-check` : ""}
+            </div>
+            <button className="btn btn--ghost btn--small" onClick={() => setView("home")}>Done for now</button>
           </div>
 
+          {drafts.length > 0 ? (
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              {(["all", "needs", "ready"] as const).map((f) => (
+                <button key={f} className={reviewFilter === f ? "btn btn--secondary btn--small" : "btn btn--ghost btn--small"} onClick={() => setReviewFilter(f)}>
+                  {f === "all" ? "All" : f === "needs" ? `Need photos${needsCount ? ` (${needsCount})` : ""}` : `Ready (${readyCount})`}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           {drafts.length === 0 ? (
-            <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
-              <div style={{ fontFamily: "var(--font-serif)", fontSize: 19, color: "var(--text)", marginBottom: 6 }}>All caught up</div>
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px" }}>No drafts waiting. Import more, or head to your marketplace.</p>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-                <button className="btn btn--secondary btn--small" onClick={() => setView("method")}>Import more</button>
-                {onGoToMarketplace ? <button className="btn btn--primary btn--small" onClick={onGoToMarketplace}>Go to marketplace</button> : null}
+            <div className="card" style={{ textAlign: "center", padding: "48px 20px" }}>
+              <div style={{ fontSize: 26, marginBottom: 8, opacity: 0.6 }}>{everImported ? "✓" : "📦"}</div>
+              <div style={{ fontFamily: "var(--font-serif)", fontSize: 19, color: "var(--text)", marginBottom: 6 }}>
+                {everImported ? "All caught up" : "No drafts yet"}
               </div>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 16px" }}>
+                {everImported ? "Every imported listing has been handled." : "Bring your first listings in and they'll appear here to review."}
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                <button className="btn btn--primary btn--small" onClick={() => setView("method")}>Import listings</button>
+                {everImported && onGoToMarketplace ? <button className="btn btn--secondary btn--small" onClick={onGoToMarketplace}>Go to marketplace</button> : null}
+              </div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="card" style={{ textAlign: "center", padding: "36px 20px" }}>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Nothing in this view. Switch the filter to see the rest.</p>
             </div>
           ) : (
             <div style={{ display: "grid", gap: 14 }}>
-              {drafts.map((d) => (
+              {filtered.map((d) => (
                 <div key={d.id} className="card" style={{ display: "grid", gap: 12 }}>
+                  {/* badges */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                    <div style={{ ...kicker }}>{d.source_platform ? SOURCE_LABEL[d.source_platform] ?? d.source_platform : "Draft"}</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {d.needs_review ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--accent)", background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 999, padding: "3px 9px" }}>Double-check the details</span> : null}
+                      {needsPics(d) ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--red)", background: "var(--red-soft)", border: "1px solid var(--red)", borderRadius: 999, padding: "3px 9px" }}>Needs photos</span> : null}
+                    </div>
+                  </div>
+
                   {/* photos */}
-                  <div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ ...kicker }}>Photos{d.source_platform ? ` · from ${SOURCE_LABEL[d.source_platform] ?? d.source_platform}` : ""}</div>
-                      {d.images.length === 0 ? <span style={{ fontSize: 11, color: "var(--red)", fontWeight: 700 }}>Needs photos</span> : null}
-                    </div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {d.images.map((img, i) => (
-                        <div key={img + i} style={{ position: "relative", width: 92, height: 92, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                          <div style={{ position: "absolute", inset: "auto 0 0 0", display: "flex", justifyContent: "space-between", background: "rgba(9,9,12,0.6)" }}>
-                            <button title="Move left" onClick={() => movePhoto(d, i, -1)} style={photoBtn} disabled={i === 0}>‹</button>
-                            <button title="Remove" onClick={() => removePhoto(d, i)} style={{ ...photoBtn, color: "var(--red)" }}>✕</button>
-                            <button title="Move right" onClick={() => movePhoto(d, i, 1)} style={photoBtn} disabled={i === d.images.length - 1}>›</button>
-                          </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {d.images.map((img, i) => (
+                      <div key={img + i} style={{ position: "relative", width: 92, height: 92, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        <div style={{ position: "absolute", inset: "auto 0 0 0", display: "flex", justifyContent: "space-between", background: "rgba(9,9,12,0.6)" }}>
+                          <button title="Move left" onClick={() => movePhoto(d, i, -1)} style={photoBtn} disabled={i === 0}>‹</button>
+                          <button title="Remove" onClick={() => removePhoto(d, i)} style={{ ...photoBtn, color: "var(--red)" }}>✕</button>
+                          <button title="Move right" onClick={() => movePhoto(d, i, 1)} style={photoBtn} disabled={i === d.images.length - 1}>›</button>
                         </div>
-                      ))}
-                      <label style={{ width: 92, height: 92, borderRadius: 8, border: "1px dashed var(--border-strong)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--muted)", fontSize: 12, textAlign: "center" }}>
-                        + Add
-                        <input type="file" accept="image/*" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); if (fs.length) addPhotos(d, fs); }} />
-                      </label>
-                    </div>
+                      </div>
+                    ))}
+                    <label style={{ width: 92, height: 92, borderRadius: 8, border: "1px dashed var(--border-strong)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--muted)", fontSize: 12, textAlign: "center" }}>
+                      + Add
+                      <input type="file" accept="image/*" multiple hidden onChange={(e) => { const fs = Array.from(e.target.files ?? []); if (fs.length) addPhotos(d, fs); }} />
+                    </label>
                   </div>
 
                   {/* fields */}

@@ -4,7 +4,7 @@
 // came from.
 
 export type ImportSourceId =
-  | "poshmark" | "mercari" | "ebay" | "etsy" | "depop" | "facebook" | "csv" | "photos" | "capture" | "other";
+  | "poshmark" | "mercari" | "ebay" | "etsy" | "depop" | "facebook" | "csv" | "photos" | "screenshots" | "capture" | "other";
 
 export const IMPORT_SOURCES: { id: ImportSourceId; label: string }[] = [
   { id: "poshmark", label: "Poshmark" },

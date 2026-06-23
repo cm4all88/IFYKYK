@@ -53,6 +53,9 @@ export async function POST(req: NextRequest) {
     update.needs_photos = imgs.length === 0;
   }
 
+  // Any save or publish means a human looked at it.
+  update.needs_review = false;
+
   if (action === "import") {
     // Publishing rules: a real price and at least one photo.
     const finalPrice = update.price_usd ?? null;
