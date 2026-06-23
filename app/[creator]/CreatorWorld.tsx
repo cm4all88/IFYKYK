@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
-import { bunnySignUrl } from "@/lib/bunny";
+import { bunnySignUrl, bunnyImage, bunnyImageSrcSet } from "@/lib/bunny";
 import type { ReactNode, CSSProperties } from "react";
 
 import SiteHeader from "@/components/site-header";
@@ -253,7 +253,11 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
         {bgImg ? (
           <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bgImg} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+            <img
+              src={bunnyImage(bgImg, { width: 1920, quality: 82 })}
+              srcSet={bunnyImageSrcSet(bgImg, [768, 1280, 1920, 2560], { quality: 82 })}
+              sizes="100vw"
+              alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(9,9,12,0.30) 0%, rgba(9,9,12,0.58) 34%, rgba(9,9,12,0.86) 72%, rgba(9,9,12,0.95) 100%)" }} />
           </div>
         ) : null}
@@ -265,7 +269,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
 
             {sp.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={sp.avatar_url} alt={displayName} width={132} height={132}
+              <img src={bunnyImage(sp.avatar_url, { width: 264, quality: 85 })} alt={displayName} width={132} height={132}
                 style={{ position: "relative", display: "block", margin: "0 auto", borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.10)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }} />
             ) : (
               <div style={{ position: "relative", width: 132, height: 132, borderRadius: "50%", margin: "0 auto", background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 52, color: "var(--accent)" }}>

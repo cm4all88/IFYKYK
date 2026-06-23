@@ -951,11 +951,11 @@ function ProfilePane({
             </div>
             <div className="form-field" style={{ margin:0 }}>
               <label className="label" style={{ marginBottom:"var(--s-3)" }}>Cover image</label>
-              <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="1500×500px" minWidth={1200} minHeight={400} previewWidth={160} previewHeight={54} />
+              <ImageUpload value={coverUrl} onChange={setCoverUrl} shape="rect" label="Upload cover" hint="1600×500px or larger keeps it crisp" minWidth={1600} minHeight={400} previewWidth={160} previewHeight={54} />
             </div>
             <div className="form-field" style={{ margin:0 }}>
               <label className="label" style={{ marginBottom:"var(--s-3)" }}>Page background</label>
-              <ImageUpload value={bgUrl} onChange={setBgUrl} shape="rect" label="Upload background" hint="1920×1080px or larger" minWidth={1400} minHeight={800} previewWidth={160} previewHeight={90} />
+              <ImageUpload value={bgUrl} onChange={setBgUrl} shape="rect" label="Upload background" hint="1920×1080px or larger" minWidth={1600} minHeight={800} previewWidth={160} previewHeight={90} />
             </div>
           </div>
         </div>

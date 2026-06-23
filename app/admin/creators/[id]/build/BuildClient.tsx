@@ -3,6 +3,7 @@ import { useState } from "react";
 import { type StudioPayload } from "@/components/StudioSetup";
 import PageBuilderQA from "@/components/PageBuilderQA";
 import AdminCampaignBuilder from "@/components/AdminCampaignBuilder";
+import ImageUpload from "@/components/ImageUpload";
 
 type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
@@ -367,15 +368,11 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 14 }}>
           <div>
             <label style={label}>Avatar</label>
-            {avatar ? <img src={avatar} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block", marginBottom: 8 }} /> : null}
-            <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0], "avatar")} />
-            {busyUpload === "avatar" && <span style={{ fontSize: 12, marginLeft: 8 }}>Uploading…</span>}
+            <ImageUpload value={avatar} onChange={setAvatar} shape="circle" label="Upload avatar" hint="Square, 400px or larger" minWidth={400} minHeight={400} previewWidth={72} previewHeight={72} />
           </div>
           <div>
             <label style={label}>Cover</label>
-            {cover ? <img src={cover} alt="" style={{ width: 160, height: 72, borderRadius: 8, objectFit: "cover", display: "block", marginBottom: 8 }} /> : null}
-            <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0], "cover")} />
-            {busyUpload === "cover" && <span style={{ fontSize: 12, marginLeft: 8 }}>Uploading…</span>}
+            <ImageUpload value={cover} onChange={setCover} shape="rect" label="Upload cover" hint="1600px wide or larger keeps it crisp" minWidth={1600} minHeight={400} previewWidth={160} previewHeight={72} />
           </div>
         </div>
 
