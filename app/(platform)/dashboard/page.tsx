@@ -15,6 +15,8 @@ import OnboardingChecklist from "@/components/OnboardingChecklist";
 import SocialPostsManager from "@/components/dashboard/SocialPostsManager";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
 import { REWARD_TYPES, tierNeedsCode, type TierReward, type RewardType } from "@/lib/campaign-rewards";
+import { CAMPAIGN_CATEGORIES, categoryById, suggestionsFor, REWARD_EXPLAIN, type CampaignCategory, type TemplateTier } from "@/lib/campaign-templates";
+import { TIER_NICHES, tierNicheById, type TierNiche, type TemplateSubTier } from "@/lib/tier-templates";
 import ImageUpload from "@/components/ImageUpload";
 
 // ──────────────────────────────────────────────────────────────────
@@ -686,6 +688,8 @@ function OverviewPane({
         </button>
       </div>
 
+      <ReferralQuickCard handle={profile.handle} onOpen={() => onSetPane("refer")} />
+
       {/* Tools — a tidy grid, not a wall */}
       <p className="kicker" style={{ marginBottom: "var(--s-4)" }}>Your tools</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))", gap: 2 }}>
@@ -1219,17 +1223,275 @@ function FansPane({ profile }: { profile: Profile }) {
 // ──────────────────────────────────────────────────────────────────
 // PANE: Campaigns — fundraising with exclusive access as reward
 // ──────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
+// Guided campaign creator — pick what you are raising for, get a
+// complete five tier campaign you can edit, or let the assistant build
+// it from a few answers. The blank builder still exists (start from
+// scratch), but nobody has to start from nothing.
+// ──────────────────────────────────────────────────────────────────
+function GuidedCampaignCreator({ profile, onCreated, onCancel }: { profile: Profile; onCreated: (c: any) => void; onCancel: () => void }) {
+  const supabase = createClient();
+  type Step = "category" | "questions" | "review";
+  const [step, setStep] = React.useState<Step>("category");
+  const [mode, setMode] = React.useState<"template" | "ai" | "scratch">("template");
+  const [category, setCategory] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState({ title: "", description: "", goal_amount: "", deadline: "" });
+  const [tiers, setTiers] = React.useState<TemplateTier[]>([]);
+  const [imageIdeas, setImageIdeas] = React.useState<string[]>([]);
+  const [ai, setAi] = React.useState({ raisingFor: "", why: "", contentType: "", experience: "" });
+  const [loadingAi, setLoadingAi] = React.useState(false);
+  const [aiErr, setAiErr] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  function applyTemplate(cat: CampaignCategory) {
+    setCategory(cat.id);
+    setMode("template");
+    setForm({ title: cat.titleIdea, description: cat.descriptionIdea, goal_amount: String(cat.goal), deadline: "" });
+    setTiers(cat.tiers.map((t) => ({ ...t, rewards: t.rewards.map((rw) => ({ ...rw })) })));
+    setImageIdeas([]);
+    setStep("review");
+  }
+  function startScratch() {
+    setCategory(null); setMode("scratch");
+    setForm({ title: "", description: "", goal_amount: "", deadline: "" });
+    setTiers([]); setImageIdeas([]); setStep("review");
+  }
+  async function generate() {
+    setLoadingAi(true); setAiErr(null);
+    try {
+      const res = await fetch("/api/campaigns/assist", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, ...ai, displayName: profile.display_name, handle: profile.handle }),
+      });
+      const data = await res.json();
+      if (data.error) { setAiErr(data.error); setLoadingAi(false); return; }
+      setMode("ai");
+      setForm((f) => ({ ...f, title: data.title || f.title, description: data.description || f.description, goal_amount: data.goal ? String(data.goal) : f.goal_amount }));
+      setTiers(((data.tiers ?? []) as any[]).map((t) => ({ amount: Number(t.amount), title: String(t.title ?? ""), description: String(t.description ?? ""), rewards: (Array.isArray(t.rewards) ? t.rewards : []) as TierReward[] })));
+      setImageIdeas(Array.isArray(data.imageIdeas) ? data.imageIdeas : []);
+      setStep("review");
+    } catch { setAiErr("Couldn't reach the assistant. Try again."); }
+    setLoadingAi(false);
+  }
+
+  function patchTier(i: number, patch: Partial<TemplateTier>) { setTiers((prev) => prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t))); }
+  function removeTier(i: number) { setTiers((prev) => prev.filter((_, idx) => idx !== i)); }
+  function addTier() { setTiers((prev) => [...prev, { amount: 0, title: "", description: "", rewards: [] }]); }
+  function patchReward(ti: number, ri: number, patch: Partial<TierReward>) {
+    setTiers((prev) => prev.map((t, idx) => (idx === ti ? { ...t, rewards: t.rewards.map((r, j) => (j === ri ? { ...r, ...patch } : r)) } : t)));
+  }
+  function removeReward(ti: number, ri: number) {
+    setTiers((prev) => prev.map((t, idx) => (idx === ti ? { ...t, rewards: t.rewards.filter((_, j) => j !== ri) } : t)));
+  }
+  function addReward(ti: number, rw: TierReward) {
+    setTiers((prev) => prev.map((t, idx) => (idx === ti ? (t.rewards.some((r) => r.label === rw.label && r.type === rw.type) ? t : { ...t, rewards: [...t.rewards, { ...rw }] }) : t)));
+  }
+
+  async function launch() {
+    if (!form.title.trim() || !form.goal_amount) { setErr("Add a title and a goal to launch."); return; }
+    setSaving(true); setErr(null);
+    const { data: camp, error } = await (supabase as any).from("campaigns").insert({
+      creator_profile_id: profile.id,
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      goal_amount: parseFloat(form.goal_amount),
+      deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+      category,
+      status: "active",
+    }).select().single();
+    if (error || !camp) { setErr(error?.message ?? "Couldn't create the campaign."); setSaving(false); return; }
+    const rows = tiers
+      .filter((t) => t.title.trim() && Number(t.amount) > 0)
+      .map((t, idx) => ({
+        campaign_id: camp.id,
+        title: t.title.trim(),
+        amount: Number(t.amount),
+        description: t.description.trim() || null,
+        rewards: t.rewards.filter((r) => r.label.trim()),
+        sort_order: idx,
+      }));
+    if (rows.length) {
+      const { error: te } = await (supabase as any).from("campaign_tiers").insert(rows);
+      if (te) { setErr("Campaign created, but tiers failed to save: " + te.message); }
+    }
+    setSaving(false);
+    onCreated(camp);
+  }
+
+  const suggestions = suggestionsFor(category);
+  const cardWrap: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6)" };
+
+  if (step === "category") {
+    return (
+      <div style={cardWrap}>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>What are you raising money for?</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: "var(--s-5)" }}>Pick one and we will set up a complete campaign with five tiers you can edit.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "var(--s-3)" }}>
+          {CAMPAIGN_CATEGORIES.map((c) => (
+            <button key={c.id} onClick={() => applyTemplate(c)} style={{ textAlign: "left", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", cursor: "pointer", transition: "border-color .15s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--accent-border)")} onMouseLeave={(e) => (e.currentTarget.style.borderColor = "var(--border)")}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{c.emoji}</div>
+              <div style={{ fontWeight: 700, color: "#fff", fontSize: 14, marginBottom: 2 }}>{c.label}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{c.blurb}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-4)", marginTop: "var(--s-6)", flexWrap: "wrap" }}>
+          <button className="btn btn--primary" onClick={() => setStep("questions")}>✨ Help me build my campaign</button>
+          <button className="btn btn--ghost" onClick={startScratch}>Start from scratch</button>
+          <button className="btn btn--ghost" style={{ marginLeft: "auto" }} onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "questions") {
+    const Q = (label: string, key: keyof typeof ai, ph: string, rows = 2) => (
+      <div>
+        <label className="label">{label}</label>
+        <textarea className="input" rows={rows} placeholder={ph} value={ai[key]} onChange={(e) => setAi((a) => ({ ...a, [key]: e.target.value }))} />
+      </div>
+    );
+    return (
+      <div style={{ ...cardWrap, display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+        <div>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Help me build my campaign</p>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>Answer a few questions and the assistant writes your title, description, goal, and five tiers. You can edit all of it after.</p>
+        </div>
+        <div>
+          <label className="label">Category (optional)</label>
+          <select className="input" value={category ?? ""} onChange={(e) => setCategory(e.target.value || null)}>
+            <option value="">Not sure yet</option>
+            {CAMPAIGN_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </div>
+        {Q("What are you raising money for?", "raisingFor", "e.g. A two week trip through Italy to write and record new songs")}
+        {Q("Why does it matter to you?", "why", "e.g. I have wanted to do this since I started making music and I am finally ready")}
+        {Q("What kind of content do you create?", "contentType", "e.g. Acoustic covers, songwriting videos, and live sets")}
+        {Q("What will supporters experience?", "experience", "e.g. Daily updates from the road, behind the scenes of each song, early access to the EP")}
+        {aiErr && <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{aiErr}</p>}
+        <div style={{ display: "flex", gap: "var(--s-3)" }}>
+          <button className="btn btn--primary" onClick={generate} disabled={loadingAi || !ai.raisingFor.trim()}>{loadingAi ? "Building your campaign…" : "Generate my campaign"}</button>
+          <button className="btn btn--ghost" onClick={() => setStep("category")}>Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ ...cardWrap, display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--s-4)" }}>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", margin: 0 }}>Review your campaign</p>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--muted)" }}>
+          {mode === "ai" ? "Assistant draft" : mode === "template" ? (categoryById(category)?.label ?? "Template") : "From scratch"}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+        <div>
+          <label className="label">Campaign title</label>
+          <input className="input" placeholder="Give your campaign a name" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+        </div>
+        <div>
+          <label className="label">What is this for?</label>
+          <textarea className="input" rows={3} placeholder="Tell your audience what you are raising money for and why it matters." value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-4)" }}>
+          <div>
+            <label className="label">Goal (USD)</label>
+            <div style={{ display: "flex", gap: "var(--s-2)", alignItems: "center" }}>
+              <span style={{ color: "var(--muted)" }}>$</span>
+              <input className="input" type="number" min="10" placeholder="2500" value={form.goal_amount} onChange={(e) => setForm((f) => ({ ...f, goal_amount: e.target.value }))} />
+            </div>
+          </div>
+          <div>
+            <label className="label">Deadline (optional)</label>
+            <input className="input" type="date" value={form.deadline} onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))} />
+          </div>
+        </div>
+      </div>
+
+      {imageIdeas.length > 0 && (
+        <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)" }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--accent)", margin: "0 0 var(--s-3)" }}>Cover image ideas</p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--text-soft)", lineHeight: 1.7 }}>
+            {imageIdeas.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </div>
+      )}
+
+      <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)" }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".15em", textTransform: "uppercase", color: "var(--muted)", margin: "0 0 var(--s-3)" }}>What the reward types mean</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {REWARD_TYPES.map((rt) => (
+            <div key={rt.type} style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+              <span style={{ color: "var(--accent)", fontWeight: 700 }}>{rt.name}.</span>{" "}
+              <span style={{ color: "var(--muted)" }}>{REWARD_EXPLAIN[rt.type]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+        <p className="label" style={{ margin: 0 }}>Backing tiers</p>
+        {tiers.map((t, ti) => (
+          <div key={ti} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: "var(--s-3)", alignItems: "end" }}>
+              <div>
+                <label className="label">Tier name</label>
+                <input className="input" value={t.title} placeholder="Front Row" onChange={(e) => patchTier(ti, { title: e.target.value })} />
+              </div>
+              <div>
+                <label className="label">Amount ($)</label>
+                <input className="input" type="number" min="1" value={t.amount || ""} placeholder="50" onChange={(e) => patchTier(ti, { amount: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <button onClick={() => removeTier(ti)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "8px 12px", borderRadius: "var(--r-1)", cursor: "pointer", height: "fit-content" }}>Remove</button>
+            </div>
+            <div>
+              <label className="label">What this tier is</label>
+              <input className="input" value={t.description} placeholder="You helped make it happen." onChange={(e) => patchTier(ti, { description: e.target.value })} />
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
+              {t.rewards.map((r, ri) => (
+                <div key={ri} style={{ display: "grid", gridTemplateColumns: "150px 1fr auto", gap: "var(--s-3)", alignItems: "center" }}>
+                  <select className="input" value={r.type} onChange={(e) => patchReward(ti, ri, { type: e.target.value as RewardType })}>
+                    {REWARD_TYPES.map((rt) => <option key={rt.type} value={rt.type}>{rt.name}{rt.needsCode ? " (code)" : ""}</option>)}
+                  </select>
+                  <input className="input" value={r.label} placeholder="Describe the reward" onChange={(e) => patchReward(ti, ri, { label: e.target.value })} />
+                  <button onClick={() => removeReward(ti, ri)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "6px 10px", borderRadius: "var(--r-1)", cursor: "pointer" }}>×</button>
+                </div>
+              ))}
+              {suggestions.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 2 }}>
+                  {suggestions.map((rw, k) => (
+                    <button key={k} onClick={() => addReward(ti, rw)} title={REWARD_EXPLAIN[rw.type]} style={{ fontSize: 11, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-soft)", padding: "4px 10px", borderRadius: 99, cursor: "pointer" }}>+ {rw.label}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        <button className="btn btn--ghost" style={{ alignSelf: "flex-start", fontSize: 13 }} onClick={addTier}>+ Add tier</button>
+      </div>
+
+      {err && <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{err}</p>}
+      <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
+        <button className="btn btn--primary" onClick={launch} disabled={saving || !form.title.trim() || !form.goal_amount}>{saving ? "Launching…" : "Launch campaign"}</button>
+        {mode === "ai" && <button className="btn btn--secondary" onClick={() => setStep("questions")} disabled={saving}>Edit answers</button>}
+        <button className="btn btn--ghost" onClick={() => setStep("category")} disabled={saving}>Back</button>
+        <button className="btn btn--ghost" style={{ marginLeft: "auto" }} onClick={onCancel} disabled={saving}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+
 function CampaignsPane({ profile }: { profile: Profile }) {
   const supabase = createClient();
   const [campaigns, setCampaigns] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const [form, setForm] = React.useState({
-    title: "", description: "", goal_amount: "",
-    deadline: "", reward_description: "",
-  });
 
   React.useEffect(() => {
     async function load() {
@@ -1246,26 +1508,6 @@ function CampaignsPane({ profile }: { profile: Profile }) {
     }
     load();
   }, []);
-
-  async function createCampaign() {
-    if (!form.title.trim() || !form.goal_amount) return;
-    setSaving(true);
-    setErr(null);
-    const { data, error } = await (supabase as any).from("campaigns").insert({
-      creator_profile_id: profile.id,
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      goal_amount: parseFloat(form.goal_amount),
-      deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
-      reward_description: form.reward_description.trim() || null,
-      status: "active",
-    }).select().single();
-    if (error) { setErr(error.message); setSaving(false); return; }
-    setCampaigns(prev => [{ ...data, raised: 0 }, ...prev]);
-    setForm({ title:"", description:"", goal_amount:"", deadline:"", reward_description:"" });
-    setCreating(false);
-    setSaving(false);
-  }
 
   async function closeCampaign(id: string) {
     await (supabase as any).from("campaigns").update({ status:"closed" }).eq("id", id);
@@ -1337,54 +1579,11 @@ function CampaignsPane({ profile }: { profile: Profile }) {
       {!creating ? (
         <button className="btn btn--secondary" onClick={() => setCreating(true)}>+ New campaign</button>
       ) : (
-        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)" }}>
-          <p style={{ fontFamily:"var(--font-display)", fontSize:16, fontWeight:700, color:"#fff", marginBottom:"var(--s-5)" }}>New campaign</p>
-          <div style={{ display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
-            <div>
-              <label className="label">Campaign title</label>
-              <input className="input" placeholder="e.g. Training trip to Spain · New studio equipment · Album fund"
-                value={form.title} onChange={e => setForm(f => ({...f, title:e.target.value}))} />
-            </div>
-            <div>
-              <label className="label">What is this for?</label>
-              <textarea className="input" rows={3}
-                placeholder="Tell your audience what you're raising money for and why it matters to your work and career..."
-                value={form.description} onChange={e => setForm(f => ({...f, description:e.target.value}))} />
-            </div>
-            <div>
-              <label className="label">What donors get (exclusive access)</label>
-              <input className="input"
-                placeholder="e.g. Behind-the-scenes posts from Spain, daily live streams from training, private Q&A during the trip"
-                value={form.reward_description} onChange={e => setForm(f => ({...f, reward_description:e.target.value}))} />
-              <p style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>
-                This is the exclusive content donors get that your regular followers won&apos;t see.
-              </p>
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-4)" }}>
-              <div>
-                <label className="label">Goal (USD)</label>
-                <div style={{ display:"flex", gap:"var(--s-2)", alignItems:"center" }}>
-                  <span style={{ color:"var(--muted)" }}>$</span>
-                  <input className="input" type="number" min="10" placeholder="2500"
-                    value={form.goal_amount} onChange={e => setForm(f => ({...f, goal_amount:e.target.value}))} />
-                </div>
-              </div>
-              <div>
-                <label className="label">Deadline (optional)</label>
-                <input className="input" type="date"
-                  value={form.deadline} onChange={e => setForm(f => ({...f, deadline:e.target.value}))} />
-              </div>
-            </div>
-            {err && <p style={{ color:"var(--red)", fontSize:13, margin:"0 0 var(--s-3)" }}>{err}</p>}
-            <div style={{ display:"flex", gap:"var(--s-3)" }}>
-              <button className="btn btn--primary" onClick={createCampaign}
-                disabled={saving || !form.title.trim() || !form.goal_amount}>
-                {saving ? "Creating…" : "Launch campaign"}
-              </button>
-              <button className="btn btn--ghost" onClick={() => setCreating(false)}>Cancel</button>
-            </div>
-          </div>
-        </div>
+        <GuidedCampaignCreator
+          profile={profile}
+          onCreated={(c) => { setCampaigns((prev) => [{ ...c, raised: 0 }, ...prev]); setCreating(false); }}
+          onCancel={() => setCreating(false)}
+        />
       )}
     </div>
   );
@@ -1409,6 +1608,10 @@ function CampaignTierManager({ campaign, profile }: { campaign: any; profile: Pr
 
   const emptyDraft = { title: "", amount: "", description: "", backer_limit: "", rewards: [] as TierReward[] };
   const [draft, setDraft] = React.useState(emptyDraft);
+  const suggestions = suggestionsFor(campaign.category);
+  function addSuggestedReward(rw: TierReward) {
+    setDraft((d) => (d.rewards.some((x) => x.label === rw.label && x.type === rw.type) ? d : { ...d, rewards: [...d.rewards, { ...rw }] }));
+  }
 
   async function load() {
     const [{ data: t }, { data: b }] = await Promise.all([
@@ -1535,6 +1738,18 @@ function CampaignTierManager({ campaign, profile }: { campaign: any; profile: Pr
               <div>
                 <label className="label">Rewards (mix and match — you write the labels)</label>
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--s-3)", fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>
+                    {REWARD_TYPES.map((rt) => (
+                      <span key={rt.type}><span style={{ color: "var(--accent)", fontWeight: 700 }}>{rt.name}:</span> {REWARD_EXPLAIN[rt.type]}</span>
+                    ))}
+                  </div>
+                  {suggestions.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+                      {suggestions.map((rw, k) => (
+                        <button key={k} type="button" onClick={() => addSuggestedReward(rw)} title={REWARD_EXPLAIN[rw.type]} style={{ fontSize: 11, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-soft)", padding: "4px 10px", borderRadius: 99, cursor: "pointer" }}>+ {rw.label}</button>
+                      ))}
+                    </div>
+                  )}
                   {draft.rewards.map((r, i) => {
                     const meta = REWARD_TYPES.find((x) => x.type === r.type);
                     return (
@@ -1787,6 +2002,199 @@ function AdvisorPane({ profile, ent, onUpgrade, onNavigate }: { profile: Profile
 // ──────────────────────────────────────────────────────────────────
 // PANE: Pricing — Creator subscription tiers
 // ──────────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────
+// Referral quick card — surfaced on the dashboard home so the link is
+// always one tap away, not buried in the Refer tab.
+// ──────────────────────────────────────────────────────────────────
+function ReferralQuickCard({ handle, onOpen }: { handle: string; onOpen: () => void }) {
+  const [copied, setCopied] = React.useState(false);
+  const link = `https://spotlightly.app/signup?ref=${handle}`;
+  function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  return (
+    <div style={{ marginBottom: "var(--s-8)", background: "var(--surface)", border: "1px solid var(--border)", borderLeft: "3px solid var(--accent)", borderRadius: "var(--r-2)", padding: "18px 24px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>Share and earn</p>
+          <p style={{ fontFamily: "var(--font-serif)", fontSize: 18, color: "#fff", margin: "0 0 2px" }}>Your referral link</p>
+          <p style={{ fontSize: 12.5, color: "var(--muted)", margin: 0 }}>Every 5 creators who join earns you a free month.</p>
+        </div>
+        <div style={{ display: "flex", gap: "var(--s-2)", alignItems: "center", flex: "1 1 320px", minWidth: 240 }}>
+          <div style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "10px 14px", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link}</div>
+          <button onClick={copy} className="btn btn--primary" style={{ fontSize: 12, flexShrink: 0 }}>{copied ? "✓ Copied" : "Copy"}</button>
+          <button onClick={onOpen} className="btn btn--ghost" style={{ fontSize: 12, flexShrink: 0 }}>Details</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// Guided subscription tier builder — pick the kind of work you make
+// and get a complete three tier ladder you can edit, or let the
+// assistant build it from a couple of answers.
+// ──────────────────────────────────────────────────────────────────
+function GuidedTierCreator({ profile, existingCount, onDone, onCancel }: { profile: Profile; existingCount: number; onDone: () => void; onCancel: () => void }) {
+  const supabase = createClient();
+  type Step = "niche" | "questions" | "review";
+  const [step, setStep] = React.useState<Step>("niche");
+  const [mode, setMode] = React.useState<"template" | "ai">("template");
+  const [niche, setNiche] = React.useState<string | null>(null);
+  const [tiers, setTiers] = React.useState<TemplateSubTier[]>([]);
+  const [ai, setAi] = React.useState({ contentType: "", audience: "" });
+  const [loadingAi, setLoadingAi] = React.useState(false);
+  const [aiErr, setAiErr] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+
+  function applyNiche(n: TierNiche) {
+    setNiche(n.id); setMode("template");
+    setTiers(n.tiers.map((tt) => ({ ...tt, perks: [...tt.perks] })));
+    setStep("review");
+  }
+  async function generate() {
+    setLoadingAi(true); setAiErr(null);
+    try {
+      const res = await fetch("/api/tiers/assist", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ niche, ...ai, displayName: profile.display_name, handle: profile.handle }),
+      });
+      const data = await res.json();
+      if (data.error) { setAiErr(data.error); setLoadingAi(false); return; }
+      if (!Array.isArray(data.tiers) || data.tiers.length === 0) { setAiErr("The assistant did not return tiers. Try again."); setLoadingAi(false); return; }
+      setMode("ai");
+      setTiers((data.tiers as any[]).map((tt) => ({ name: String(tt.name ?? ""), price_monthly: Number(tt.price_monthly) || 0, price_yearly: tt.price_yearly != null ? Number(tt.price_yearly) : null, description: String(tt.description ?? ""), perks: Array.isArray(tt.perks) ? tt.perks.map((p: any) => String(p)) : [] })));
+      setStep("review");
+    } catch { setAiErr("Couldn't reach the assistant. Try again."); }
+    setLoadingAi(false);
+  }
+
+  function patch(i: number, p: Partial<TemplateSubTier>) { setTiers((prev) => prev.map((tt, idx) => (idx === i ? { ...tt, ...p } : tt))); }
+  function remove(i: number) { setTiers((prev) => prev.filter((_, idx) => idx !== i)); }
+  function add() { setTiers((prev) => [...prev, { name: "", price_monthly: 0, price_yearly: null, description: "", perks: [] }]); }
+
+  async function create() {
+    const rows = tiers
+      .filter((tt) => tt.name.trim() && Number(tt.price_monthly) > 0)
+      .map((tt, idx) => ({
+        creator_profile_id: profile.id,
+        name: tt.name.trim(),
+        description: tt.description.trim() || null,
+        price_monthly: Number(tt.price_monthly),
+        price_yearly: tt.price_yearly != null && Number(tt.price_yearly) > 0 ? Number(tt.price_yearly) : null,
+        perks: tt.perks.map((p) => p.trim()).filter(Boolean),
+        color: "#F0B429",
+        sort_order: existingCount + idx,
+      }));
+    if (!rows.length) { setErr("Add at least one tier with a name and a price."); return; }
+    setSaving(true); setErr(null);
+    const { error } = await (supabase as any).from("subscription_tiers").insert(rows);
+    if (error) { setErr(error.message); setSaving(false); return; }
+    setSaving(false);
+    onDone();
+  }
+
+  const cardWrap: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--accent-border)", borderRadius: "var(--r-3)", padding: "var(--s-6)", marginBottom: "var(--s-6)" };
+
+  if (step === "niche") {
+    return (
+      <div style={cardWrap}>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>What kind of creator are you?</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: "var(--s-5)" }}>Pick one and we will set up a complete three tier ladder you can edit.</p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "var(--s-3)" }}>
+          {TIER_NICHES.map((n) => (
+            <button key={n.id} onClick={() => applyNiche(n)} style={{ textAlign: "left", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", cursor: "pointer" }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{n.emoji}</div>
+              <div style={{ fontWeight: 700, color: "#fff", fontSize: 14, marginBottom: 2 }}>{n.label}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{n.blurb}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "var(--s-4)", marginTop: "var(--s-6)", flexWrap: "wrap", alignItems: "center" }}>
+          <button className="btn btn--primary" onClick={() => setStep("questions")}>✨ Help me build my tiers</button>
+          <button className="btn btn--ghost" style={{ marginLeft: "auto" }} onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "questions") {
+    return (
+      <div style={{ ...cardWrap, display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+        <div>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Help me build my tiers</p>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>Two quick questions and the assistant writes a three tier ladder with prices and perks. Edit anything after.</p>
+        </div>
+        <div>
+          <label className="label">Kind of creator (optional)</label>
+          <select className="input" value={niche ?? ""} onChange={(e) => setNiche(e.target.value || null)}>
+            <option value="">Not sure yet</option>
+            {TIER_NICHES.map((n) => <option key={n.id} value={n.id}>{n.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label">What kind of content do you make?</label>
+          <textarea className="input" rows={2} placeholder="e.g. Weekly acoustic covers, songwriting breakdowns, and live sets" value={ai.contentType} onChange={(e) => setAi((a) => ({ ...a, contentType: e.target.value }))} />
+        </div>
+        <div>
+          <label className="label">Who are your fans?</label>
+          <textarea className="input" rows={2} placeholder="e.g. People who love discovering new music before it blows up" value={ai.audience} onChange={(e) => setAi((a) => ({ ...a, audience: e.target.value }))} />
+        </div>
+        {aiErr && <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{aiErr}</p>}
+        <div style={{ display: "flex", gap: "var(--s-3)" }}>
+          <button className="btn btn--primary" onClick={generate} disabled={loadingAi || !ai.contentType.trim()}>{loadingAi ? "Building your tiers…" : "Generate my tiers"}</button>
+          <button className="btn btn--ghost" onClick={() => setStep("niche")}>Back</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ ...cardWrap, display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--s-4)" }}>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 700, color: "#fff", margin: 0 }}>Review your tiers</p>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".12em", textTransform: "uppercase", color: "var(--muted)" }}>{mode === "ai" ? "Assistant draft" : (tierNicheById(niche)?.label ?? "Template")}</span>
+      </div>
+      {tiers.map((tt, i) => (
+        <div key={i} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: "var(--s-3)", alignItems: "end" }}>
+            <div>
+              <label className="label">Tier name</label>
+              <input className="input" value={tt.name} placeholder="Superfan" onChange={(e) => patch(i, { name: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Monthly ($)</label>
+              <input className="input" type="number" min="0.99" step="0.01" value={tt.price_monthly || ""} placeholder="15" onChange={(e) => patch(i, { price_monthly: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label className="label">Yearly ($)</label>
+              <input className="input" type="number" min="0" step="0.01" value={tt.price_yearly ?? ""} placeholder="optional" onChange={(e) => patch(i, { price_yearly: e.target.value ? parseFloat(e.target.value) : null })} />
+            </div>
+            <button onClick={() => remove(i)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "8px 12px", borderRadius: "var(--r-1)", cursor: "pointer", height: "fit-content" }}>Remove</button>
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <input className="input" value={tt.description} placeholder="For fans who want exclusive access" onChange={(e) => patch(i, { description: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Perks (one per line)</label>
+            <textarea className="input" rows={Math.max(3, tt.perks.length + 1)} value={tt.perks.join("\n")} onChange={(e) => patch(i, { perks: e.target.value.split("\n") })} />
+          </div>
+        </div>
+      ))}
+      <button className="btn btn--ghost" style={{ alignSelf: "flex-start", fontSize: 13 }} onClick={add}>+ Add tier</button>
+      {err && <p style={{ color: "var(--red)", fontSize: 13, margin: 0 }}>{err}</p>}
+      <div style={{ display: "flex", gap: "var(--s-3)", flexWrap: "wrap" }}>
+        <button className="btn btn--primary" onClick={create} disabled={saving}>{saving ? "Creating…" : "Create these tiers"}</button>
+        {mode === "ai" && <button className="btn btn--secondary" onClick={() => setStep("questions")} disabled={saving}>Edit answers</button>}
+        <button className="btn btn--ghost" onClick={() => setStep("niche")} disabled={saving}>Back</button>
+        <button className="btn btn--ghost" style={{ marginLeft: "auto" }} onClick={onCancel} disabled={saving}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+
 function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
   const supabase = createClient();
   const [tiers, setTiers] = useState<any[]>([]);
@@ -1797,6 +2205,7 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
     name: "", description: "", price_monthly: "", price_yearly: "", perks: "", color: "#F0B429",
   });
   const [offerYearly, setOfferYearly] = useState(false);
+  const [guided, setGuided] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -1892,14 +2301,28 @@ function PricingPane({ profile, setErr }: { profile: Profile; setErr: (m: string
           <p className="kicker">Subscription Tiers</p>
           <h1 className="pane-title">Your <em>pricing.</em></h1>
         </div>
-        <button className="btn btn--primary" type="button" onClick={() => { if (creating) resetForm(); else setCreating(true); }}>
-          {creating ? "Cancel" : "+ Add tier"}
-        </button>
+        <div style={{ display: "flex", gap: "var(--s-3)" }}>
+          <button className="btn btn--secondary" type="button" onClick={() => { setGuided((g) => !g); if (creating) resetForm(); }}>
+            {guided ? "Close builder" : "✨ Build a set of tiers"}
+          </button>
+          <button className="btn btn--primary" type="button" onClick={() => { if (creating) resetForm(); else setCreating(true); }}>
+            {creating ? "Cancel" : "+ Add tier"}
+          </button>
+        </div>
       </div>
 
       <div style={{ background:"rgba(240,180,41,0.05)", border:"1px solid rgba(240,180,41,0.15)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-6)", fontSize:13, color:"var(--text-soft)", lineHeight:1.7 }}>
         Create as many tiers as you want. Fans see them all on your page and pick what fits. Yearly pricing gives fans a discount (typically 2 months free) and locks in longer-term subscribers.
       </div>
+
+      {guided && (
+        <GuidedTierCreator
+          profile={profile}
+          existingCount={tiers.length}
+          onDone={() => { setGuided(false); void load(); }}
+          onCancel={() => setGuided(false)}
+        />
+      )}
 
       {creating && (
         <form onSubmit={saveTier} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)", marginBottom:"var(--s-6)", display:"flex", flexDirection:"column", gap:"var(--s-4)" }}>
