@@ -332,12 +332,12 @@ export default function OnboardingPage() {
     setStep("stripe");
   }
 
-  async function completeOnboarding() {
+  async function completeOnboarding(dest: string = "/dashboard") {
     await (supabase as any)
       .from("creator_profiles")
       .update({ onboarding_completed_at: new Date().toISOString() })
       .eq("id", profile.id);
-    router.push("/dashboard");
+    router.push(dest);
   }
 
   const inputBase: React.CSSProperties = {
@@ -1069,13 +1069,20 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          {profile && (
+            <div style={{ maxWidth: 360, margin: "0 auto 16px", padding: "16px 18px", background: "rgba(242,184,75,0.07)", border: "1px solid rgba(242,184,75,0.2)", borderRadius: 6, textAlign: "left" }}>
+              <div style={{ fontFamily: "Cormorant Garamond, Georgia, serif", fontSize: 18, color: "#fff", marginBottom: 4 }}>Already sell online?</div>
+              <p style={{ fontSize: 12.5, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>Bring your store from Poshmark, Mercari, eBay, Etsy, Depop, or Facebook. Photos and all. You review everything before it goes live.</p>
+              <button onClick={() => completeOnboarding("/dashboard?pane=import")} style={{ background: "transparent", color: "#F2B84B", border: "1px solid rgba(242,184,75,0.35)", borderRadius: 4, padding: "10px 16px", fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", cursor: "pointer" }}>Bring my store →</button>
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 360, margin: "0 auto" }}>
-            <button onClick={completeOnboarding} style={{
+            <button style={{
               background: "#F2B84B", color: "#09090C",
               fontFamily: "DM Mono, monospace", fontWeight: 500,
               fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase",
               padding: "16px 0", borderRadius: 4, border: "none", cursor: "pointer",
-            }}>
+            }} onClick={() => completeOnboarding()}>
               Go to my dashboard →
             </button>
             {profile && (

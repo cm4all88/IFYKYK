@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase-client";
 import { entitlementsFor, type Entitlements } from "@/lib/entitlements";
 import { advisorRecsFor } from "@/lib/advisorRecs";
 import { FIRST_MONTH_OFFER_OPTIONS } from "@/lib/offers";
+import MarketplaceImport from "./MarketplaceImport";
 import ThemeToggle from "@/components/ThemeToggle";
 import PaneTooltip from "@/components/PaneTooltip";
 import VideoUpload from "@/components/VideoUpload";
@@ -38,7 +39,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "marketplace" | "social" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "marketplace" | "import" | "social" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -84,7 +85,7 @@ export default function DashboardPage() {
   // Read ?pane= from URL on mount — avoids useSearchParams Suspense requirement
   useEffect(() => {
     const p = new URLSearchParams(window.location.search).get("pane") as Pane;
-    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "digital", "tiers", "store", "refer", "marketplace", "social", "settings"].includes(p)) {
+    if (p && ["overview", "profile", "posts", "channels", "fans", "campaigns", "wishlist", "advisor", "analytics", "payments", "moderation", "blocks", "messages", "live", "billing", "digital", "tiers", "store", "refer", "marketplace", "import", "social", "settings"].includes(p)) {
       setPane(p);
     }
   }, []);
@@ -292,6 +293,7 @@ export default function DashboardPage() {
                 <div className="db-nav-section">
                   <PaneButton current={pane} target="posts" onClick={setPane}>Posts</PaneButton>
                   <PaneButton current={pane} target="marketplace" onClick={setPane}>Marketplace</PaneButton>
+                  <PaneButton current={pane} target="import" onClick={setPane}>Import Store</PaneButton>
                   <PaneButton current={pane} target="store" onClick={setPane}>Digital Store</PaneButton>
                   <PaneButton current={pane} target="social" onClick={setPane}>Social Posts</PaneButton>
                   <Link href="/merch" className="db-nav-link">Merch</Link>
@@ -428,6 +430,9 @@ export default function DashboardPage() {
 
           {pane === "marketplace" && active && (
             <MarketplacePane profile={active} />
+          )}
+          {pane === "import" && active && (
+            <MarketplaceImport onGoToMarketplace={() => setPane("marketplace")} />
           )}
           {pane === "store" && active && (
             <DigitalStorePane profile={active} setErr={setErrMsg} />
