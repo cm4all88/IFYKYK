@@ -269,7 +269,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
             {sp.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={sp.avatar_url} alt={displayName} width={132} height={132}
-                style={{ position: "relative", borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.10)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }} />
+                style={{ position: "relative", display: "block", margin: "0 auto", borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.10)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }} />
             ) : (
               <div style={{ position: "relative", width: 132, height: 132, borderRadius: "50%", margin: "0 auto", background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 52, color: "var(--accent)" }}>
                 {(displayName[0] || "?").toUpperCase()}
@@ -365,7 +365,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
           <section id="support" style={{ marginTop: hasFeed ? 80 : 64, scrollMarginTop: 90, paddingTop: 36, borderTop: "1px solid var(--border)" }}>
             <SectionLabel center>Support {fn}</SectionLabel>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start", maxWidth: campaign ? 880 : 520, margin: "0 auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start", maxWidth: campaign ? 920 : 480, margin: "0 auto" }}>
 
               {/* Peer A — back the goal (only if there is a real campaign) */}
               {campaign ? (
@@ -392,6 +392,9 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                     </div>
                     <CampaignDonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
                   </div>
+                  {campaign.tiers && campaign.tiers.length > 0 ? (
+                    <CampaignTiers campaignId={campaign.id} campaignTitle={campaign.title} tiers={campaign.tiers} />
+                  ) : null}
                 </div>
               ) : null}
 
@@ -413,12 +416,6 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
               </div>
             </div>
 
-            {/* Campaign backer rewards, full width below the peer row */}
-            {campaign && campaign.tiers && campaign.tiers.length > 0 ? (
-              <div style={{ maxWidth: 600, margin: "26px auto 0" }}>
-                <CampaignTiers campaignId={campaign.id} campaignTitle={campaign.title} tiers={campaign.tiers} />
-              </div>
-            ) : null}
 
             {/* Quiet community signal */}
             {(subscriberCount > 0 || isFounder) ? (
