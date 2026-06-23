@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import StudioSetup, { type StudioPayload } from "@/components/StudioSetup";
+import { type StudioPayload } from "@/components/StudioSetup";
+import PageBuilderQA from "@/components/PageBuilderQA";
 
 type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
@@ -276,7 +277,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
       </p>
 
       {studioOpen && (
-        <StudioSetup
+        <PageBuilderQA
           displayName={creator.display_name}
           handle={creator.handle}
           onCommit={adminStudioCommit}
@@ -289,9 +290,9 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         <div>
           <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent, #f0b429)", marginBottom: 6 }}>Build everything</div>
           <div style={{ fontSize: 17, color: "#fff", marginBottom: 2 }}>Build this creator&apos;s whole page</div>
-          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>Answer a few questions and scaffold their bio, free tier, paid tiers, and a starter campaign in one pass. Send them the preview link after.</div>
+          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>A few quick questions, then a recommendation, a preview, and your approval. Sets up their bio, free tier, and paid tiers, and a campaign only when it actually makes sense.</div>
         </div>
-        <button className="adm-btn adm-btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Build whole page</button>
+        <button className="adm-btn adm-btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Interview and build</button>
       </div>
 
       {!creator.claimed_at && creator.claim_code ? (

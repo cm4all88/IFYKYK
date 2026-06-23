@@ -40,10 +40,12 @@ Return ONLY a JSON object, no preamble or backticks, exactly this shape:
   },
   "live": { "title": "a first live show idea, short and specific to this creator" },
   "merch": { "idea": "a first merch product idea, e.g. a logo tee or a tour hoodie" },
-  "marketplace": { "idea": "a first item they could sell, e.g. a worn stage outfit or a signed print" }
+  "marketplace": { "idea": "a first item they could sell, e.g. a worn stage outfit or a signed print" },
+  "campaignRecommended": true,
+  "reasoning": { "campaign": "one sentence: why a campaign does or does not make sense for this creator right now", "tiers": "one sentence: why these tier names and rewards fit them" }
 }
 
-Rules: exactly 3 paid tiers (entry around $5 to $8, middle around $12 to $25, top around $40 to $75, each higher tier saying "Everything in [lower]" then adding more). Exactly 5 campaign tiers climbing in price, each with 1 to 3 rewards. Reward "type" must be one of: update, recognition, content, physical, discount.`;
+Rules: exactly 3 paid tiers (entry around $5 to $8, middle around $12 to $25, top around $40 to $75, each higher tier saying "Everything in [lower]" then adding more). Exactly 5 campaign tiers climbing in price, each with 1 to 3 rewards. Reward "type" must be one of: update, recognition, content, physical, discount. Set campaignRecommended to true ONLY when there is a genuine, specific goal people can rally around (a trip, a project, an album, equipment, a life event, a community cause). When there is no clear goal, set it false and use reasoning.campaign to say that community comes first and a campaign can come later.`;
 
 function num(v: any): number { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 function str(v: any): string { return String(v ?? "").trim(); }
@@ -77,17 +79,22 @@ function fallback(niche: string | null) {
     live: { title: "A live hangout with your members" },
     merch: { idea: "A simple logo tee in your brand colors" },
     marketplace: { idea: "Something from your collection your fans would want" },
+    campaignRecommended: false,
+    reasoning: { campaign: "Start with community. A campaign lands hardest once there is a specific goal to rally fans around.", tiers: "A simple three tier ladder gives fans an easy way in and a clear way to go deeper." },
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { niche, makes, fans, workingToward, displayName, handle } = body ?? {};
+    const { niche, makes, fans, workingToward, displayName, handle,
+      interview, audience, vibe, goalType, goalDetail, goalAmount, deadline, exclusive, regular,
+      wantsLive, wantsMerch, wantsMarketplace } = body ?? {};
+    const goalProvided = interview ? (!!str(goalType) && str(goalType) !== "none") : !!str(workingToward);
 
     const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);
     if (!ANTHROPIC_API_KEY) {
-      return NextResponse.json({ ...fallback(niche), generated: false });
+      return NextResponse.json({ ...fallback(niche), campaignRecommended: goalProvided, generated: false });
     }
 
     const n = tierNicheById(niche);
@@ -96,8 +103,14 @@ export async function POST(req: NextRequest) {
       handle ? `Handle: @${handle}` : null,
       n ? `Kind of creator: ${n.label}` : null,
       makes ? `What they make: ${makes}` : null,
-      fans ? `Who their fans are: ${fans}` : null,
-      workingToward ? `What they are working toward (a good campaign): ${workingToward}` : null,
+      (fans || audience) ? `Who their fans are: ${fans || audience}` : null,
+      vibe ? `Their personality and vibe: ${vibe}` : null,
+      goalProvided
+        ? `They are working toward a real goal fans can rally behind: ${str(goalDetail) || str(goalType)}${num(goalAmount) > 0 ? ` (needs about $${Math.round(num(goalAmount))})` : ""}${str(deadline) ? `, by ${str(deadline)}` : ""}`
+        : (interview ? `They have NO specific goal to raise money for right now, so a campaign is probably not the priority. Recommend against one and lean into community.` : (workingToward ? `What they are working toward (a good campaign): ${workingToward}` : null)),
+      exclusive ? `The most exclusive thing they would give top supporters: ${exclusive}` : null,
+      regular ? `What they make regularly that fans would pay to get closer to: ${regular}` : null,
+      interview ? `They want to use: ${[wantsLive && "live streams", wantsMerch && "merch", wantsMarketplace && "a marketplace"].filter(Boolean).join(", ") || "just the basics for now"}` : null,
     ].filter(Boolean).join("\n");
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -105,13 +118,13 @@ export async function POST(req: NextRequest) {
       headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 2600, system: SYSTEM, messages: [{ role: "user", content: `Set up the whole page for this creator.\n\n${ctx}` }] }),
     });
-    if (!res.ok) return NextResponse.json({ ...fallback(niche), generated: false });
+    if (!res.ok) return NextResponse.json({ ...fallback(niche), campaignRecommended: goalProvided, generated: false });
 
     const data = await res.json();
     let raw: string = data.content?.[0]?.text ?? "";
     raw = raw.replace(/```json|```/g, "").trim();
     let parsed: any;
-    try { parsed = JSON.parse(raw); } catch { return NextResponse.json({ ...fallback(niche), generated: false }); }
+    try { parsed = JSON.parse(raw); } catch { return NextResponse.json({ ...fallback(niche), campaignRecommended: goalProvided, generated: false }); }
 
     const tiers = Array.isArray(parsed?.tiers) ? parsed.tiers.map(subTier).filter(Boolean).slice(0, 4) : [];
     const ft = parsed?.freeTier ?? {};
@@ -132,13 +145,20 @@ export async function POST(req: NextRequest) {
       campaign: {
         title: str(camp?.title) || fb.campaign.title,
         description: str(camp?.description) || fb.campaign.description,
-        goal: num(camp?.goal) > 0 ? Math.round(num(camp?.goal)) : fb.campaign.goal,
+        goal: num(goalAmount) > 0 ? Math.round(num(goalAmount)) : (num(camp?.goal) > 0 ? Math.round(num(camp?.goal)) : fb.campaign.goal),
         category: catId,
         tiers: campTiers.length ? campTiers : fb.campaign.tiers,
       },
       live: { title: str(parsed?.live?.title) || fb.live.title },
       merch: { idea: str(parsed?.merch?.idea) || fb.merch.idea },
       marketplace: { idea: str(parsed?.marketplace?.idea) || fb.marketplace.idea },
+      campaignRecommended: goalProvided,
+      reasoning: {
+        campaign: str(parsed?.reasoning?.campaign) || (goalProvided
+          ? "They have a clear goal fans can rally behind, so a campaign gives supporters a one time way to help make it happen."
+          : "No specific goal yet, so community comes first. A campaign can come later when there is something concrete to raise for."),
+        tiers: str(parsed?.reasoning?.tiers) || "An easy entry tier, a middle tier with the regular extras, and a top tier with the closest access.",
+      },
     });
   } catch {
     return NextResponse.json({ ...fallback(null), generated: false });
