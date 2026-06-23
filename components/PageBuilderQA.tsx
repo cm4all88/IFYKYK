@@ -28,7 +28,9 @@ const GOALS = [
   { id: "none", emoji: "—", label: "Nothing specific right now", category: "other" },
 ];
 
-type Step = "about" | "goal" | "community" | "modules" | "generating" | "recommend" | "preview" | "done";
+const SIGNS = ["♈ Aries", "♉ Taurus", "♊ Gemini", "♋ Cancer", "♌ Leo", "♍ Virgo", "♎ Libra", "♏ Scorpio", "♐ Sagittarius", "♑ Capricorn", "♒ Aquarius", "♓ Pisces"];
+
+type Step = "about" | "personality" | "goal" | "community" | "modules" | "generating" | "recommend" | "preview" | "done";
 
 export default function PageBuilderQA({
   displayName, handle, onClose, onDone, onCommit,
@@ -45,6 +47,18 @@ export default function PageBuilderQA({
   const [makes, setMakes] = React.useState("");
   const [audience, setAudience] = React.useState("");
   const [vibe, setVibe] = React.useState("");
+  const [usesEmojis, setUsesEmojis] = React.useState<boolean | null>(null);
+  const [textingStyle, setTextingStyle] = React.useState("");
+  const [astrology, setAstrology] = React.useState<boolean | null>(null);
+  const [sign, setSign] = React.useState("");
+  const [pronouns, setPronouns] = React.useState("");
+  const [humor, setHumor] = React.useState("");
+  const [excitement, setExcitement] = React.useState("");
+  const [language, setLanguage] = React.useState("");
+  const [fanName, setFanName] = React.useState("");
+  const [vibeWords, setVibeWords] = React.useState<string[]>([]);
+  const [interests, setInterests] = React.useState<string[]>([]);
+  const [catchphrase, setCatchphrase] = React.useState("");
   const [goalType, setGoalType] = React.useState<string>("");
   const [goalDetail, setGoalDetail] = React.useState("");
   const [goalAmount, setGoalAmount] = React.useState("");
@@ -87,7 +101,7 @@ export default function PageBuilderQA({
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           interview: true, displayName, handle, niche, makes,
-          audience, vibe,
+          audience, vibe, usesEmojis, textingStyle, astrology, sign, pronouns, humor, excitement, language, fanName, vibeWords, interests, catchphrase,
           goalType, goalDetail, goalAmount: Number(goalAmount) || 0, deadline,
           workingToward: goalReal ? (goalDetail || goalType) : "",
           exclusive, regular, wantsLive, wantsMerch, wantsMarketplace,
@@ -151,19 +165,34 @@ export default function PageBuilderQA({
   const label: React.CSSProperties = { fontSize: 12, color: "var(--muted, #888)", marginBottom: 6, display: "block", textTransform: "uppercase", letterSpacing: "0.04em" };
   const kicker: React.CSSProperties = { fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent, #f0b429)", marginBottom: 8 };
   const h: React.CSSProperties = { fontSize: 21, color: "#fff", margin: "0 0 4px", fontFamily: "var(--font-serif, Georgia, serif)", fontWeight: 600 };
+  const toggleIn = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+  const Pills = ({ value, set, opts }: { value: string; set: (v: string) => void; opts: string[] }) => (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {opts.map((o) => (
+        <button key={o} className={value === o ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} style={{ padding: "6px 12px" }} onClick={() => set(value === o ? "" : o)}>{o}</button>
+      ))}
+    </div>
+  );
+  const MultiPills = ({ values, set, opts }: { values: string[]; set: (v: string[]) => void; opts: string[] }) => (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {opts.map((o) => (
+        <button key={o} className={values.includes(o) ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} style={{ padding: "6px 12px" }} onClick={() => set(toggleIn(values, o))}>{o}</button>
+      ))}
+    </div>
+  );
 
-  const STEP_NO: Record<string, number> = { about: 1, goal: 2, community: 3, modules: 4 };
+  const STEP_NO: Record<string, number> = { about: 1, personality: 2, goal: 3, community: 4, modules: 5 };
   const progress = STEP_NO[step];
 
   return (
-    <div style={scrim} onClick={(e) => { if (e.target === e.currentTarget && step !== "generating" && step !== "done") onClose(); }}>
+    <div style={scrim}>
       <div style={panel}>
         {/* header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
             <div style={kicker}>Build {fn}&apos;s page</div>
             <div style={{ fontSize: 12, color: "var(--muted, #888)" }}>
-              {progress ? `Question ${progress} of 4` : step === "generating" ? "Thinking it through" : step === "recommend" ? "The recommendation" : step === "preview" ? "Preview and approve" : ""}
+              {progress ? `Question ${progress} of 5` : step === "generating" ? "Thinking it through" : step === "recommend" ? "The recommendation" : step === "preview" ? "Preview and approve" : ""}
             </div>
           </div>
           {step !== "generating" && step !== "done" ? <button className="adm-btn adm-btn--ghost" onClick={onClose}>Close</button> : null}
@@ -172,7 +201,7 @@ export default function PageBuilderQA({
         {/* progress dots */}
         {progress ? (
           <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} style={{ height: 3, flex: 1, borderRadius: 2, background: i <= progress ? "var(--accent, #f0b429)" : "rgba(255,255,255,0.1)" }} />
             ))}
           </div>
@@ -182,7 +211,7 @@ export default function PageBuilderQA({
         {step === "about" ? (
           <div>
             <h2 style={h}>Who is {fn}?</h2>
-            <p style={{ fontSize: 13, color: "var(--muted, #888)", marginBottom: 18 }}>The basics, in your own words. This shapes their bio and voice.</p>
+            <p style={{ fontSize: 13, color: "var(--muted, #888)", marginBottom: 18 }}>The basics, in your own words. The goal of all this is to learn who {fn} is and write their page in their voice, not ours.</p>
 
             <div style={card}>
               <label style={label}>What kind of creator are they?</label>
@@ -202,11 +231,93 @@ export default function PageBuilderQA({
             <label style={label}>How would a friend describe them? (optional)</label>
             <input className="adm-input" value={vibe} onChange={(e) => setVibe(e.target.value)} placeholder="e.g. Warm, funny, a little chaotic, always on the move." style={{ width: "100%", marginBottom: 18 }} />
 
-            <button className="adm-btn adm-btn--primary" disabled={!makes.trim()} onClick={() => setStep("goal")}>Next</button>
+            <button className="adm-btn adm-btn--primary" disabled={!makes.trim()} onClick={() => setStep("personality")}>Next</button>
           </div>
         ) : null}
 
-        {/* ── STEP 2: GOAL (the campaign gate) ── */}
+        {/* ── STEP 2: PERSONALITY ── */}
+        {step === "personality" ? (
+          <div>
+            <h2 style={h}>How does {fn} come across?</h2>
+            <p style={{ fontSize: 13, color: "var(--muted, #888)", marginBottom: 18 }}>Quick taps, skip anything you're unsure about. This is how we learn to write the page in their voice instead of ours.</p>
+
+            <div style={card}>
+              <label style={label}>Their pronouns</label>
+              <Pills value={pronouns} set={setPronouns} opts={["she / her", "he / him", "they / them", "mix it up"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>Do they use emojis when they text?</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className={usesEmojis === true ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} onClick={() => setUsesEmojis(true)}>Yes, all the time 😄</button>
+                <button className={usesEmojis === false ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} onClick={() => setUsesEmojis(false)}>Not really</button>
+              </div>
+              {usesEmojis !== null ? <p style={{ fontSize: 12, color: "var(--muted,#888)", margin: "8px 0 0" }}>{usesEmojis ? "Then we'll weave emojis into their bio and tiers too." : "Then we'll keep their copy clean, no emojis."}</p> : null}
+            </div>
+
+            <div style={card}>
+              <label style={label}>How do they text?</label>
+              <Pills value={textingStyle} set={setTextingStyle} opts={["lowercase and casual", "proper and polished"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>Their humor</label>
+              <Pills value={humor} set={setHumor} opts={["dry and sarcastic", "playful and silly", "warm and sincere"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>How do they show excitement?</label>
+              <Pills value={excitement} set={setExcitement} opts={["lots of !!!", "ALL CAPS energy", "keep it low-key"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>Their language</label>
+              <Pills value={language} set={setLanguage} opts={["keep it clean", "a little edgy", "unfiltered"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>What do they call their fans?</label>
+              <input className="adm-input" value={fanName} onChange={(e) => setFanName(e.target.value)} placeholder="e.g. babe, fam, loves, team, y'all" style={{ width: "100%" }} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>Pick a few words that describe them</label>
+              <MultiPills values={vibeWords} set={setVibeWords} opts={["cozy", "glam", "gritty", "soft", "chaotic", "polished", "dreamy", "sporty", "bubbly", "mysterious", "down-to-earth", "bold"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>What are they into?</label>
+              <MultiPills values={interests} set={setInterests} opts={["music", "gaming", "fashion", "food", "fitness", "art", "beauty", "travel", "anime", "books", "cars", "plants", "sports", "tech"]} />
+            </div>
+
+            <div style={card}>
+              <label style={label}>Into astrology?</label>
+              <div style={{ display: "flex", gap: 8, marginBottom: astrology ? 12 : 0 }}>
+                <button className={astrology === true ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} onClick={() => setAstrology(true)}>Yes ✨</button>
+                <button className={astrology === false ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} onClick={() => { setAstrology(false); setSign(""); }}>Not really</button>
+              </div>
+              {astrology ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {SIGNS.map((sg) => (
+                    <button key={sg} className={sign === sg ? "adm-btn adm-btn--primary" : "adm-btn adm-btn--ghost"} style={{ padding: "5px 10px" }} onClick={() => setSign(sg)}>{sg}</button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div style={card}>
+              <label style={label}>A phrase they say a lot? (optional)</label>
+              <input className="adm-input" value={catchphrase} onChange={(e) => setCatchphrase(e.target.value)} placeholder="e.g. let's get into it, stay golden, mwah" style={{ width: "100%" }} />
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button className="adm-btn adm-btn--ghost" onClick={() => setStep("about")}>Back</button>
+              <button className="adm-btn adm-btn--primary" onClick={() => setStep("goal")}>Next</button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── STEP 3: GOAL (the campaign gate) ── */}
         {step === "goal" ? (
           <div>
             <h2 style={h}>Is {fn} working toward something right now?</h2>
@@ -242,7 +353,7 @@ export default function PageBuilderQA({
             ) : null}
 
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="adm-btn adm-btn--ghost" onClick={() => setStep("about")}>Back</button>
+              <button className="adm-btn adm-btn--ghost" onClick={() => setStep("personality")}>Back</button>
               <button className="adm-btn adm-btn--primary" disabled={!goalType || (goalReal && !goalDetail.trim())} onClick={() => setStep("community")}>Next</button>
             </div>
           </div>

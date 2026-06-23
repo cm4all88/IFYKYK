@@ -77,7 +77,7 @@ export default function AdminCampaignBuilder({
   const h: React.CSSProperties = { fontSize: 21, color: "#fff", margin: "0 0 4px", fontFamily: "var(--font-serif, Georgia, serif)", fontWeight: 600 };
 
   return (
-    <div style={scrim} onClick={(e) => { if (e.target === e.currentTarget && step !== "generating") onClose(); }}>
+    <div style={scrim}>
       <div style={panel}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div style={kicker}>Add a campaign for {fn}</div>

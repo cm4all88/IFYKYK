@@ -22,7 +22,8 @@ WRITING RULES:
 - Warm, specific, first person where natural, in the creator's voice. The creator is the hero, never the platform.
 - Never use em-dashes or hyphens. Use periods, commas, or parentheses. Write "behind the scenes" not the hyphenated form.
 - No marketing speak. No "powerful", "seamless", "unleash", "passionate about", "content creator".
-- Where it genuinely fits the creator, lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness). Use an emoji only when it fits, never force one. Make names evocative and shareable, the kind a fan would screenshot.
+- If the context includes an EMOJI POLICY, follow it exactly for EVERY field (bio, free tier, tiers, perks, campaign) — it overrides any other emoji guidance. Otherwise, where it genuinely fits, you may lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness), never forced. Make names evocative and shareable, the kind a fan would screenshot.
+- Write everything in the creator's own voice using any voice and personality notes provided. The page should sound like them, not like a platform.
 
 Return ONLY a JSON object, no preamble or backticks, exactly this shape:
 {
@@ -89,7 +90,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { niche, makes, fans, workingToward, displayName, handle,
       interview, audience, vibe, goalType, goalDetail, goalAmount, deadline, exclusive, regular,
-      wantsLive, wantsMerch, wantsMarketplace } = body ?? {};
+      wantsLive, wantsMerch, wantsMarketplace,
+      usesEmojis, textingStyle, astrology, sign, pronouns, humor, excitement, language, fanName, vibeWords, interests, catchphrase } = body ?? {};
     const goalProvided = interview ? (!!str(goalType) && str(goalType) !== "none") : !!str(workingToward);
 
     const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);
@@ -111,6 +113,19 @@ export async function POST(req: NextRequest) {
       exclusive ? `The most exclusive thing they would give top supporters: ${exclusive}` : null,
       regular ? `What they make regularly that fans would pay to get closer to: ${regular}` : null,
       interview ? `They want to use: ${[wantsLive && "live streams", wantsMerch && "merch", wantsMarketplace && "a marketplace"].filter(Boolean).join(", ") || "just the basics for now"}` : null,
+      usesEmojis === true ? "EMOJI POLICY: this creator uses emojis when they text, so weave a few tasteful, natural emojis into the bio, the free tier blurb, the tier names, and the perks, the way they would. Do not overdo it." : null,
+      usesEmojis === false ? "EMOJI POLICY: this creator does NOT use emojis. Write the bio, tiers, perks, and everything else with zero emojis, clean text only." : null,
+      str(textingStyle) ? `Their texting register is "${str(textingStyle)}" — match it in the bio and all copy.` : null,
+      (astrology && str(sign)) ? `They are into astrology and they are a ${str(sign)} — you can lightly lean into that personality where it naturally fits, never forced.` : null,
+      str(pronouns) ? `Their pronouns are ${str(pronouns)} — use them correctly throughout the bio and copy.` : null,
+      str(humor) ? `Their humor is ${str(humor)} — let it show in the writing.` : null,
+      str(excitement) ? `They show excitement like this: ${str(excitement)} — reflect that in the punctuation and energy.` : null,
+      str(language) ? `Their language register: ${str(language)}.` : null,
+      str(fanName) ? `They call their fans "${str(fanName)}" — use that name for the audience where it fits naturally (e.g. in the free tier and tiers).` : null,
+      (Array.isArray(vibeWords) && vibeWords.length) ? `Words that describe them: ${vibeWords.map(str).filter(Boolean).join(", ")} — let the tone match these.` : null,
+      (Array.isArray(interests) && interests.length) ? `They are into: ${interests.map(str).filter(Boolean).join(", ")} — weave these in as genuine interests where they fit.` : null,
+      str(catchphrase) ? `A phrase they say a lot: "${str(catchphrase)}" — you may use or echo it if it lands naturally.` : null,
+      interview ? "Above all, capture this specific person's voice. The page should read like they wrote it." : null,
     ].filter(Boolean).join("\n");
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
