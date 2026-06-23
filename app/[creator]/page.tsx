@@ -14,6 +14,7 @@ import BackerCodeBanner from "./BackerCodeBanner";
 import WishlistItemCard from "./WishlistItemCard";
 import DigitalProductCard from "./DigitalProductCard";
 import TierPicker from "./TierPicker";
+import SubscribeButton from "./SubscribeButton";
 import NowStrip from "./NowStrip";
 import TheRoom from "./TheRoom";
 import CampaignFirstPage from "./CampaignFirstPage";
@@ -881,51 +882,3 @@ export default async function CreatorPage(props: {
 
 import { hasSecret } from "@/lib/settings";
 
-async function SubscribeButton({ creatorProfileId }: { creatorProfileId: string }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
-
-  if (await isCreatorProfileLocked(supabase, creatorProfileId)) {
-    return <p style={{ fontSize: 13, color: "var(--muted)", textAlign: "center" }}>This creator is currently unavailable.</p>;
-  }
-
-  // Load tiers
-  const { data: tiers } = await (supabase as any)
-    .from("subscription_tiers")
-    .select("*")
-    .eq("creator_profile_id", creatorProfileId)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-
-  const activeTiers = tiers ?? [];
-
-  // Has tiers — show the tier cards (logged in or out)
-  if (activeTiers.length > 0) {
-    return <TierPicker tiers={activeTiers} creatorProfileId={creatorProfileId} stripeReady={stripeReady} loggedIn={!!user} />;
-  }
-
-  // No tiers, not signed in — signup CTA
-  if (!user) {
-    return (
-      <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-        <a href={`/fan-signup?return=${encodeURIComponent(`/?subscribe=${creatorProfileId}`)}`} className="btn btn--primary">
-          Sign up to subscribe
-        </a>
-        <a href="/login" style={{ textAlign:"center", fontSize:12, color:"var(--muted)", textDecoration:"none" }}>
-          Already have an account? Sign in
-        </a>
-      </div>
-    );
-  }
-
-  // No tiers, signed in — simple subscribe button
-  return (
-    <form action="/api/subscribe" method="post">
-      <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
-      <button type="submit" className="btn btn--primary" disabled={!stripeReady}>
-        Subscribe
-      </button>
-    </form>
-  );
-}

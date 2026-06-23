@@ -13,7 +13,7 @@ import CampaignDonateButton from "./CampaignDonateButton";
 import CampaignTiers from "./CampaignTiers";
 import TheRoom from "./TheRoom";
 import FreeTierCard from "./FreeTierCard";
-import TierPicker from "./TierPicker";
+import SubscribeButton from "./SubscribeButton";
 import SuperTipButton from "./SuperTipButton";
 import TipButton from "./TipButton";
 import GiftSubscriptionButton from "./GiftSubscriptionButton";
@@ -163,7 +163,7 @@ async function loadCampaignFirst(handle: string) {
 export default async function CampaignFirstPage({ handle }: { handle: string }) {
   const data = await loadCampaignFirst(handle);
   if (!data || !data.campaign) notFound();
-  const { sp, campaign, subscriberCount, subscriptionTiers, content, socialPosts, loggedIn, stripeReady } = data;
+  const { sp, campaign, subscriberCount, subscriptionTiers, content, socialPosts, loggedIn } = data;
 
   const displayName = sp.display_name || sp.handle;
   const bgImg = sp.bg_url || sp.cover_url || null;
@@ -181,17 +181,17 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
     <>
       <SiteHeader />
       <BackerCodeBanner />
-      <main style={{ position: "relative", minHeight: "70vh" }}>
-        {bgImg ? (
-          <div
-            aria-hidden
-            style={{
-              position: "absolute", top: 0, left: 0, right: 0, height: 700, zIndex: 0,
-              background: `linear-gradient(180deg, rgba(9,9,12,0.42) 0, rgba(9,9,12,0.68) 320px, rgba(9,9,12,0.93) 540px, var(--bg, #17181B) 700px), url("${bgImg}") top center / cover no-repeat`,
-              pointerEvents: "none",
-            }}
-          />
-        ) : null}
+      <main
+        style={
+          bgImg
+            ? {
+                minHeight: "100vh",
+                position: "relative",
+                background: `linear-gradient(180deg, rgba(9,9,12,0.35) 0, rgba(9,9,12,0.58) 320px, rgba(9,9,12,0.82) 760px, rgba(9,9,12,0.9) 100%), url("${bgImg}") top center / cover no-repeat`,
+              }
+            : { minHeight: "100vh", position: "relative", background: "#09090C" }
+        }
+      >
         <div style={{ position: "relative", zIndex: 1, maxWidth: 920, margin: "0 auto", padding: "0 24px" }}>
           {campaign ? (
             <>
@@ -329,11 +329,9 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                   handle={sp.handle}
                   loggedIn={loggedIn}
                 />
-                {subscriptionTiers.length > 0 ? (
-                  <div style={{ marginTop: 14 }}>
-                    <TierPicker tiers={subscriptionTiers as any} creatorProfileId={sp.id} stripeReady={stripeReady} loggedIn={loggedIn} />
-                  </div>
-                ) : null}
+                <div style={{ marginTop: 14 }}>
+                  <SubscribeButton creatorProfileId={sp.id} />
+                </div>
               </section>
 
               {/* ── TERTIARY: more ways to support ── */}
