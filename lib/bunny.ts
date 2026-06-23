@@ -19,6 +19,33 @@ export function bunnyUploadUrl(path: string): string {
   return `https://${BUNNY.STORAGE_ENDPOINT}/${BUNNY.STORAGE_ZONE}/${path}`;
 }
 
+import crypto from "crypto";
+
+// Bunny Token Authentication URL signer for locked originals.
+// DORMANT until you (1) enable Token Authentication on the pull zone in the
+// Bunny dashboard and (2) set BUNNY_TOKEN_KEY to that zone's security key.
+// Until then it returns the plain URL, so current behaviour is unchanged.
+// Once enabled, the raw CDN URL stops working without a fresh server-signed
+// token, which closes the "I have the raw URL" backdoor.
+export function bunnySignUrl(fullUrl: string, expirySeconds = 3600): string {
+  const key = process.env.BUNNY_TOKEN_KEY;
+  if (!key) return fullUrl;
+  try {
+    const u = new URL(fullUrl);
+    const expires = Math.floor(Date.now() / 1000) + expirySeconds;
+    const token = crypto
+      .createHash("sha256")
+      .update(key + u.pathname + expires)
+      .digest("base64")
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    u.searchParams.set("token", token);
+    u.searchParams.set("expires", String(expires));
+    return u.toString();
+  } catch {
+    return fullUrl;
+  }
+}
+
 export function bunnyCdnUrl(path: string): string {
   const cleanPath = path.replace(/^\/+/, "");
   return `https://${BUNNY.CDN_HOST}/${cleanPath}`;

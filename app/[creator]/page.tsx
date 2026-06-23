@@ -16,6 +16,7 @@ import DigitalProductCard from "./DigitalProductCard";
 import TierPicker from "./TierPicker";
 import NowStrip from "./NowStrip";
 import TheRoom from "./TheRoom";
+import CampaignFirstPage from "./CampaignFirstPage";
 
 // Coarse relative time for the NOW STRIP, computed server-side to avoid hydration drift.
 function ago(iso: string | null): string | null {
@@ -276,6 +277,21 @@ export default async function CreatorPage(props: {
   params: Promise<{ creator: string }>;
 }) {
   const { creator } = await props.params;
+
+  // Adaptive mode: a creator with an active campaign gets the campaign-first
+  // page; everyone else keeps this page until the remaining modes ship.
+  {
+    const sb = await createClient();
+    const { data: cp } = await sb
+      .from("creator_profiles").select("id").eq("kind", "spotlight").eq("handle", creator).maybeSingle();
+    if (cp) {
+      const { count: activeCampaigns } = await (sb as any)
+        .from("campaigns").select("id", { count: "exact", head: true })
+        .eq("creator_profile_id", (cp as any).id).eq("status", "active");
+      if ((activeCampaigns ?? 0) > 0) return <CampaignFirstPage handle={creator} />;
+    }
+  }
+
   const data = await fetchEverything(creator);
   if (!data) notFound();
 
