@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import StudioSetup, { type StudioPayload } from "@/components/StudioSetup";
 
 type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
@@ -85,6 +86,18 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   const [tierMsg, setTierMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const [copiedPreview, setCopiedPreview] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
+
+  async function adminStudioCommit(payload: StudioPayload): Promise<string | null> {
+    const res = await fetch("/api/admin/studio/commit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ creatorProfileId: creator.id, ...payload }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.error) return data?.error || "Couldn't build the page. Try again.";
+    return null;
+  }
 
   async function onUpload(file: File | undefined, target: "avatar" | "cover" | "post" | "pick") {
     if (!file) return;
@@ -261,6 +274,25 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
       <p className="adm-page-lede" style={{ marginBottom: 24 }}>
         Edit the page on their behalf. {creator.published ? "This page is live." : "This page is in preview (not in Explore)."}
       </p>
+
+      {studioOpen && (
+        <StudioSetup
+          displayName={creator.display_name}
+          handle={creator.handle}
+          onCommit={adminStudioCommit}
+          onClose={() => setStudioOpen(false)}
+          onDone={() => { setStudioOpen(false); window.location.reload(); }}
+        />
+      )}
+
+      <div style={{ marginBottom: 24, background: "linear-gradient(180deg, rgba(240,180,41,0.10), rgba(240,180,41,0.03))", border: "1px solid var(--accent-border, rgba(240,180,41,0.25))", borderRadius: 12, padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent, #f0b429)", marginBottom: 6 }}>Build everything</div>
+          <div style={{ fontSize: 17, color: "#fff", marginBottom: 2 }}>Build this creator&apos;s whole page</div>
+          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>Answer a few questions and scaffold their bio, free tier, paid tiers, and a starter campaign in one pass. Send them the preview link after.</div>
+        </div>
+        <button className="adm-btn adm-btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Build whole page</button>
+      </div>
 
       {!creator.claimed_at && creator.claim_code ? (
         <div className="adm-banner adm-banner--ok" style={{ marginBottom: 24, lineHeight: 1.7 }}>
