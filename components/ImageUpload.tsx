@@ -147,6 +147,11 @@ export default function ImageUpload({
         <p style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 6, lineHeight: 1.5 }}>
           {hint}
         </p>
+        {resWarning && (
+          <p style={{ fontSize: 11.5, color: "#F2B84B", marginTop: 6, lineHeight: 1.5 }}>
+            {resWarning} It still uploads, but a larger image stays crisp on big screens.
+          </p>
+        )}
         {error && (
           <p style={{ fontSize: 12, color: "#F87171", marginTop: 6 }}>
             {error.includes("not configured")

@@ -272,6 +272,33 @@ img { max-width: 100%; display: block; }
   border-color: var(--accent-border);
 }
 
+/* ── Signature gold ring ──
+   A gradient gold border, brightest on the left and fading lighter to the right.
+   Rounded-corner safe via the mask technique. Applied to cards and outline
+   buttons by default; add the `ring-gold` class to put it on anything else. */
+.ring-gold,
+.card,
+.btn--secondary { position: relative; }
+
+.ring-gold::after,
+.card::after,
+.btn--secondary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(90deg,
+    var(--accent) 0%,
+    rgba(242,184,75,0.45) 46%,
+    rgba(242,184,75,0.06) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* ── MARKETING — LANDING PAGE ── */
 
 .lp { min-height: 100vh; }

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
-import { bunnySignUrl } from "@/lib/bunny";
+import { bunnySignUrl, bunnyImage, bunnyImageSrcSet } from "@/lib/bunny";
 import type { ReactNode, CSSProperties } from "react";
 
 import SiteHeader from "@/components/site-header";
@@ -249,17 +249,18 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
       <BackerCodeBanner />
       <ReferralTracker creatorHandle={sp.handle} />
 
-      <main
-        style={
-          bgImg
-            ? {
-                minHeight: "100vh", position: "relative",
-                background: `linear-gradient(180deg, rgba(9,9,12,0.28) 0, rgba(9,9,12,0.55) 360px, rgba(9,9,12,0.84) 820px, rgba(9,9,12,0.92) 100%), url("${bgImg}") top center / cover no-repeat`,
-                backgroundAttachment: "fixed",
-              }
-            : { minHeight: "100vh", position: "relative", background: "#09090C" }
-        }
-      >
+      <main style={{ minHeight: "100vh", position: "relative", background: "#09090C" }}>
+        {bgImg ? (
+          <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={bunnyImage(bgImg, { width: 1920, quality: 82 })}
+              srcSet={bunnyImageSrcSet(bgImg, [768, 1280, 1920, 2560], { quality: 82 })}
+              sizes="100vw"
+              alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(9,9,12,0.30) 0%, rgba(9,9,12,0.58) 34%, rgba(9,9,12,0.86) 72%, rgba(9,9,12,0.95) 100%)" }} />
+          </div>
+        ) : null}
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "0 24px" }}>
 
           {/* ── 1. THE CREATOR — the largest thing on the page. No ask yet. ── */}
@@ -268,8 +269,8 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
 
             {sp.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={sp.avatar_url} alt={displayName} width={132} height={132}
-                style={{ position: "relative", borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.10)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }} />
+              <img src={bunnyImage(sp.avatar_url, { width: 264, quality: 85 })} alt={displayName} width={132} height={132}
+                style={{ position: "relative", display: "block", margin: "0 auto", borderRadius: "50%", objectFit: "cover", border: "3px solid rgba(255,255,255,0.10)", boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }} />
             ) : (
               <div style={{ position: "relative", width: 132, height: 132, borderRadius: "50%", margin: "0 auto", background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 52, color: "var(--accent)" }}>
                 {(displayName[0] || "?").toUpperCase()}
@@ -365,7 +366,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
           <section id="support" style={{ marginTop: hasFeed ? 80 : 64, scrollMarginTop: 90, paddingTop: 36, borderTop: "1px solid var(--border)" }}>
             <SectionLabel center>Support {fn}</SectionLabel>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "start", maxWidth: campaign ? 880 : 520, margin: "0 auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start", maxWidth: campaign ? 920 : 480, margin: "0 auto" }}>
 
               {/* Peer A — back the goal (only if there is a real campaign) */}
               {campaign ? (
@@ -373,7 +374,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                   <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 12 }}>
                     Back {fn}&apos;s goal
                   </div>
-                  <div style={peerCard}>
+                  <div className="ring-gold" style={peerCard}>
                     <h3 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 21, lineHeight: 1.2, color: "var(--text)", margin: "0 0 8px" }}>{campaign.title}</h3>
                     {campaign.description ? (
                       <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, lineHeight: 1.5, color: "rgba(247,243,236,0.7)", margin: "0 0 18px" }}>
@@ -392,6 +393,9 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                     </div>
                     <CampaignDonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
                   </div>
+                  {campaign.tiers && campaign.tiers.length > 0 ? (
+                    <CampaignTiers campaignId={campaign.id} campaignTitle={campaign.title} tiers={campaign.tiers} />
+                  ) : null}
                 </div>
               ) : null}
 
@@ -413,12 +417,6 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
               </div>
             </div>
 
-            {/* Campaign backer rewards, full width below the peer row */}
-            {campaign && campaign.tiers && campaign.tiers.length > 0 ? (
-              <div style={{ maxWidth: 600, margin: "26px auto 0" }}>
-                <CampaignTiers campaignId={campaign.id} campaignTitle={campaign.title} tiers={campaign.tiers} />
-              </div>
-            ) : null}
 
             {/* Quiet community signal */}
             {(subscriberCount > 0 || isFounder) ? (

@@ -51,6 +51,45 @@ export function bunnyCdnUrl(path: string): string {
   return `https://${BUNNY.CDN_HOST}/${cleanPath}`;
 }
 
+// Bunny Optimizer (Dynamic Images): append resize/quality params to a Bunny CDN
+// URL so it serves a right-sized, compressed, WebP variant per screen, cached at
+// the edge. No-op for non-Bunny URLs. SAFE when the Optimizer add-on is OFF
+// (Bunny just serves the original); it starts working the moment the Optimizer
+// (and WebP) are enabled on the Spotlightly pull zone in the Bunny dashboard.
+function isBunnyUrl(url: string): boolean {
+  return /\.b-cdn\.net\//i.test(url);
+}
+
+export function bunnyImage(
+  url: string | null | undefined,
+  opts: { width?: number; height?: number; quality?: number; aspectRatio?: string } = {},
+): string {
+  if (!url) return "";
+  if (!isBunnyUrl(url)) return url; // external avatars, etc. pass through untouched
+  try {
+    const u = new URL(url);
+    if (opts.width) u.searchParams.set("width", String(Math.round(opts.width)));
+    if (opts.height) u.searchParams.set("height", String(Math.round(opts.height)));
+    if (opts.aspectRatio) u.searchParams.set("aspect_ratio", opts.aspectRatio);
+    if (opts.quality) u.searchParams.set("quality", String(opts.quality));
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
+// Build a srcset of width variants for a responsive <img srcset> with sizes.
+export function bunnyImageSrcSet(
+  url: string | null | undefined,
+  widths: number[],
+  opts: { quality?: number; aspectRatio?: string } = {},
+): string | undefined {
+  if (!url || !isBunnyUrl(url)) return undefined;
+  return widths
+    .map((w) => `${bunnyImage(url, { width: w, quality: opts.quality, aspectRatio: opts.aspectRatio })} ${w}w`)
+    .join(", ");
+}
+
 /**
  * Create a new BunnyCDN Stream live stream.
  * Returns the stream object including guid (used as stream key).

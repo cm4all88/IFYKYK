@@ -22,7 +22,8 @@ WRITING RULES:
 - Warm, specific, first person where natural, in the creator's voice. The creator is the hero, never the platform.
 - Never use em-dashes or hyphens. Use periods, commas, or parentheses. Write "behind the scenes" not the hyphenated form.
 - No marketing speak. No "powerful", "seamless", "unleash", "passionate about", "content creator".
-- Where it genuinely fits the creator, lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness). Use an emoji only when it fits, never force one. Make names evocative and shareable, the kind a fan would screenshot.
+- If the context includes an EMOJI POLICY, follow it exactly for EVERY field (bio, free tier, tiers, perks, campaign) — it overrides any other emoji guidance. Otherwise, where it genuinely fits, you may lead a tier name with a single tasteful emoji (for example ✈️ travel, 🎵 music, 🎨 art, 💪 fitness), never forced. Make names evocative and shareable, the kind a fan would screenshot.
+- Write everything in the creator's own voice using any voice and personality notes provided. The page should sound like them, not like a platform.
 
 Return ONLY a JSON object, no preamble or backticks, exactly this shape:
 {
@@ -40,10 +41,12 @@ Return ONLY a JSON object, no preamble or backticks, exactly this shape:
   },
   "live": { "title": "a first live show idea, short and specific to this creator" },
   "merch": { "idea": "a first merch product idea, e.g. a logo tee or a tour hoodie" },
-  "marketplace": { "idea": "a first item they could sell, e.g. a worn stage outfit or a signed print" }
+  "marketplace": { "idea": "a first item they could sell, e.g. a worn stage outfit or a signed print" },
+  "campaignRecommended": true,
+  "reasoning": { "campaign": "one sentence: why a campaign does or does not make sense for this creator right now", "tiers": "one sentence: why these tier names and rewards fit them" }
 }
 
-Rules: exactly 3 paid tiers (entry around $5 to $8, middle around $12 to $25, top around $40 to $75, each higher tier saying "Everything in [lower]" then adding more). Exactly 5 campaign tiers climbing in price, each with 1 to 3 rewards. Reward "type" must be one of: update, recognition, content, physical, discount.`;
+Rules: exactly 3 paid tiers (entry around $5 to $8, middle around $12 to $25, top around $40 to $75, each higher tier saying "Everything in [lower]" then adding more). Exactly 5 campaign tiers climbing in price, each with 1 to 3 rewards. Reward "type" must be one of: update, recognition, content, physical, discount. Set campaignRecommended to true ONLY when there is a genuine, specific goal people can rally around (a trip, a project, an album, equipment, a life event, a community cause). When there is no clear goal, set it false and use reasoning.campaign to say that community comes first and a campaign can come later.`;
 
 function num(v: any): number { const n = Number(v); return Number.isFinite(n) ? n : 0; }
 function str(v: any): string { return String(v ?? "").trim(); }
@@ -77,17 +80,23 @@ function fallback(niche: string | null) {
     live: { title: "A live hangout with your members" },
     merch: { idea: "A simple logo tee in your brand colors" },
     marketplace: { idea: "Something from your collection your fans would want" },
+    campaignRecommended: false,
+    reasoning: { campaign: "Start with community. A campaign lands hardest once there is a specific goal to rally fans around.", tiers: "A simple three tier ladder gives fans an easy way in and a clear way to go deeper." },
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { niche, makes, fans, workingToward, displayName, handle } = body ?? {};
+    const { niche, makes, fans, workingToward, displayName, handle,
+      interview, audience, vibe, goalType, goalDetail, goalAmount, deadline, exclusive, regular,
+      wantsLive, wantsMerch, wantsMarketplace,
+      usesEmojis, textingStyle, astrology, sign, pronouns, humor, excitement, language, fanName, vibeWords, interests, catchphrase } = body ?? {};
+    const goalProvided = interview ? (!!str(goalType) && str(goalType) !== "none") : !!str(workingToward);
 
     const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);
     if (!ANTHROPIC_API_KEY) {
-      return NextResponse.json({ ...fallback(niche), generated: false });
+      return NextResponse.json({ ...fallback(niche), campaignRecommended: goalProvided, generated: false });
     }
 
     const n = tierNicheById(niche);
@@ -96,8 +105,27 @@ export async function POST(req: NextRequest) {
       handle ? `Handle: @${handle}` : null,
       n ? `Kind of creator: ${n.label}` : null,
       makes ? `What they make: ${makes}` : null,
-      fans ? `Who their fans are: ${fans}` : null,
-      workingToward ? `What they are working toward (a good campaign): ${workingToward}` : null,
+      (fans || audience) ? `Who their fans are: ${fans || audience}` : null,
+      vibe ? `Their personality and vibe: ${vibe}` : null,
+      goalProvided
+        ? `They are working toward a real goal fans can rally behind: ${str(goalDetail) || str(goalType)}${num(goalAmount) > 0 ? ` (needs about $${Math.round(num(goalAmount))})` : ""}${str(deadline) ? `, by ${str(deadline)}` : ""}`
+        : (interview ? `They have NO specific goal to raise money for right now, so a campaign is probably not the priority. Recommend against one and lean into community.` : (workingToward ? `What they are working toward (a good campaign): ${workingToward}` : null)),
+      exclusive ? `The most exclusive thing they would give top supporters: ${exclusive}` : null,
+      regular ? `What they make regularly that fans would pay to get closer to: ${regular}` : null,
+      interview ? `They want to use: ${[wantsLive && "live streams", wantsMerch && "merch", wantsMarketplace && "a marketplace"].filter(Boolean).join(", ") || "just the basics for now"}` : null,
+      usesEmojis === true ? "EMOJI POLICY: this creator uses emojis when they text, so weave a few tasteful, natural emojis into the bio, the free tier blurb, the tier names, and the perks, the way they would. Do not overdo it." : null,
+      usesEmojis === false ? "EMOJI POLICY: this creator does NOT use emojis. Write the bio, tiers, perks, and everything else with zero emojis, clean text only." : null,
+      str(textingStyle) ? `Their texting register is "${str(textingStyle)}" — match it in the bio and all copy.` : null,
+      (astrology && str(sign)) ? `They are into astrology and they are a ${str(sign)} — you can lightly lean into that personality where it naturally fits, never forced.` : null,
+      str(pronouns) ? `Their pronouns are ${str(pronouns)} — use them correctly throughout the bio and copy.` : null,
+      str(humor) ? `Their humor is ${str(humor)} — let it show in the writing.` : null,
+      str(excitement) ? `They show excitement like this: ${str(excitement)} — reflect that in the punctuation and energy.` : null,
+      str(language) ? `Their language register: ${str(language)}.` : null,
+      str(fanName) ? `They call their fans "${str(fanName)}" — use that name for the audience where it fits naturally (e.g. in the free tier and tiers).` : null,
+      (Array.isArray(vibeWords) && vibeWords.length) ? `Words that describe them: ${vibeWords.map(str).filter(Boolean).join(", ")} — let the tone match these.` : null,
+      (Array.isArray(interests) && interests.length) ? `They are into: ${interests.map(str).filter(Boolean).join(", ")} — weave these in as genuine interests where they fit.` : null,
+      str(catchphrase) ? `A phrase they say a lot: "${str(catchphrase)}" — you may use or echo it if it lands naturally.` : null,
+      interview ? "Above all, capture this specific person's voice. The page should read like they wrote it." : null,
     ].filter(Boolean).join("\n");
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -105,13 +133,13 @@ export async function POST(req: NextRequest) {
       headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 2600, system: SYSTEM, messages: [{ role: "user", content: `Set up the whole page for this creator.\n\n${ctx}` }] }),
     });
-    if (!res.ok) return NextResponse.json({ ...fallback(niche), generated: false });
+    if (!res.ok) return NextResponse.json({ ...fallback(niche), campaignRecommended: goalProvided, generated: false });
 
     const data = await res.json();
     let raw: string = data.content?.[0]?.text ?? "";
     raw = raw.replace(/```json|```/g, "").trim();
     let parsed: any;
-    try { parsed = JSON.parse(raw); } catch { return NextResponse.json({ ...fallback(niche), generated: false }); }
+    try { parsed = JSON.parse(raw); } catch { return NextResponse.json({ ...fallback(niche), campaignRecommended: goalProvided, generated: false }); }
 
     const tiers = Array.isArray(parsed?.tiers) ? parsed.tiers.map(subTier).filter(Boolean).slice(0, 4) : [];
     const ft = parsed?.freeTier ?? {};
@@ -132,13 +160,20 @@ export async function POST(req: NextRequest) {
       campaign: {
         title: str(camp?.title) || fb.campaign.title,
         description: str(camp?.description) || fb.campaign.description,
-        goal: num(camp?.goal) > 0 ? Math.round(num(camp?.goal)) : fb.campaign.goal,
+        goal: num(goalAmount) > 0 ? Math.round(num(goalAmount)) : (num(camp?.goal) > 0 ? Math.round(num(camp?.goal)) : fb.campaign.goal),
         category: catId,
         tiers: campTiers.length ? campTiers : fb.campaign.tiers,
       },
       live: { title: str(parsed?.live?.title) || fb.live.title },
       merch: { idea: str(parsed?.merch?.idea) || fb.merch.idea },
       marketplace: { idea: str(parsed?.marketplace?.idea) || fb.marketplace.idea },
+      campaignRecommended: goalProvided,
+      reasoning: {
+        campaign: str(parsed?.reasoning?.campaign) || (goalProvided
+          ? "They have a clear goal fans can rally behind, so a campaign gives supporters a one time way to help make it happen."
+          : "No specific goal yet, so community comes first. A campaign can come later when there is something concrete to raise for."),
+        tiers: str(parsed?.reasoning?.tiers) || "An easy entry tier, a middle tier with the regular extras, and a top tier with the closest access.",
+      },
     });
   } catch {
     return NextResponse.json({ ...fallback(null), generated: false });

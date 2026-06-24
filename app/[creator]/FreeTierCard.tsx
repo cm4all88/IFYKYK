@@ -15,7 +15,7 @@ export default function FreeTierCard({
   const list = (perks || []).filter((p) => p && p.trim());
 
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, marginBottom: 14 }}>
+    <div className="ring-gold" style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
         <span style={{ fontFamily: "var(--font-serif, serif)", fontSize: 22, color: "var(--text)", lineHeight: 1.1 }}>{title}</span>
         <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent)", border: "1px solid var(--accent)", borderRadius: 999, padding: "3px 10px", flexShrink: 0 }}>Free</span>

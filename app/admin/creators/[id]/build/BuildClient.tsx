@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
-import StudioSetup, { type StudioPayload } from "@/components/StudioSetup";
+import { type StudioPayload } from "@/components/StudioSetup";
+import PageBuilderQA from "@/components/PageBuilderQA";
+import AdminCampaignBuilder from "@/components/AdminCampaignBuilder";
+import ImageUpload from "@/components/ImageUpload";
 
 type Creator = {
   id: string; handle: string; display_name: string; bio: string | null;
@@ -87,6 +90,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
   const [copied, setCopied] = useState(false);
   const [copiedPreview, setCopiedPreview] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [campaignOpen, setCampaignOpen] = useState(false);
 
   async function adminStudioCommit(payload: StudioPayload): Promise<string | null> {
     const res = await fetch("/api/admin/studio/commit", {
@@ -276,7 +280,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
       </p>
 
       {studioOpen && (
-        <StudioSetup
+        <PageBuilderQA
           displayName={creator.display_name}
           handle={creator.handle}
           onCommit={adminStudioCommit}
@@ -285,13 +289,32 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         />
       )}
 
+      {campaignOpen && (
+        <AdminCampaignBuilder
+          creatorProfileId={creator.id}
+          displayName={creator.display_name}
+          handle={creator.handle}
+          onClose={() => setCampaignOpen(false)}
+          onDone={() => { setCampaignOpen(false); window.location.reload(); }}
+        />
+      )}
+
       <div style={{ marginBottom: 24, background: "linear-gradient(180deg, rgba(240,180,41,0.10), rgba(240,180,41,0.03))", border: "1px solid var(--accent-border, rgba(240,180,41,0.25))", borderRadius: 12, padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
         <div>
           <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent, #f0b429)", marginBottom: 6 }}>Build everything</div>
           <div style={{ fontSize: 17, color: "#fff", marginBottom: 2 }}>Build this creator&apos;s whole page</div>
-          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>Answer a few questions and scaffold their bio, free tier, paid tiers, and a starter campaign in one pass. Send them the preview link after.</div>
+          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>A few quick questions, then a recommendation, a preview, and your approval. Sets up their bio, free tier, and paid tiers, and a campaign only when it actually makes sense.</div>
         </div>
-        <button className="adm-btn adm-btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Build whole page</button>
+        <button className="adm-btn adm-btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Interview and build</button>
+      </div>
+
+      <div style={{ marginBottom: 24, border: "1px solid var(--border, rgba(255,255,255,0.1))", borderRadius: 12, padding: "16px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--muted, #888)", marginBottom: 6 }}>Just a campaign</div>
+          <div style={{ fontSize: 16, color: "#fff", marginBottom: 2 }}>Add a campaign</div>
+          <div style={{ fontSize: 13, color: "var(--muted, #888)", maxWidth: 470 }}>For creators who already have a page. Answer a few questions and let the assistant draft it, or enter what they already have.</div>
+        </div>
+        <button className="adm-btn adm-btn--ghost" style={{ flexShrink: 0 }} onClick={() => setCampaignOpen(true)}>+ Add a campaign</button>
       </div>
 
       {!creator.claimed_at && creator.claim_code ? (
@@ -345,15 +368,11 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 14 }}>
           <div>
             <label style={label}>Avatar</label>
-            {avatar ? <img src={avatar} alt="" style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", display: "block", marginBottom: 8 }} /> : null}
-            <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0], "avatar")} />
-            {busyUpload === "avatar" && <span style={{ fontSize: 12, marginLeft: 8 }}>Uploading…</span>}
+            <ImageUpload value={avatar} onChange={setAvatar} shape="circle" label="Upload avatar" hint="Square, 400px or larger" minWidth={400} minHeight={400} previewWidth={72} previewHeight={72} />
           </div>
           <div>
             <label style={label}>Cover</label>
-            {cover ? <img src={cover} alt="" style={{ width: 160, height: 72, borderRadius: 8, objectFit: "cover", display: "block", marginBottom: 8 }} /> : null}
-            <input type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0], "cover")} />
-            {busyUpload === "cover" && <span style={{ fontSize: 12, marginLeft: 8 }}>Uploading…</span>}
+            <ImageUpload value={cover} onChange={setCover} shape="rect" label="Upload cover" hint="1600px wide or larger keeps it crisp" minWidth={1600} minHeight={400} previewWidth={160} previewHeight={72} />
           </div>
         </div>
 
