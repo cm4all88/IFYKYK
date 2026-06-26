@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
 import { bunnySignUrl, bunnyImage, bunnyImageSrcSet } from "@/lib/bunny";
+import CreatorFeed from "@/components/CreatorFeed";
 import type { ReactNode, CSSProperties } from "react";
 
 import SiteHeader from "@/components/site-header";
@@ -116,7 +117,7 @@ async function loadWorld(handle: string) {
 
   const { data: posts } = await supabase
     .from("posts")
-    .select("id, caption, media_url, media_type, tier, lock_type, required_tier_id, is_pinned, created_at")
+    .select("id, caption, media_url, media_type, tier, lock_type, required_tier_id, is_pinned, created_at, likes_count, tags")
     .eq("creator_profile_id", sp.id).eq("status", "live")
     .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
     .order("created_at", { ascending: false }).limit(18);
@@ -168,6 +169,8 @@ async function loadWorld(handle: string) {
       mediaUrl: ent && p.media_url ? bunnySignUrl(p.media_url) : null,
       blur,
       lockTierName: tierNameOf(p.required_tier_id ?? null),
+      tags: Array.isArray(p.tags) ? (p.tags as string[]).filter(Boolean) : [],
+      likesCount: Number(p.likes_count) || 0,
     };
   }));
 
@@ -208,6 +211,7 @@ async function loadWorld(handle: string) {
     marketCount: marketCount ?? 0,
     digitalProducts: (digitalProducts ?? []) as any[],
     loggedIn: !!user,
+    viewerUserId: user?.id ?? null,
     stripeReady,
     lastActiveLabel: ago((posts as any[])?.[0]?.created_at ?? null),
   };
@@ -220,6 +224,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
   const {
     sp, isFounder, campaign, subscriberCount, subscriptionTiers,
     content, socialPosts, liveStream, merchCount, marketCount, digitalProducts, loggedIn,
+    viewerUserId,
     lastActiveLabel,
   } = data;
 
@@ -319,39 +324,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
           {content.length > 0 ? (
             <section style={{ marginTop: 64 }}>
               <SectionLabel center>Inside {fn}&apos;s world</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))", gap: 14 }}>
-                {content.map((p: any) => (
-                  <div key={p.id} style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-                    {p.entitled && p.mediaUrl && p.isImg ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.mediaUrl} alt="" style={{ width: "100%", height: 256, objectFit: "cover", display: "block" }} />
-                    ) : p.entitled && p.mediaUrl && p.isVid ? (
-                      <video src={p.mediaUrl} controls preload="metadata" muted playsInline style={{ width: "100%", height: 256, objectFit: "cover", display: "block", background: "#000" }} />
-                    ) : p.blur ? (
-                      <div style={{ position: "relative", height: 256, overflow: "hidden" }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={p.blur} alt="" aria-hidden style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "blur(8px)", transform: "scale(1.15)" }} />
-                        <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "rgba(9,9,12,0.34)" }}>
-                          <span style={{ fontSize: 20 }}>🔒</span>
-                          <a href="#support" style={{ fontSize: 12, color: "#0A0A0D", background: "var(--accent)", padding: "8px 16px", borderRadius: 999, textDecoration: "none", fontWeight: 700 }}>
-                            {p.lockTierName ? `Join ${p.lockTierName} to see` : "Subscribe to see"}
-                          </a>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ height: 256, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "linear-gradient(160deg, rgba(242,184,75,0.06), rgba(255,255,255,0.02))" }}>
-                        <span style={{ fontSize: 20 }}>🔒</span>
-                        <a href="#support" style={{ fontSize: 12, color: "var(--accent)", textDecoration: "none", fontWeight: 700 }}>
-                          {p.lockTierName ? `Join ${p.lockTierName} to see` : "Subscribe to see"}
-                        </a>
-                      </div>
-                    )}
-                    {p.caption ? (
-                      <div style={{ padding: "12px 14px", fontSize: 13, color: "rgba(247,243,236,0.82)", lineHeight: 1.5 }}>{clamp(String(p.caption), 120)}</div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+              <CreatorFeed items={content as any} viewerUserId={viewerUserId} fn={fn} />
             </section>
           ) : null}
 

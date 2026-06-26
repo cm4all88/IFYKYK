@@ -302,6 +302,13 @@ export default async function CreatorsPage(props: {
                         </button>
                       </form>
                       <a
+                        href={`/admin/creators/${c.id}`}
+                        className="adm-btn adm-btn--ghost"
+                        style={{ padding: "5px 12px" }}
+                      >
+                        Details
+                      </a>
+                      <a
                         href={`/admin/creators/${c.id}/build`}
                         className="adm-btn adm-btn--ghost"
                         style={{ padding: "5px 12px" }}

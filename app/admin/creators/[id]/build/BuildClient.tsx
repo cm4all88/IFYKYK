@@ -271,6 +271,7 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
         <h1 className="adm-page-title" style={{ margin: 0 }}>Build @{creator.handle}</h1>
         <div style={{ display: "flex", gap: 8 }}>
+          <a href={`/admin/creators/${creator.id}`} className="adm-btn adm-btn--ghost">Account details</a>
           <a href={`/${creator.handle}`} target="_blank" className="adm-btn adm-btn--ghost">Preview</a>
           <a href="/admin/creators" className="adm-btn adm-btn--ghost">Back</a>
         </div>

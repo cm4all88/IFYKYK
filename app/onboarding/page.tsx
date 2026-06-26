@@ -6,7 +6,19 @@ import Link from "next/link";
 import { CREATOR_CATEGORIES } from "@/lib/categories";
 import ImageUpload from "@/components/ImageUpload";
 
-type Step = "stage" | "about" | "profile" | "stripe" | "done";
+type Step = "stage" | "about" | "profile" | "features" | "stripe" | "done";
+
+const FEATURES: { key: string; label: string; desc: string }[] = [
+  { key: "subscriptions", label: "Memberships", desc: "Monthly support with tiers." },
+  { key: "tips", label: "Tips", desc: "Let fans tip you anytime." },
+  { key: "live", label: "Live shows", desc: "Go live for your members." },
+  { key: "messages", label: "Messages", desc: "Front row messages from fans." },
+  { key: "merch", label: "Merch", desc: "Sell branded merch." },
+  { key: "marketplace", label: "Marketplace", desc: "Sell items and pieces from your collection." },
+  { key: "digital", label: "Digital downloads", desc: "Sell digital products and files." },
+  { key: "campaigns", label: "Campaigns", desc: "Run a fundraiser with backer tiers." },
+  { key: "gifts", label: "Gift subscriptions", desc: "Let fans gift memberships to others." },
+];
 
 interface AIResponse {
   greeting: string;
@@ -224,6 +236,11 @@ export default function OnboardingPage() {
   const supabase = createClient();
 
   const [step, setStep] = useState<Step>("stage");
+  const [features, setFeatures] = useState<Record<string, boolean>>({
+    subscriptions: true, tips: true, live: false, messages: false,
+    merch: false, marketplace: false, digital: false, campaigns: false, gifts: false,
+  });
+  const [savingPlans, setSavingPlans] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -329,6 +346,25 @@ export default function OnboardingPage() {
       })
       .eq("id", profile.id);
     setSaving(false);
+    setStep("features");
+  }
+
+  async function savePlans() {
+    setSavingPlans(true);
+    await (supabase as any).from("creator_plans").upsert({
+      creator_profile_id: profile.id,
+      wants_subscriptions: features.subscriptions,
+      wants_tips: features.tips,
+      wants_live: features.live,
+      wants_messages: features.messages,
+      wants_merch: features.merch,
+      wants_marketplace: features.marketplace,
+      wants_digital: features.digital,
+      wants_campaigns: features.campaigns,
+      wants_gifts: features.gifts,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "creator_profile_id" });
+    setSavingPlans(false);
     setStep("stripe");
   }
 
@@ -882,6 +918,54 @@ export default function OnboardingPage() {
               tags={selectedTags}
             />
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── STEP: FEATURES ───────────────────────────────────────────────
+  if (step === "features") {
+    return (
+      <main style={{
+        minHeight: "100vh", background: "#17181B",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "80px 24px", position: "relative", overflow: "hidden",
+      }}>
+        <div style={{ position: "fixed", inset: 0, backgroundImage: "url('/hero-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center top", opacity: 0.05, pointerEvents: "none", zIndex: 0 }} />
+        <div style={{ position: "fixed", top: 0, left: "50%", transform: "translateX(-50%)", width: 400, height: "50%", background: "radial-gradient(ellipse 60% 100% at 50% 0%, rgba(242,184,75,0.05), transparent 70%)", pointerEvents: "none" }} />
+        <Link href="/" className="brand-logo" style={{ position: "absolute", top: 28, left: "50%", transform: "translateX(-50%)", fontSize: 20 }}>Spot<span>light</span>ly</Link>
+
+        <div style={{ width: "100%", maxWidth: 560, position: "relative", zIndex: 1 }}>
+          <span style={{ fontFamily: "DM Mono, monospace", fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(242,184,75,0.7)", display: "block", marginBottom: 12, textAlign: "center" }}>Your planet, your rules</span>
+          <h1 style={{ fontFamily: "Cormorant Garamond, Georgia, serif", fontSize: 34, fontWeight: 600, color: "#F7F3EC", textAlign: "center", margin: "0 0 8px" }}>What do you want on your page?</h1>
+          <p style={{ fontSize: 13.5, color: "rgba(247,243,236,0.6)", textAlign: "center", maxWidth: 420, margin: "0 auto 28px", lineHeight: 1.6 }}>
+            Turn on what you want to do. Leave the rest off. You can change any of this later, and nothing empty ever shows on your page.
+          </p>
+
+          <div style={{ marginBottom: 22 }}>
+            {FEATURES.map((f) => {
+              const on = !!features[f.key];
+              return (
+                <button key={f.key} onClick={() => setFeatures((s) => ({ ...s, [f.key]: !s[f.key] }))}
+                  style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", textAlign: "left",
+                    background: on ? "rgba(242,184,75,0.06)" : "rgba(255,255,255,0.02)",
+                    border: `1px solid ${on ? "rgba(242,184,75,0.5)" : "rgba(255,255,255,0.08)"}`,
+                    borderRadius: 8, padding: "13px 16px", marginBottom: 8, cursor: "pointer" }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 5, flexShrink: 0, border: "1px solid #F2B84B", background: on ? "#F2B84B" : "transparent", color: "#09090C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>{on ? "✓" : ""}</span>
+                  <span style={{ flex: 1 }}>
+                    <span style={{ display: "block", color: "#F7F3EC", fontSize: 14 }}>{f.label}</span>
+                    <span style={{ display: "block", color: "rgba(247,243,236,0.5)", fontSize: 12, marginTop: 2 }}>{f.desc}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button onClick={savePlans} disabled={savingPlans} style={primaryBtn(savingPlans)}>
+            {savingPlans ? "Saving…" : "Save and continue →"}
+          </button>
+          <button onClick={() => setStep("profile")} style={{ ...ghostBtn, marginTop: 10 }}>← Back</button>
         </div>
       </main>
     );
