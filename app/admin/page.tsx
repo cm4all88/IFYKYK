@@ -221,6 +221,7 @@ export default async function AdminOverviewPage() {
             { href: "/admin/coupons", label: "Create Coupon" },
             { href: "/admin/comms", label: "Send Announcement" },
             { href: "/admin/creators", label: "Manage Creators" },
+            { href: "/admin/referrals", label: "Referral Links" },
             { href: "/admin/subscribers", label: "View Subscribers" },
             { href: "/admin/subscriptions", label: "Subscriptions" },
             { href: "/admin/moderation", label: "Review Flags" },
