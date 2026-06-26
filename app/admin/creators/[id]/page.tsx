@@ -2,6 +2,8 @@ import { isAdmin } from "@/lib/admin";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase-server";
 
+import CopyText from "@/components/CopyText";
+
 export const dynamic = "force-dynamic";
 
 function fmtDate(v: any): string {
@@ -64,6 +66,22 @@ export default async function CreatorDetailsPage(props: { params: Promise<{ id: 
   ]);
 
   const provider = authUser?.app_metadata?.provider || (authUser?.app_metadata?.providers || []).join(", ") || "email";
+
+  // Referrals this creator already has.
+  const { data: refCode } = await (admin as any).from("referral_codes").select("code").eq("owner_user_id", profile.user_id).maybeSingle();
+  const refCodeStr: string | null = refCode?.code ?? null;
+  const [cRefsRes, sgRes] = await Promise.all([
+    (admin as any).from("creator_referrals").select("credited").eq("referrer_profile_id", id),
+    refCodeStr ? (admin as any).from("referral_signups").select("verified").eq("code", refCodeStr) : Promise.resolve({ data: [] }),
+  ]);
+  const cRefs: any[] = cRefsRes.data ?? [];
+  const refsTotal = cRefs.length;
+  const refsCredited = cRefs.filter((r: any) => r.credited).length;
+  const sgRows: any[] = sgRes.data ?? [];
+  const sgVerified = sgRows.filter((x: any) => x.verified).length;
+  const sgPending = sgRows.length - sgVerified;
+  const inviteLink = `https://spotlightly.app/signup?ref=${profile.handle}`;
+  const codeLink = refCodeStr ? `https://spotlightly.app/?ref=${refCodeStr}` : null;
 
   const planFlags = plan
     ? [
@@ -159,6 +177,27 @@ export default async function CreatorDetailsPage(props: { params: Promise<{ id: 
         ) : (
           <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>No feature choices recorded yet (set during onboarding).</p>
         )}
+      </div>
+
+      {/* REFERRALS */}
+      <div style={card}>
+        <div style={kicker}>Referrals</div>
+        <Field label="Invite link">
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, color: "var(--muted)", wordBreak: "break-all" }}>{inviteLink}</span>
+            <CopyText text={inviteLink} />
+          </span>
+        </Field>
+        <Field label="Creators referred">{refsTotal}{refsTotal ? ` (${refsCredited} credited)` : ""}</Field>
+        <Field label="Personal code">
+          {refCodeStr ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, color: "var(--muted)" }}>{refCodeStr}</span>
+              <CopyText text={codeLink as string} label="Copy link" />
+            </span>
+          ) : "Not generated yet"}
+        </Field>
+        <Field label="Code signups">{refCodeStr ? `${sgVerified} verified · ${sgPending} pending` : "—"}</Field>
       </div>
 
       {/* ACTIVITY */}

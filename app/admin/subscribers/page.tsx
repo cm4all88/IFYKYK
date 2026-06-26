@@ -1,6 +1,7 @@
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
+import CopyText from "@/components/CopyText";
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +14,18 @@ export default async function AdminSubscribersPage() {
   const db = await createServiceClient();
   const admin: any = db;
 
-  const [subsRes, creatorsRes, subRefsRes, creatorRefsRes, tiersRes] = await Promise.all([
+  const [subsRes, creatorsRes, subRefsRes, creatorRefsRes, tiersRes, refCodesRes] = await Promise.all([
     admin.from("subscriptions").select("id, fan_user_id, creator_profile_id, tier, tier_id, status, billing_period, created_at").order("created_at", { ascending: false }),
     admin.from("creator_profiles").select("id, handle, display_name, kind, created_at, deleted_at"),
     admin.from("subscriber_referrals").select("fan_user_id, referrer_profile_id, subscribed"),
     admin.from("creator_referrals").select("referrer_profile_id"),
     admin.from("subscription_tiers").select("id, name"),
+    admin.from("referral_codes").select("owner_user_id, code"),
   ]);
 
   const subs: any[] = subsRes.data ?? [];
+  const codeByUser: Record<string, string> = {};
+  for (const c of (refCodesRes.data ?? [])) if (c.owner_user_id && c.code) codeByUser[c.owner_user_id] = c.code;
   const creators: any[] = creatorsRes.data ?? [];
   const subRefs: any[] = subRefsRes.data ?? [];
   const creatorRefs: any[] = creatorRefsRes.data ?? [];
@@ -113,7 +117,7 @@ export default async function AdminSubscribersPage() {
           <div style={{ overflowX: "auto" }}>
             <table className="adm-table">
               <thead>
-                <tr><th>Subscriber</th><th>Tier</th><th>Status</th><th>Since</th><th>Found us via</th></tr>
+                <tr><th>Subscriber</th><th>Tier</th><th>Status</th><th>Since</th><th>Found us via</th><th>Their referral link</th></tr>
               </thead>
               <tbody>
                 {list.map((s) => {
@@ -127,6 +131,14 @@ export default async function AdminSubscribersPage() {
                       <td>{fmt(s.created_at)}</td>
                       <td style={{ color: refCreator ? "rgba(242,184,75,0.95)" : "var(--muted)" }}>
                         {refCreator ? `@${refCreator.handle} (referral)` : "Direct"}
+                      </td>
+                      <td>
+                        {codeByUser[s.fan_user_id] ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 11, color: "var(--muted)" }}>{codeByUser[s.fan_user_id]}</span>
+                            <CopyText text={`https://spotlightly.app/?ref=${codeByUser[s.fan_user_id]}`} label="Copy link" />
+                          </span>
+                        ) : <span style={{ color: "var(--muted)", fontSize: 12 }}>none yet</span>}
                       </td>
                     </tr>
                   );
