@@ -194,6 +194,7 @@ export default function SignupPage() {
       fetch("/api/email/welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email }) }).catch(() => {});
       fetch("/api/admin/new-creator-alert", { method: "POST" }).catch(() => {});
       fetch("/api/track/presence", { method: "POST" }).catch(() => {});
+      fetch("/api/referrals/me").catch(() => {});
 
       const refHandle = typeof window !== "undefined"
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")
@@ -226,7 +227,7 @@ export default function SignupPage() {
         <header className="topbar">
           <div className="brand-logo" style={{ fontSize: 22 }}>Spot<span>light</span>ly</div>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <a href="/fan-signup" style={{ fontFamily: "DM Mono, monospace", fontSize: 10, letterSpacing: "0.1em", color: "rgba(232,232,240,0.6)", textDecoration: "none" }}>
+            <a href="/fan-signup" style={{ fontFamily: "DM Mono, monospace", fontSize: 11, letterSpacing: "0.1em", color: "var(--muted)", textDecoration: "none" }}>
               Join as a fan instead
             </a>
             <PhaseDots phase={phase} hasReferral={!!referrerHandle} />
@@ -520,7 +521,7 @@ function SignupStyles() {
       :root {
         --bg: #0a0a0f; --surface: #111118; --surface-2: #161620;
         --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.18);
-        --text: #e8e8f0; --muted: #6b6b80;
+        --text: #F7F3EC; --muted: #C8C4BE; --text-soft: rgba(247,243,236,0.86);
         --accent-spot: #f5c842; --accent-open: #6ee7b7; --accent-back: #c084fc; --red: #f87171;
       }
       html, body { background: var(--bg); color: var(--text); font-family: "DM Sans", -apple-system, sans-serif; font-weight: 300; }
@@ -544,7 +545,7 @@ function SignupStyles() {
       .kicker { font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
       .title { font-family: "Cormorant Garamond", serif; font-size: clamp(32px,5vw,44px); font-weight: 300; line-height: 1.1; margin-bottom: 16px; color: #fff; }
       .title em { font-style: italic; color: var(--accent-spot); }
-      .lede { font-size: 16px; line-height: 1.7; color: rgba(232,232,240,0.7); max-width: 580px; margin-bottom: 40px; }
+      .lede { font-size: 16px; line-height: 1.7; color: var(--text-soft); max-width: 580px; margin-bottom: 40px; }
 
       /* ── Referred welcome ── */
       .referred-stage {
@@ -554,9 +555,16 @@ function SignupStyles() {
       .ref-avatar-wrap {
         position: relative; width: 96px; height: 96px; margin-bottom: 28px;
       }
+      .ref-avatar-wrap::before {
+        content: ""; position: absolute; inset: -46px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(245,200,66,0.20) 0%, transparent 68%);
+        pointer-events: none; z-index: 0;
+      }
+      .ref-avatar-img, .ref-avatar-fallback, .ref-avatar-ring { position: relative; z-index: 1; }
       .ref-avatar-img {
         width: 96px; height: 96px; border-radius: 50%; object-fit: cover;
-        border: 2px solid rgba(245,200,66,0.25); display: block;
+        border: 2px solid rgba(245,200,66,0.55); display: block;
+        box-shadow: 0 6px 28px rgba(0,0,0,0.5);
       }
       .ref-avatar-fallback {
         width: 96px; height: 96px; border-radius: 50%;
@@ -570,8 +578,8 @@ function SignupStyles() {
         border: 1px solid rgba(245,200,66,0.15); pointer-events: none;
       }
       .ref-invited-by {
-        font-family: "DM Mono", monospace; font-size: 10px; letter-spacing: 0.22em;
-        text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+        font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.22em;
+        text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
       }
       .ref-name {
         font-family: "Cormorant Garamond", serif; font-size: clamp(36px,6vw,54px);
@@ -582,7 +590,7 @@ function SignupStyles() {
         letter-spacing: 0.08em; margin-bottom: 28px;
       }
       .ref-lede {
-        font-size: 16px; line-height: 1.7; color: rgba(232,232,240,0.6);
+        font-size: 16px; line-height: 1.75; color: var(--text-soft);
         max-width: 460px; margin-bottom: 40px;
       }
       .ref-cta {
@@ -594,7 +602,7 @@ function SignupStyles() {
       }
       .ref-cta:hover { opacity: 0.88; }
       .ref-footnote {
-        font-family: "DM Mono", monospace; font-size: 10px; color: var(--muted);
+        font-family: "DM Mono", monospace; font-size: 11px; color: var(--muted);
         letter-spacing: 0.1em;
       }
 
