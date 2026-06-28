@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase-server";
+import { bunnySignUrl } from "@/lib/bunny";
 
 export const dynamic = "force-dynamic";
+
+// Sign BunnyCDN urls so videos keep working if Bunny Token Authentication is
+// ever enabled on the pull zone. While that feature is off, bunnySignUrl is a
+// no-op and returns the url unchanged. Non-Bunny urls (external avatars, demo
+// assets) pass through untouched. A long expiry covers load-then-export gaps.
+const signImg = (u?: string | null): string | undefined => {
+  if (!u) return undefined;
+  return /\.b-cdn\.net\//i.test(u) ? bunnySignUrl(u, 86400) : u;
+};
 
 const money = (v: unknown): string => {
   const n = Number(v ?? 0);
@@ -112,8 +122,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     creator: {
       name: profile.display_name || "Creator",
       handle: handleDisplay,
-      avatar: profile.avatar_url || undefined,
-      cover: profile.cover_url || undefined,
+      avatar: signImg(profile.avatar_url),
+      cover: signImg(profile.cover_url),
       tagline: profile.bio || undefined,
       founding: false,
     },
@@ -133,14 +143,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     marketplace: (listings ?? []).map((l: any) => ({
       title: l.title,
       price: money(l.price_usd),
-      image: Array.isArray(l.images) && l.images[0] ? l.images[0] : undefined,
+      image: signImg(Array.isArray(l.images) && l.images[0] ? l.images[0] : undefined),
     })),
     merch: (merchRows ?? []).map((m: any) => ({
       name: m.name,
       price: money(m.retail_price),
-      image: (Array.isArray(m.mockup_urls) && m.mockup_urls[0]) || m.design_url || undefined,
+      image: signImg((Array.isArray(m.mockup_urls) && m.mockup_urls[0]) || m.design_url || undefined),
     })),
-    feedScreenshots: feed.length ? feed : undefined,
+    feedScreenshots: feed.length ? feed.map((u) => signImg(u) as string) : undefined,
     bgIntensity: 0.4,
     videoType: "launch",
   };
