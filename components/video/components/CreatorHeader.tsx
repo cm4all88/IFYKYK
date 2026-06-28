@@ -1,7 +1,8 @@
 import React from 'react';
-import {Img, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../theme';
 import {asset} from '../lib/assets';
+import {SafeImg} from './SafeImg';
 import {VideoData} from '../types';
 
 export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: number; showCover?: boolean}> = ({
@@ -38,13 +39,12 @@ export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: num
             marginBottom: creator.avatar ? -120 : 0,
           }}
         >
-          <Img src={asset(creator.cover) as string} onError={() => {}} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+          <SafeImg src={asset(creator.cover) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
         </div>
       ) : null}
       {creator.avatar ? (
-        <Img
+        <SafeImg
           src={asset(creator.avatar) as string}
-          onError={() => {}}
           style={{
             width: 320,
             height: 320,

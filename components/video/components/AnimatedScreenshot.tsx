@@ -1,7 +1,8 @@
 import React from 'react';
-import {Img, interpolate, useCurrentFrame} from 'remotion';
+import {interpolate, useCurrentFrame} from 'remotion';
 import {theme} from '../theme';
 import {asset} from '../lib/assets';
+import {SafeImg} from './SafeImg';
 import {easeInOut, overFrames} from '../lib/animations';
 
 type Pan = [number, number];
@@ -48,9 +49,8 @@ export const AnimatedScreenshot: React.FC<{
         transform: `translateY(${drift}px)`,
       }}
     >
-      <Img
+      <SafeImg
         src={asset(src) as string}
-        onError={() => {}}
         style={{
           width: '100%',
           height: '100%',

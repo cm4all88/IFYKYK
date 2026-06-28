@@ -1,7 +1,8 @@
 import React from 'react';
-import {AbsoluteFill, Img, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../theme';
 import {asset} from '../lib/assets';
+import {SafeImg} from './SafeImg';
 
 // The Spotlightly stage. When the creator has a cover image, it can live behind
 // everything (blurred, drifting, under a warm scrim) so the whole video feels
@@ -29,9 +30,8 @@ export const Background: React.FC<{cover?: string; intensity?: number}> = ({cove
       {showCover ? (
         <>
           <AbsoluteFill>
-            <Img
+            <SafeImg
               src={asset(cover) as string}
-              onError={() => {}}
               style={{
                 width: '100%',
                 height: '100%',

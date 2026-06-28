@@ -1,7 +1,8 @@
 import React from 'react';
-import {AbsoluteFill, Img, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../theme';
 import {asset} from '../lib/assets';
+import {SafeImg} from './SafeImg';
 import {Logo} from './Logo';
 import {VideoData} from '../types';
 
@@ -24,9 +25,8 @@ export const HeroIntro: React.FC<{
   return (
     <AbsoluteFill>
       <AbsoluteFill>
-        <Img
+        <SafeImg
           src={asset(image) as string}
-          onError={() => {}}
           style={{
             width: '100%',
             height: '100%',

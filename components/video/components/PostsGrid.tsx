@@ -1,7 +1,8 @@
 import React from 'react';
-import {Img, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../theme';
 import {asset} from '../lib/assets';
+import {SafeImg} from './SafeImg';
 
 // Shows up to six real public-post images as floating cards: their feed at a
 // glance. The layout adapts to how many images the creator actually has.
@@ -42,7 +43,7 @@ export const PostsGrid: React.FC<{images: string[]}> = ({images}) => {
               background: theme.colors.cardBg,
             }}
           >
-            <Img src={asset(src) as string} onError={() => {}} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+            <SafeImg src={asset(src) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
           </div>
         );
       })}

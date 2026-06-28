@@ -1,7 +1,8 @@
 import React from 'react';
-import {Img, interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../theme';
 import {asset} from '../lib/assets';
+import {SafeImg} from './SafeImg';
 
 export const ProductTile: React.FC<{title: string; price: string; image?: string; idx: number}> = ({
   title,
@@ -34,7 +35,7 @@ export const ProductTile: React.FC<{title: string; price: string; image?: string
         }}
       >
         {image ? (
-          <Img src={asset(image) as string} onError={() => {}} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+          <SafeImg src={asset(image) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
         ) : (
           <div
             style={{
