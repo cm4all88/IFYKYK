@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@remotion/player", "remotion", "@remotion/google-fonts"],
   images: {
     remotePatterns: [
       {
