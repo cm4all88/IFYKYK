@@ -81,6 +81,9 @@ export const buildScenes = (d: VideoData): PlannedScene[] => {
 
 export const calcMeta: CalculateMetadataFunction<VideoData> = ({props}) => {
   const scenes = buildScenes(props);
-  const durationInFrames = scenes.reduce((a, s) => a + s.durationInFrames, 0);
+  const sceneSum = scenes.reduce((a, s) => a + s.durationInFrames, 0);
+  const voFrames = props.narrationDurationInFrames ?? 0;
+  const tail = voFrames > 0 ? 18 : 0; // a short breath after the voice ends
+  const durationInFrames = Math.max(sceneSum, voFrames + tail) || sceneSum;
   return {durationInFrames, fps: 30, width: 1080, height: 1920};
 };

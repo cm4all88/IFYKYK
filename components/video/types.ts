@@ -72,5 +72,7 @@ export type VideoData = {
   music?: string;       // path under public/
   musicVolume?: number; // 0..1, default 0.6
   bgIntensity?: number; // 0..1, how strongly the cover shows as the background (0 = plain stage)
+  narration?: string;   // url of a voiceover track, baked in by the render service
+  narrationDurationInFrames?: number; // length of that track, used to fit the video to the voice
   videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

@@ -243,6 +243,7 @@ export default function VideoStudio() {
     buildScript((sampleData.videoType ?? "launch") as VideoType, sampleData)
   );
   const [copied, setCopied] = useState(false);
+  const [bakeVo, setBakeVo] = useState(true);
   const copyScript = async () => {
     await navigator.clipboard.writeText(script);
     setCopied(true);
@@ -267,7 +268,10 @@ export default function VideoStudio() {
         const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: { ...base, videoType: r.type } }),
+          body: JSON.stringify({
+            data: { ...base, videoType: r.type },
+            narrationScript: bakeVo ? buildScript(r.type, base) : undefined,
+          }),
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const blob = await res.blob();
@@ -335,12 +339,14 @@ export default function VideoStudio() {
       setStatus({
         msg: stripped
           ? "Rendering... uploaded images are preview only and were skipped. Use hosted urls for export."
+          : bakeVo
+          ? "Rendering with voiceover... this can take a minute."
           : "Rendering... this can take a minute.",
       });
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: clean }),
+        body: JSON.stringify({ data: clean, narrationScript: bakeVo ? script : undefined }),
       });
       if (!res.ok) throw new Error("Render failed (" + res.status + ")");
       const blob = await res.blob();
@@ -429,9 +435,14 @@ export default function VideoStudio() {
               value={script}
               onChange={(e) => setScript(e.target.value)}
             />
+            <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 12, color: "#e8e8f0" }}>
+              <input type="checkbox" checked={bakeVo} onChange={(e) => setBakeVo(e.target.checked)} />
+              Bake this voiceover into the MP4 on export (narrated with ElevenLabs)
+            </label>
             <p style={{ marginTop: 8, fontSize: 11, color: "#d5d5e2", lineHeight: 1.6 }}>
-              Suggested narration for the {videoType} reel, built from this creator. Edit freely, then
-              Copy and paste into CapCut, ElevenLabs, or any voiceover tool.
+              Suggested narration for the {videoType} reel, built from this creator. Edit freely. With bake on,
+              Export speaks it with ElevenLabs and merges it into the video, ducking the music underneath. The
+              video stretches to fit the voice. Or turn bake off and Copy it for CapCut or any other tool.
             </p>
           </div>
 
