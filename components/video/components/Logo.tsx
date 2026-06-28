@@ -3,7 +3,11 @@ import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {theme} from '../theme';
 
 // Animated Spotlightly wordmark: rises in, with a single soft light sweep across it.
-export const Logo: React.FC<{size?: number; delay?: number}> = ({size = 120, delay = 0}) => {
+export const Logo: React.FC<{size?: number; delay?: number; tone?: 'dark' | 'light'}> = ({
+  size = 120,
+  delay = 0,
+  tone = 'dark',
+}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const s = spring({frame: frame - delay, fps, config: {damping: 200, mass: 0.9}});
@@ -12,6 +16,7 @@ export const Logo: React.FC<{size?: number; delay?: number}> = ({size = 120, del
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  const baseColor = tone === 'light' ? '#FFFFFF' : theme.colors.ink;
   return (
     <div
       style={{
@@ -21,9 +26,10 @@ export const Logo: React.FC<{size?: number; delay?: number}> = ({size = 120, del
         fontFamily: theme.font.serif,
         fontSize: size,
         fontWeight: 400,
-        color: theme.colors.ink,
+        color: baseColor,
         letterSpacing: '-0.02em',
         lineHeight: 1,
+        textShadow: tone === 'light' ? '0 2px 30px rgba(0,0,0,0.45)' : 'none',
       }}
     >
       <span>Spot</span>

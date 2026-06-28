@@ -4,9 +4,10 @@ import {theme} from '../theme';
 import {asset} from '../lib/assets';
 import {VideoData} from '../types';
 
-export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: number}> = ({
+export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: number; showCover?: boolean}> = ({
   creator,
   delay = 4,
+  showCover = true,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
@@ -25,31 +26,32 @@ export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: num
         width: '100%',
       }}
     >
-      {creator.cover ? (
+      {showCover && creator.cover ? (
         <div
           style={{
-            width: 840,
-            height: 300,
+            width: 900,
+            height: 320,
             borderRadius: theme.radius,
             overflow: 'hidden',
             boxShadow: theme.colors.shadow,
             border: `1px solid ${theme.colors.line}`,
-            marginBottom: creator.avatar ? -96 : 0,
+            marginBottom: creator.avatar ? -120 : 0,
           }}
         >
-          <Img src={asset(creator.cover) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+          <Img src={asset(creator.cover) as string} onError={() => {}} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
         </div>
       ) : null}
       {creator.avatar ? (
         <Img
           src={asset(creator.avatar) as string}
+          onError={() => {}}
           style={{
-            width: 220,
-            height: 220,
+            width: 320,
+            height: 320,
             borderRadius: '50%',
             objectFit: 'cover',
             boxShadow: theme.colors.shadow,
-            border: `6px solid ${theme.colors.cardBg}`,
+            border: `8px solid ${theme.colors.cardBg}`,
           }}
         />
       ) : null}

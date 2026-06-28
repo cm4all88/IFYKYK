@@ -71,5 +71,6 @@ export type VideoData = {
 
   music?: string;       // path under public/
   musicVolume?: number; // 0..1, default 0.6
+  bgIntensity?: number; // 0..1, how strongly the cover shows as the background (0 = plain stage)
   videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

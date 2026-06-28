@@ -13,7 +13,7 @@ export const MarketingVideo: React.FC<VideoData> = (data) => {
   let from = 0;
   return (
     <AbsoluteFill>
-      <Background />
+      <Background cover={data.creator.cover} intensity={data.bgIntensity} />
       {data.music ? (
         <Audio
           src={asset(data.music) as string}

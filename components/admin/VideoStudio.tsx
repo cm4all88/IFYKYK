@@ -474,6 +474,31 @@ export default function VideoStudio() {
           </div>
 
           <div className="card">
+            <div className="card-title">Background cover</div>
+            <Field label="Cover image (opens the reel and sits behind the scenes)">
+              <AssetInput value={data.creator.cover} onChange={(v) => setCreator({ cover: v || undefined })} />
+            </Field>
+            <Field label={`Background strength: ${Math.round((data.bgIntensity ?? 0.4) * 100)}%`}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 11, color: "#9A9AA2", whiteSpace: "nowrap" }}>Off</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={data.bgIntensity ?? 0.4}
+                  onChange={(e) => set({ bgIntensity: Number(e.target.value) })}
+                  style={{ flex: 1, accentColor: "#f5c842" }}
+                />
+                <span style={{ fontSize: 11, color: "#9A9AA2", whiteSpace: "nowrap" }}>Bold</span>
+              </div>
+            </Field>
+            <p style={{ fontSize: 12, color: "#71717A", margin: "2px 0 0" }}>
+              Off keeps the clean cream stage. The opening shot always uses this image. Clear the field to remove it everywhere.
+            </p>
+          </div>
+
+          <div className="card">
             <div className="card-title">Opening and closing</div>
             <Field label="Intro headline">
               <input className="adm-input" value={data.intro.headline} onChange={(e) => setIntro({ headline: e.target.value })} />

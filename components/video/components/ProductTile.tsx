@@ -34,7 +34,7 @@ export const ProductTile: React.FC<{title: string; price: string; image?: string
         }}
       >
         {image ? (
-          <Img src={asset(image) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+          <Img src={asset(image) as string} onError={() => {}} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
         ) : (
           <div
             style={{

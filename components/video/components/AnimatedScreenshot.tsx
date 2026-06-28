@@ -50,6 +50,7 @@ export const AnimatedScreenshot: React.FC<{
     >
       <Img
         src={asset(src) as string}
+        onError={() => {}}
         style={{
           width: '100%',
           height: '100%',

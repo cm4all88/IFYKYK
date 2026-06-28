@@ -102,7 +102,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const feed: string[] = (posts ?? [])
     .filter((p: any) => p.media_url && (p.media_type ?? "image") !== "video")
     .map((p: any) => p.media_url as string)
-    .slice(0, 4);
+    .slice(0, 6);
 
   const rawHandle = String(profile.handle ?? "");
   const handleClean = rawHandle.replace(/^@/, "");
@@ -141,6 +141,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       image: (Array.isArray(m.mockup_urls) && m.mockup_urls[0]) || m.design_url || undefined,
     })),
     feedScreenshots: feed.length ? feed : undefined,
+    bgIntensity: 0.4,
     videoType: "launch",
   };
 

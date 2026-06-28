@@ -14,6 +14,7 @@ import {MarketplaceGrid} from './components/MarketplaceGrid';
 import {MerchGrid} from './components/MerchGrid';
 import {PostsGrid} from './components/PostsGrid';
 import {CallToAction} from './components/CallToAction';
+import {HeroIntro} from './components/HeroIntro';
 
 // Maps each scene id to its content. Scenes prefer crisp native cards when
 // structured data is present, and fall back to an animated screenshot otherwise.
@@ -26,18 +27,26 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
     case 'intro':
       return (
         <Scene durationInFrames={durationInFrames}>
-          <AbsoluteFill
-            style={{
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              gap: 60,
-              padding: '0 80px',
-            }}
-          >
-            <Logo size={150} />
-            <SceneTitle headline={data.intro.headline} delay={16} />
-          </AbsoluteFill>
+          {data.creator.cover || data.creator.avatar ? (
+            <HeroIntro
+              creator={data.creator}
+              headline={data.intro.headline}
+              durationInFrames={durationInFrames}
+            />
+          ) : (
+            <AbsoluteFill
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: 60,
+                padding: '0 80px',
+              }}
+            >
+              <Logo size={150} />
+              <SceneTitle headline={data.intro.headline} delay={16} />
+            </AbsoluteFill>
+          )}
         </Scene>
       );
 
@@ -52,7 +61,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
               panTo={[50, 99]}
             />
           ) : (
-            <CreatorHeader creator={data.creator} />
+            <CreatorHeader creator={data.creator} showCover={false} />
           )}
         </ShowcaseScene>
       );
