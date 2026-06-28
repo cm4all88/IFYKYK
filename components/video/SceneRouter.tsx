@@ -12,6 +12,7 @@ import {MembershipCards} from './components/MembershipCards';
 import {CampaignCard} from './components/CampaignCard';
 import {MarketplaceGrid} from './components/MarketplaceGrid';
 import {MerchGrid} from './components/MerchGrid';
+import {PostsGrid} from './components/PostsGrid';
 import {CallToAction} from './components/CallToAction';
 
 // Maps each scene id to its content. Scenes prefer crisp native cards when
@@ -82,12 +83,16 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
       return (
         <ShowcaseScene durationInFrames={durationInFrames} kicker="Exclusive posts" headline="Content for the inner circle">
           {data.feedScreenshots?.length ? (
-            <AnimatedScreenshot
-              src={data.feedScreenshots[0]}
-              durationInFrames={durationInFrames}
-              panFrom={[50, 2]}
-              panTo={[50, 98]}
-            />
+            data.feedScreenshots.length > 1 ? (
+              <PostsGrid images={data.feedScreenshots} />
+            ) : (
+              <AnimatedScreenshot
+                src={data.feedScreenshots[0]}
+                durationInFrames={durationInFrames}
+                panFrom={[50, 2]}
+                panTo={[50, 98]}
+              />
+            )
           ) : null}
         </ShowcaseScene>
       );

@@ -20,20 +20,36 @@ export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: num
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 26,
+        gap: 24,
         textAlign: 'center',
+        width: '100%',
       }}
     >
+      {creator.cover ? (
+        <div
+          style={{
+            width: 840,
+            height: 300,
+            borderRadius: theme.radius,
+            overflow: 'hidden',
+            boxShadow: theme.colors.shadow,
+            border: `1px solid ${theme.colors.line}`,
+            marginBottom: creator.avatar ? -96 : 0,
+          }}
+        >
+          <Img src={asset(creator.cover) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+        </div>
+      ) : null}
       {creator.avatar ? (
         <Img
           src={asset(creator.avatar) as string}
           style={{
-            width: 240,
-            height: 240,
+            width: 220,
+            height: 220,
             borderRadius: '50%',
             objectFit: 'cover',
             boxShadow: theme.colors.shadow,
-            border: `4px solid ${theme.colors.cardBg}`,
+            border: `6px solid ${theme.colors.cardBg}`,
           }}
         />
       ) : null}
@@ -71,6 +87,10 @@ export const CreatorHeader: React.FC<{creator: VideoData['creator']; delay?: num
             maxWidth: 760,
             lineHeight: 1.35,
             marginTop: 6,
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
           }}
         >
           {creator.tagline}

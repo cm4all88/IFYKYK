@@ -29,11 +29,19 @@ export interface MerchItem {
   image?: string;
 }
 
+export type VideoType =
+  | "launch"
+  | "campaign"
+  | "membership"
+  | "marketplace"
+  | "merch";
+
 export type VideoData = {
   creator: {
     name: string;
     handle: string;     // include the @ if you want it shown
     avatar?: string;
+    cover?: string;     // cover_url banner, shown behind the profile header
     tagline?: string;
     founding?: boolean;
   };
@@ -63,4 +71,5 @@ export type VideoData = {
 
   music?: string;       // path under public/
   musicVolume?: number; // 0..1, default 0.6
+  videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

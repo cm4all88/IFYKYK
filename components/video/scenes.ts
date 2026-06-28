@@ -63,10 +63,21 @@ const isEnabled = (id: SceneId, d: VideoData): boolean => {
   }
 };
 
-export const buildScenes = (d: VideoData): PlannedScene[] =>
-  order
-    .filter((id) => isEnabled(id, d))
-    .map((id) => ({id, durationInFrames: SCENE_DURATIONS[id]}));
+// Scene sets per video type. Every type keeps intro + profile + cta as bookends.
+const TYPE_SCENES: Record<string, SceneId[]> = {
+  launch: ["intro", "profile", "memberships", "campaign", "posts", "marketplace", "merch", "cta"],
+  campaign: ["intro", "profile", "campaign", "cta"],
+  membership: ["intro", "profile", "memberships", "cta"],
+  marketplace: ["intro", "profile", "marketplace", "cta"],
+  merch: ["intro", "profile", "merch", "cta"],
+};
+
+export const buildScenes = (d: VideoData): PlannedScene[] => {
+  const allowed = TYPE_SCENES[d.videoType ?? "launch"] ?? TYPE_SCENES.launch;
+  return order
+    .filter((id) => allowed.includes(id) && isEnabled(id, d))
+    .map((id) => ({ id, durationInFrames: SCENE_DURATIONS[id] }));
+};
 
 export const calcMeta: CalculateMetadataFunction<VideoData> = ({props}) => {
   const scenes = buildScenes(props);

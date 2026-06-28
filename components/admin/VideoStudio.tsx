@@ -1,15 +1,131 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type {
   VideoData,
+  VideoType,
   Membership,
   ShopItem,
   MerchItem,
 } from "@/components/video/types";
 import { buildScenes } from "@/components/video/scenes";
 import { sampleData } from "@/components/video/sampleData";
+import CreatorPicker from "./CreatorPicker";
+
+type ReelStatus = "queued" | "rendering" | "ready" | "failed" | "skipped";
+type ReelItem = { type: VideoType; label: string; status: ReelStatus; url?: string };
+const REEL_TYPES: { type: VideoType; label: string }[] = [
+  { type: "launch", label: "Launch reel" },
+  { type: "campaign", label: "Campaign reel" },
+  { type: "membership", label: "Membership reel" },
+  { type: "marketplace", label: "Marketplace reel" },
+  { type: "merch", label: "Merch reel" },
+];
+const reelEligible = (t: VideoType, d: VideoData): boolean => {
+  switch (t) {
+    case "launch": return true;
+    case "campaign": return !!d.campaign;
+    case "membership": return !!d.memberships?.length;
+    case "marketplace": return !!d.marketplace?.length;
+    case "merch": return !!d.merch?.length;
+    default: return false;
+  }
+};
+const badgeClass = (s: ReelStatus) =>
+  s === "ready" ? "badge--green" : s === "rendering" ? "badge--yellow" : s === "failed" ? "badge--red" : "badge--dim";
+const statusLabel = (s: ReelStatus) =>
+  s === "queued" ? "Queued" : s === "rendering" ? "Rendering" : s === "ready" ? "Ready" : s === "failed" ? "Failed" : "Skipped";
+const stripBlobs = (d: VideoData): VideoData =>
+  JSON.parse(JSON.stringify(d), (_k, v) => (typeof v === "string" && v.startsWith("blob:") ? undefined : v));
+
+// Template-based voiceover scripts (no AI). Built from the loaded creator data.
+// All copy stays hyphen and em dash free, per the Spotlightly writing rule.
+const firstNameOf = (n: string) => (n || "").trim().split(/\s+/)[0] || n || "this creator";
+const priceNum = (s?: string) => {
+  const m = (s || "").replace(/[^0-9.]/g, "");
+  return m ? Number(m) : NaN;
+};
+const lowestPrice = (tiers: { price?: string }[]) => {
+  const nums = tiers.map((t) => priceNum(t.price)).filter((n) => !isNaN(n));
+  return nums.length ? Math.min(...nums) : null;
+};
+
+function buildScript(type: VideoType, d: VideoData): string {
+  const name = d.creator.name || "this creator";
+  const fname = firstNameOf(name);
+  const handle = d.creator.handle || "";
+  const bio = (d.creator.tagline || "").trim();
+  const tiers = d.memberships ?? [];
+  const camp = d.campaign;
+  const market = d.marketplace ?? [];
+  const merch = d.merch ?? [];
+  const low = lowestPrice(tiers);
+  const firstPerks = tiers[0]?.perks?.slice(0, 2).join(" and ");
+  const onSpot = `Find ${name} on Spotlightly${handle ? `, ${handle}` : ""}.`;
+
+  if (type === "campaign") {
+    if (!camp) return `Support ${name} on Spotlightly. ${onSpot}`;
+    return [
+      `${fname} is building something, and you can be part of it.`,
+      `The ${camp.title} campaign is ${camp.pct} percent funded, ${camp.raised} raised of ${camp.goal}${camp.backers ? `, with ${camp.backers} people already backing it` : ""}.`,
+      `Every contribution moves it closer.`,
+      `Back the campaign on Spotlightly and help make it happen.`,
+      onSpot,
+    ].join(" ");
+  }
+
+  if (type === "membership") {
+    return [
+      `Get closer to ${name}.`,
+      tiers.length
+        ? `Membership starts${low != null ? ` at $${low} a month` : ""}${firstPerks ? `, with ${firstPerks.toLowerCase()}` : ""}.`
+        : `Become a member and unlock the content made for the people who care most.`,
+      `It is the real, unfiltered version, just for the inner circle.`,
+      `Join on Spotlightly and pull up a seat.`,
+      onSpot,
+    ].join(" ");
+  }
+
+  if (type === "marketplace") {
+    if (!market.length) return `Shop ${name} on Spotlightly. ${onSpot}`;
+    const items = market.slice(0, 3).map((m) => m.title).join(", ");
+    return [
+      `${fname} just dropped something new.`,
+      `From ${items}, every piece comes straight from the source.`,
+      `Grab yours before it is gone.`,
+      `Shop the marketplace on Spotlightly.`,
+      onSpot,
+    ].join(" ");
+  }
+
+  if (type === "merch") {
+    if (!merch.length) return `Get ${name} merch on Spotlightly. ${onSpot}`;
+    const items = merch.slice(0, 3).map((m) => m.name).join(", ");
+    return [
+      `Wear it, carry it, make it yours.`,
+      `${fname} merch is here. ${items}, and more.`,
+      `Real gear for the people who show up.`,
+      `Shop the drop on Spotlightly.`,
+      onSpot,
+    ].join(" ");
+  }
+
+  // launch (default): the full overview
+  return [
+    `Meet ${name}.`,
+    bio,
+    `Everything now lives in one place on Spotlightly.`,
+    tiers.length
+      ? `Become a member${low != null ? ` from $${low} a month` : ""}${firstPerks ? ` and unlock ${firstPerks.toLowerCase()}` : ""}.`
+      : "",
+    camp ? `The ${camp.title} campaign is already ${camp.pct} percent funded.` : "",
+    `Follow along, support the work, and get closer than ever.`,
+    onSpot,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 
 const Player = dynamic(() => import("./VideoStudioPlayer"), {
   ssr: false,
@@ -79,6 +195,105 @@ export default function VideoStudio() {
   const [status, setStatus] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showJson, setShowJson] = useState(false);
   const [jsonText, setJsonText] = useState("");
+
+  const [creators, setCreators] = useState<
+    { id: string; display_name: string; handle: string; avatar_url?: string }[]
+  >([]);
+  const [creatorId, setCreatorId] = useState("");
+  const [loadingCreator, setLoadingCreator] = useState(false);
+  const videoType = (data.videoType ?? "launch") as VideoType;
+
+  useEffect(() => {
+    fetch("/api/admin/video-studio/creators")
+      .then((r) => r.json())
+      .then((d) => setCreators(d.creators ?? []))
+      .catch(() => {});
+  }, []);
+
+  const loadCreator = async (id: string) => {
+    setCreatorId(id);
+    if (!id) return;
+    setLoadingCreator(true);
+    setStatus({ msg: "Loading creator from the database..." });
+    try {
+      const r = await fetch(`/api/admin/video-studio/creator/${id}`);
+      if (!r.ok) throw new Error("Could not load that creator");
+      const json = await r.json();
+      const vd = json.data as VideoData;
+      setData({ ...vd, videoType });
+      setScript(buildScript(videoType, vd));
+      setStatus({ msg: "Loaded from Spotlightly. Edit anything below to override." });
+    } catch (e) {
+      setStatus({ msg: (e as Error).message, err: true });
+    } finally {
+      setLoadingCreator(false);
+    }
+  };
+
+  const setType = (t: VideoType) => {
+    setData((d) => ({ ...d, videoType: t }));
+    setScript(buildScript(t, data));
+  };
+
+  const [batch, setBatch] = useState<ReelItem[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const handleSlug = (data.creator.handle || "creator").replace(/[^a-z0-9]/gi, "") || "creator";
+
+  const [script, setScript] = useState<string>(() =>
+    buildScript((sampleData.videoType ?? "launch") as VideoType, sampleData)
+  );
+  const [copied, setCopied] = useState(false);
+  const copyScript = async () => {
+    await navigator.clipboard.writeText(script);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  const runBatch = async () => {
+    if (!renderUrl) {
+      setStatus({ msg: "Set a render service url first to batch render.", err: true });
+      return;
+    }
+    const base = stripBlobs(data);
+    setBatch(REEL_TYPES.map((r) => ({ ...r, status: reelEligible(r.type, base) ? "queued" : "skipped" })));
+    setBatchRunning(true);
+    const update = (type: VideoType, patch: Partial<ReelItem>) =>
+      setBatch((prev) => prev.map((it) => (it.type === type ? { ...it, ...patch } : it)));
+
+    for (const r of REEL_TYPES) {
+      if (!reelEligible(r.type, base)) continue;
+      update(r.type, { status: "rendering" });
+      try {
+        const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ data: { ...base, videoType: r.type } }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const blob = await res.blob();
+        update(r.type, { status: "ready", url: URL.createObjectURL(blob) });
+      } catch {
+        update(r.type, { status: "failed" });
+      }
+    }
+    setBatchRunning(false);
+  };
+
+  const downloadAll = () => {
+    batch
+      .filter((b) => b.status === "ready" && b.url)
+      .forEach((b, i) =>
+        setTimeout(() => {
+          const a = document.createElement("a");
+          a.href = b.url as string;
+          a.download = `${handleSlug}-${b.type}.mp4`;
+          a.click();
+        }, i * 500)
+      );
+  };
+
+  const batchDone = batch.length > 0 && !batchRunning;
+  const anyReady = batch.some((b) => b.status === "ready");
 
   const scenes = useMemo(() => buildScenes(data), [data]);
   const seconds = useMemo(
@@ -167,6 +382,59 @@ export default function VideoStudio() {
       >
         {/* LEFT: controls */}
         <div>
+          <div className="card">
+            <div className="card-title">Source</div>
+            <div className="field-grid">
+              <Field label="Creator">
+                <CreatorPicker creators={creators} value={creatorId} onChange={loadCreator} loading={loadingCreator} />
+              </Field>
+              <Field label="Video type">
+                <select
+                  className="adm-select"
+                  value={videoType}
+                  onChange={(e) => setType(e.target.value as VideoType)}
+                >
+                  <option value="launch">Launch reel</option>
+                  <option value="campaign">Campaign reel</option>
+                  <option value="membership">Membership reel</option>
+                  <option value="marketplace">Marketplace reel</option>
+                  <option value="merch">Merch reel</option>
+                </select>
+              </Field>
+            </div>
+            <p style={{ fontSize: 11, color: "#d5d5e2", margin: 0 }}>
+              {loadingCreator
+                ? "Loading..."
+                : "Data auto loads from existing Spotlightly tables. The fields below are optional overrides, never required."}
+            </p>
+          </div>
+
+          <div className="card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
+              <div className="card-title" style={{ margin: 0, padding: 0, border: "none" }}>
+                Voiceover script
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} onClick={() => setScript(buildScript(videoType, data))}>
+                  Regenerate
+                </button>
+                <button className="adm-btn adm-btn--primary" style={{ padding: "6px 14px" }} onClick={copyScript}>
+                  {copied ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+            <textarea
+              className="adm-textarea"
+              style={{ minHeight: 130, lineHeight: 1.6 }}
+              value={script}
+              onChange={(e) => setScript(e.target.value)}
+            />
+            <p style={{ marginTop: 8, fontSize: 11, color: "#d5d5e2", lineHeight: 1.6 }}>
+              Suggested narration for the {videoType} reel, built from this creator. Edit freely, then
+              Copy and paste into CapCut, ElevenLabs, or any voiceover tool.
+            </p>
+          </div>
+
           <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
             <button className="adm-btn adm-btn--ghost" onClick={() => setData(structuredClone(sampleData))}>
               Load sample
@@ -335,6 +603,42 @@ export default function VideoStudio() {
               Preview runs here in admin. Rendering the MP4 cannot run on Vercel, so Export
               calls a separate render service. Or use Copy JSON to render locally. For export,
               screenshots must be hosted urls (uploads are preview only).
+            </p>
+          </div>
+
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-title">Batch reels</div>
+            <button className="adm-btn adm-btn--primary" disabled={batchRunning} onClick={runBatch}>
+              {batchRunning ? "Rendering..." : "Render all five reel types"}
+            </button>
+
+            {batch.length > 0 ? (
+              <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+                {batch.map((b) => (
+                  <li key={b.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontSize: 13 }}>{b.label}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      {b.status === "ready" && b.url ? (
+                        <a className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px" }} href={b.url} download={`${handleSlug}-${b.type}.mp4`}>
+                          Download
+                        </a>
+                      ) : null}
+                      <span className={`badge ${badgeClass(b.status)}`}>{statusLabel(b.status)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {batchDone && anyReady ? (
+              <button className="adm-btn adm-btn--ghost" style={{ marginTop: 12 }} onClick={downloadAll}>
+                Download all
+              </button>
+            ) : null}
+
+            <p style={{ marginTop: 12, fontSize: 11, color: "#d5d5e2", lineHeight: 1.6 }}>
+              Renders each reel type the creator has data for and skips the rest. Uses the render
+              service url above.
             </p>
           </div>
         </div>
