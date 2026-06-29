@@ -74,6 +74,17 @@ export interface MediaAnalysis {
   confidence_score?: number;     // 0..1
 }
 
+export interface BeatTimeline {
+  bpm: number;
+  beatFrames: number[];
+  downbeatFrames: number[];
+  phraseFrames: number[];
+  energy: number[];
+  energyHopFrames: number;
+  endFrame: number;
+  durationFrames: number;
+}
+
 export type VideoData = {
   creator: {
     name: string;
@@ -97,6 +108,10 @@ export type VideoData = {
   // and the total runtime shrinks automatically.
   profileScreenshot?: string;
   feedScreenshots?: string[];
+  // Music beat timeline, attached by the render service when sync-to-music is on.
+  // Drives scene cut points and motion. Absent in studio preview (analysis happens at
+  // render time), so preview uses fixed timing and the final render is beat-synced.
+  beats?: BeatTimeline;
   // Per-image narrative analysis, aligned by index to feedScreenshots. null where an
   // image has not been analyzed yet. Used by the Story Engine to match image to beat.
   mediaAnalysis?: (MediaAnalysis | null)[];

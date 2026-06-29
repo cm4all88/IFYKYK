@@ -278,6 +278,7 @@ export default function VideoStudio() {
   const [analyzing, setAnalyzing] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [resScale, setResScale] = useState(0.6667); // 1 = 1080p, 0.6667 = 720p, 0.5 = 540p
+  const [syncMusic, setSyncMusic] = useState(true); // beat-sync cuts to the music when a track is set
 
   const analyzeMedia = async () => {
     if (!creatorId) {
@@ -396,6 +397,7 @@ export default function VideoStudio() {
               : undefined,
             captions: captionsOn,
             scale: resScale,
+            syncMusic,
           }),
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -490,7 +492,7 @@ export default function VideoStudio() {
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: clean, narrationSegments: bakeVo ? narrationSegmentsPayload() : undefined, captions: captionsOn, scale: resScale }),
+        body: JSON.stringify({ data: clean, narrationSegments: bakeVo ? narrationSegmentsPayload() : undefined, captions: captionsOn, scale: resScale, syncMusic }),
       });
       if (!res.ok) throw new Error("Render failed (" + res.status + ")");
       const vo = res.headers.get("X-Voiceover");
@@ -973,9 +975,16 @@ export default function VideoStudio() {
             {data.music ? (
               <audio key={data.music} controls src={data.music} style={{ width: "100%", marginTop: 8 }} />
             ) : null}
+            {data.music ? (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 13, color: "#e7e7f0", cursor: "pointer" }}>
+                <input type="checkbox" checked={syncMusic} onChange={(e) => setSyncMusic(e.target.checked)} />
+                Sync edit to the music beat
+              </label>
+            ) : null}
             <p style={{ fontSize: 11, color: "#9a9aae", margin: "8px 0 0" }}>
               Music auto ducks to about a third of this volume while the voiceover plays, then comes
               back up under the photo beats.
+              {data.music ? " With beat sync on, the render analyzes the track and lands every cut on a downbeat. The preview here is not beat synced, only the final render is." : ""}
             </p>
           </div>
 

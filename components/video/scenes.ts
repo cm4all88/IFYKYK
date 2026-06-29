@@ -167,12 +167,44 @@ const STORY_TYPE_SCENES: Record<string, SceneId[]> = Object.fromEntries(
 
 const TYPE_SCENES: Record<string, SceneId[]> = {...BASE_TYPE_SCENES, ...STORY_TYPE_SCENES};
 
+// Smallest grid frame at or after target (and at least minOut). Falls back to target
+// once the grid runs out, i.e. past the end of the music.
+const snapUp = (target: number, grid: number[], minOut: number): number => {
+  const floor = Math.max(target, minOut);
+  for (const g of grid) if (g >= floor) return g;
+  return target;
+};
+
 export const buildScenes = (d: VideoData): PlannedScene[] => {
   // The type's own scene list defines the sequence (story arcs depend on order).
   const allowed = TYPE_SCENES[d.videoType ?? 'launch'] ?? TYPE_SCENES.launch;
-  return allowed
-    .filter((id) => isEnabled(id, d))
-    .map((id) => ({id, durationInFrames: sceneDuration(id, d)}));
+  const ids = allowed.filter((id) => isEnabled(id, d));
+
+  const grid = d.beats?.downbeatFrames?.length ? d.beats.downbeatFrames : null;
+  if (!grid) {
+    // No music analysis: original fixed / voiceover-fit timing.
+    return ids.map((id) => ({id, durationInFrames: sceneDuration(id, d)}));
+  }
+
+  // Beat-driven: each scene holds at least its narration (the floor so the voice always
+  // fits), then the cut lands on the next downbeat. Pacing follows the music: a faster
+  // tempo gives shorter bars and faster cuts, a slower tempo holds scenes longer.
+  const endFrame = d.beats?.endFrame ?? 0;
+  const out: PlannedScene[] = [];
+  let cursor = 0;
+  ids.forEach((id, i) => {
+    const clip = d.narrationByScene?.[id];
+    const voFloor = clip && clip.frames > 0 ? clip.frames + SCENE_TAIL : 0;
+    const floor = cursor + Math.max(voFloor, 24); // the voice, or ~0.8s minimum
+    let end = snapUp(floor, grid, cursor + 18); // next downbeat, scene never under ~0.6s
+    if (i === ids.length - 1 && endFrame > cursor) {
+      // Final scene (CTA): hold to the music's natural ending.
+      end = Math.max(end, endFrame);
+    }
+    out.push({id, durationInFrames: Math.max(1, end - cursor)});
+    cursor = end;
+  });
+  return out;
 };
 
 export const calcMeta: CalculateMetadataFunction<VideoData> = ({props}) => {

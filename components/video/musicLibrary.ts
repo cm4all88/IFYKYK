@@ -47,7 +47,19 @@ export interface MusicTrack {
 // no real url):
 //   {id: 'upbeat-golden-hour', title: 'Golden Hour', genre: 'upbeat',
 //    url: 'https://spotlightly.b-cdn.net/music/golden-hour.mp3', source: 'Pixabay'},
-export const MUSIC_LIBRARY: MusicTrack[] = [];
+// AI-GENERATED TRACKS BELOW: these were made with an AI music tool. Confirm that
+// tool's terms actually grant commercial use AND allow the audio to be reposted by a
+// third party (your creators), since the reels get baked into MP4s creators publish on
+// their own channels. AI-music licensing and ownership are still unsettled, so keep the
+// generator's commercial-use receipt on file the same way you would for Pixabay.
+// Genres are a first guess from tempo and loudness. Listen and change `genre` to match
+// how each one actually sounds.
+export const MUSIC_LIBRARY: MusicTrack[] = [
+  {id: 'spotlight-drift-1', title: 'Drift (take 1)', genre: 'lifestyle', url: 'https://spotlightly.b-cdn.net/music/spotlight-drift-1.mp3', source: 'AI generated (confirm license)', volume: 0.6},
+  {id: 'spotlight-drift-2', title: 'Drift (take 2)', genre: 'lifestyle', url: 'https://spotlightly.b-cdn.net/music/spotlight-drift-2.mp3', source: 'AI generated (confirm license)', volume: 0.6},
+  {id: 'spotlight-pulse-1', title: 'Pulse (take 1)', genre: 'upbeat', url: 'https://spotlightly.b-cdn.net/music/spotlight-pulse-1.mp3', source: 'AI generated (confirm license)', volume: 0.55},
+  {id: 'spotlight-pulse-2', title: 'Pulse (take 2)', genre: 'upbeat', url: 'https://spotlightly.b-cdn.net/music/spotlight-pulse-2.mp3', source: 'AI generated (confirm license)', volume: 0.55},
+];
 
 export const tracksByGenre = (genre: MusicGenre | 'all'): MusicTrack[] =>
   genre === 'all' ? MUSIC_LIBRARY : MUSIC_LIBRARY.filter((t) => t.genre === genre);
