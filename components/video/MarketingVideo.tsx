@@ -4,16 +4,18 @@ import {Background} from './components/Background';
 import {SceneRouter} from './SceneRouter';
 import {buildScenes} from './scenes';
 import {asset} from './lib/assets';
+import {Captions} from './components/Captions';
 import {VideoData} from './types';
 
 export const MarketingVideo: React.FC<VideoData> = (data) => {
   const {durationInFrames} = useVideoConfig();
   const scenes = buildScenes(data);
   const sceneSum = scenes.reduce((a, s) => a + s.durationInFrames, 0);
-  const hasVo = Boolean(data.narration);
+  const hasSceneVo = Boolean(data.narrationByScene && Object.keys(data.narrationByScene).length);
+  const hasVo = Boolean(data.narration) || hasSceneVo;
 
-  // If the voiceover runs longer than the scenes, hold the last scene so the
-  // visuals cover the whole narration instead of cutting to black early.
+  // If a single voiceover runs longer than the scenes, hold the last scene so the
+  // visuals cover the whole narration. (Per-scene narration already fits each scene.)
   const tailPad = Math.max(0, durationInFrames - sceneSum);
   const planned = scenes.map((s, i) =>
     i === scenes.length - 1 ? {...s, durationInFrames: s.durationInFrames + tailPad} : s
@@ -50,9 +52,13 @@ export const MarketingVideo: React.FC<VideoData> = (data) => {
         />
       ) : null}
       {planned.map((s) => {
+        const clip = data.narrationByScene?.[s.id];
+        const cap = s.id !== 'intro' && s.id !== 'cta' ? data.captionsByScene?.[s.id] : undefined;
         const el = (
           <Sequence key={s.id} from={from} durationInFrames={s.durationInFrames} name={s.id} layout="none">
             <SceneRouter id={s.id} data={data} durationInFrames={s.durationInFrames} />
+            {clip ? <Audio src={asset(clip.src) as string} /> : null}
+            {cap ? <Captions words={cap.words} /> : null}
           </Sequence>
         );
         from += s.durationInFrames;

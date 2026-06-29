@@ -72,7 +72,13 @@ export type VideoData = {
   music?: string;       // path under public/
   musicVolume?: number; // 0..1, default 0.6
   bgIntensity?: number; // 0..1, how strongly the cover shows as the background (0 = plain stage)
-  narration?: string;   // url of a voiceover track, baked in by the render service
+  narration?: string;   // url of a single voiceover track, baked in by the render service
   narrationDurationInFrames?: number; // length of that track, used to fit the video to the voice
+  // Per-scene voiceover: each scene holds exactly as long as its own line, and that
+  // line's audio plays during it. Keyed by scene id. Built by the render service.
+  narrationByScene?: Record<string, {src: string; frames: number}>;
+  // Per-scene word-timed captions (frames relative to the scene start), for the
+  // synced on-screen text. Built by the render service from ElevenLabs timestamps.
+  captionsByScene?: Record<string, {words: {text: string; from: number; to: number}[]}>;
   videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

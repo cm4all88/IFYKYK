@@ -29,6 +29,19 @@ export interface PlannedScene {
   durationInFrames: number;
 }
 
+// Frames added after a scene's narration line, so the picture holds a beat before
+// it cuts to the next scene.
+const SCENE_TAIL = 16;
+
+// A scene's length: its base duration, or long enough to cover its own narration
+// line plus a short breath, whichever is greater.
+const sceneDuration = (id: SceneId, d: VideoData): number => {
+  const base = SCENE_DURATIONS[id];
+  const clip = d.narrationByScene?.[id];
+  if (clip && clip.frames > 0) return Math.max(base, clip.frames + SCENE_TAIL);
+  return base;
+};
+
 const order: SceneId[] = [
   'intro',
   'profile',
@@ -76,7 +89,7 @@ export const buildScenes = (d: VideoData): PlannedScene[] => {
   const allowed = TYPE_SCENES[d.videoType ?? "launch"] ?? TYPE_SCENES.launch;
   return order
     .filter((id) => allowed.includes(id) && isEnabled(id, d))
-    .map((id) => ({ id, durationInFrames: SCENE_DURATIONS[id] }));
+    .map((id) => ({ id, durationInFrames: sceneDuration(id, d) }));
 };
 
 export const calcMeta: CalculateMetadataFunction<VideoData> = ({props}) => {

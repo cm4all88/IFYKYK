@@ -9,7 +9,7 @@ import type {
   ShopItem,
   MerchItem,
 } from "@/components/video/types";
-import { buildScenes } from "@/components/video/scenes";
+import { buildScenes, type SceneId } from "@/components/video/scenes";
 import { sampleData } from "@/components/video/sampleData";
 import CreatorPicker from "./CreatorPicker";
 
@@ -51,7 +51,22 @@ const lowestPrice = (tiers: { price?: string }[]) => {
   return nums.length ? Math.min(...nums) : null;
 };
 
-function buildScript(type: VideoType, d: VideoData): string {
+const SCENE_LABEL: Record<SceneId, string> = {
+  intro: "Opening",
+  profile: "Profile",
+  memberships: "Memberships",
+  campaign: "Campaign",
+  posts: "Posts",
+  marketplace: "Marketplace",
+  merch: "Merch",
+  cta: "Closing",
+};
+
+export type ScriptSegment = { scene: SceneId; label: string; text: string };
+
+// One narration line per scene that will actually render. The render service
+// speaks each line on its own, and each scene holds exactly as long as its line.
+function lineForScene(id: SceneId, d: VideoData): string {
   const name = d.creator.name || "this creator";
   const fname = firstNameOf(name);
   const handle = d.creator.handle || "";
@@ -64,66 +79,46 @@ function buildScript(type: VideoType, d: VideoData): string {
   const firstPerks = tiers[0]?.perks?.slice(0, 2).join(" and ");
   const onSpot = `Find ${name} on Spotlightly${handle ? `, ${handle}` : ""}.`;
 
-  if (type === "campaign") {
-    if (!camp) return `Support ${name} on Spotlightly. ${onSpot}`;
-    return [
-      `${fname} is building something, and you can be part of it.`,
-      `The ${camp.title} campaign is ${camp.pct} percent funded, ${camp.raised} raised of ${camp.goal}${camp.backers ? `, with ${camp.backers} people already backing it` : ""}.`,
-      `Every contribution moves it closer.`,
-      `Back the campaign on Spotlightly and help make it happen.`,
-      onSpot,
-    ].join(" ");
+  switch (id) {
+    case "intro":
+      return `Meet ${name}.`;
+    case "profile":
+      return bio || `${fname}'s whole world, now in one place.`;
+    case "memberships":
+      return tiers.length
+        ? `Become a member${low != null ? ` from $${low} a month` : ""}${firstPerks ? ` and unlock ${firstPerks.toLowerCase()}` : ""}.`
+        : `Become a member and unlock the content made for the people who care most.`;
+    case "campaign":
+      return camp
+        ? `The ${camp.title} campaign is ${camp.pct} percent funded${camp.backers ? `, with ${camp.backers} people already backing it` : ""}.`
+        : `Back the campaign and help make it happen.`;
+    case "posts":
+      return `This is the work, the posts made for the people who follow closest.`;
+    case "marketplace":
+      return market.length
+        ? `${fname} just dropped ${market.slice(0, 3).map((m) => m.title).join(", ")}, straight from the source.`
+        : `Shop ${fname}, straight from the source.`;
+    case "merch":
+      return merch.length
+        ? `${fname} merch is here. ${merch.slice(0, 3).map((m) => m.name).join(", ")}, and more.`
+        : `${fname} merch, for the people who show up.`;
+    case "cta":
+      return `Follow along, support the work, and get closer than ever. ${onSpot}`;
+    default:
+      return "";
   }
+}
 
-  if (type === "membership") {
-    return [
-      `Get closer to ${name}.`,
-      tiers.length
-        ? `Membership starts${low != null ? ` at $${low} a month` : ""}${firstPerks ? `, with ${firstPerks.toLowerCase()}` : ""}.`
-        : `Become a member and unlock the content made for the people who care most.`,
-      `It is the real, unfiltered version, just for the inner circle.`,
-      `Join on Spotlightly and pull up a seat.`,
-      onSpot,
-    ].join(" ");
-  }
+function buildScriptSegments(type: VideoType, d: VideoData): ScriptSegment[] {
+  const planned = buildScenes({ ...d, videoType: type });
+  return planned
+    .map((s) => ({ scene: s.id, label: SCENE_LABEL[s.id], text: lineForScene(s.id, d) }))
+    .filter((s) => s.text.trim().length > 0);
+}
 
-  if (type === "marketplace") {
-    if (!market.length) return `Shop ${name} on Spotlightly. ${onSpot}`;
-    const items = market.slice(0, 3).map((m) => m.title).join(", ");
-    return [
-      `${fname} just dropped something new.`,
-      `From ${items}, every piece comes straight from the source.`,
-      `Grab yours before it is gone.`,
-      `Shop the marketplace on Spotlightly.`,
-      onSpot,
-    ].join(" ");
-  }
-
-  if (type === "merch") {
-    if (!merch.length) return `Get ${name} merch on Spotlightly. ${onSpot}`;
-    const items = merch.slice(0, 3).map((m) => m.name).join(", ");
-    return [
-      `Wear it, carry it, make it yours.`,
-      `${fname} merch is here. ${items}, and more.`,
-      `Real gear for the people who show up.`,
-      `Shop the drop on Spotlightly.`,
-      onSpot,
-    ].join(" ");
-  }
-
-  // launch (default): the full overview
-  return [
-    `Meet ${name}.`,
-    bio,
-    `Everything now lives in one place on Spotlightly.`,
-    tiers.length
-      ? `Become a member${low != null ? ` from $${low} a month` : ""}${firstPerks ? ` and unlock ${firstPerks.toLowerCase()}` : ""}.`
-      : "",
-    camp ? `The ${camp.title} campaign is already ${camp.pct} percent funded.` : "",
-    `Follow along, support the work, and get closer than ever.`,
-    onSpot,
-  ]
-    .filter(Boolean)
+function buildScript(type: VideoType, d: VideoData): string {
+  return buildScriptSegments(type, d)
+    .map((s) => s.text)
     .join(" ");
 }
 
@@ -221,7 +216,7 @@ export default function VideoStudio() {
       const json = await r.json();
       const vd = json.data as VideoData;
       setData({ ...vd, videoType });
-      setScript(buildScript(videoType, vd));
+      setSegments(buildScriptSegments(videoType, vd));
       setStatus({ msg: "Loaded from Spotlightly. Edit anything below to override." });
     } catch (e) {
       setStatus({ msg: (e as Error).message, err: true });
@@ -232,23 +227,27 @@ export default function VideoStudio() {
 
   const setType = (t: VideoType) => {
     setData((d) => ({ ...d, videoType: t }));
-    setScript(buildScript(t, data));
+    setSegments(buildScriptSegments(t, data));
   };
 
   const [batch, setBatch] = useState<ReelItem[]>([]);
   const [batchRunning, setBatchRunning] = useState(false);
   const handleSlug = (data.creator.handle || "creator").replace(/[^a-z0-9]/gi, "") || "creator";
 
-  const [script, setScript] = useState<string>(() =>
-    buildScript((sampleData.videoType ?? "launch") as VideoType, sampleData)
+  const [segments, setSegments] = useState<ScriptSegment[]>(() =>
+    buildScriptSegments((sampleData.videoType ?? "launch") as VideoType, sampleData)
   );
   const [copied, setCopied] = useState(false);
   const [bakeVo, setBakeVo] = useState(true);
+  const [captionsOn, setCaptionsOn] = useState(true);
   const copyScript = async () => {
-    await navigator.clipboard.writeText(script);
+    await navigator.clipboard.writeText(segments.map((s) => s.text).join(" "));
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
+  const setSegmentText = (i: number, text: string) =>
+    setSegments((prev) => prev.map((s, idx) => (idx === i ? { ...s, text } : s)));
+  const narrationSegmentsPayload = () => segments.map((s) => ({ scene: s.scene, text: s.text }));
 
   const runBatch = async () => {
     if (!renderUrl) {
@@ -270,7 +269,10 @@ export default function VideoStudio() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             data: { ...base, videoType: r.type },
-            narrationScript: bakeVo ? buildScript(r.type, base) : undefined,
+            narrationSegments: bakeVo
+              ? buildScriptSegments(r.type, base).map((s) => ({ scene: s.scene, text: s.text }))
+              : undefined,
+            captions: captionsOn,
           }),
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -346,9 +348,10 @@ export default function VideoStudio() {
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: clean, narrationScript: bakeVo ? script : undefined }),
+        body: JSON.stringify({ data: clean, narrationSegments: bakeVo ? narrationSegmentsPayload() : undefined, captions: captionsOn }),
       });
       if (!res.ok) throw new Error("Render failed (" + res.status + ")");
+      const vo = res.headers.get("X-Voiceover");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -356,7 +359,20 @@ export default function VideoStudio() {
       a.download = (data.creator.handle || "spotlightly").replace(/[^a-z0-9]/gi, "") + ".mp4";
       a.click();
       URL.revokeObjectURL(url);
-      setStatus({ msg: "Done. Your MP4 downloaded." });
+      const voNote = !bakeVo
+        ? ""
+        : vo === "ok"
+        ? " Voiceover baked in, scene by scene."
+        : vo === "partial"
+        ? " Voiceover baked in. Some scenes were skipped, check the render logs."
+        : vo === "disabled"
+        ? " No voiceover: the ElevenLabs key is not set on the render service."
+        : vo === "failed"
+        ? " No voiceover: ElevenLabs synthesis failed. Check the key and the render logs."
+        : vo === "empty"
+        ? " No voiceover: the script was empty."
+        : "";
+      setStatus({ msg: "Done. Your MP4 downloaded." + voNote, err: Boolean(bakeVo && vo && vo !== "ok" && vo !== "partial") });
     } catch (e) {
       setStatus({ msg: (e as Error).message, err: true });
     }
@@ -421,7 +437,7 @@ export default function VideoStudio() {
                 Voiceover script
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} onClick={() => setScript(buildScript(videoType, data))}>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} onClick={() => setSegments(buildScriptSegments(videoType, data))}>
                   Regenerate
                 </button>
                 <button className="adm-btn adm-btn--primary" style={{ padding: "6px 14px" }} onClick={copyScript}>
@@ -429,20 +445,31 @@ export default function VideoStudio() {
                 </button>
               </div>
             </div>
-            <textarea
-              className="adm-textarea"
-              style={{ minHeight: 130, lineHeight: 1.6 }}
-              value={script}
-              onChange={(e) => setScript(e.target.value)}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {segments.map((seg, i) => (
+                <div key={seg.scene}>
+                  <label className="adm-label" style={{ display: "block", marginBottom: 4 }}>{seg.label}</label>
+                  <textarea
+                    className="adm-textarea"
+                    style={{ minHeight: 56, lineHeight: 1.6 }}
+                    value={seg.text}
+                    onChange={(e) => setSegmentText(i, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
             <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 12, color: "#e8e8f0" }}>
               <input type="checkbox" checked={bakeVo} onChange={(e) => setBakeVo(e.target.checked)} />
               Bake this voiceover into the MP4 on export (narrated with ElevenLabs)
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 8, color: bakeVo ? "#e8e8f0" : "#6b6b80" }}>
+              <input type="checkbox" checked={captionsOn} disabled={!bakeVo} onChange={(e) => setCaptionsOn(e.target.checked)} />
+              Burn in synced captions (word by word, timed to the voice)
+            </label>
             <p style={{ marginTop: 8, fontSize: 11, color: "#d5d5e2", lineHeight: 1.6 }}>
-              Suggested narration for the {videoType} reel, built from this creator. Edit freely. With bake on,
-              Export speaks it with ElevenLabs and merges it into the video, ducking the music underneath. The
-              video stretches to fit the voice. Or turn bake off and Copy it for CapCut or any other tool.
+              One line per scene, built from this creator. Edit any line. With bake on, Export speaks each line
+              with ElevenLabs and times that scene to its line, so the picture changes when the narration does,
+              with the music ducked underneath. Or turn bake off and Copy the lines for any other tool.
             </p>
           </div>
 
