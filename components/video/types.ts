@@ -34,7 +34,45 @@ export type VideoType =
   | "campaign"
   | "membership"
   | "marketplace"
-  | "merch";
+  | "merch"
+  | "storyTime"
+  | "behindScenes"
+  | "dayInLife"
+  | "whyJoin"
+  | "supportMe"
+  | "weeklyHighlight"
+  | "struggle"
+  | "breakthrough"
+  | "lesson"
+  | "normalDay"
+  | "challenge"
+  | "customerStory"
+  | "milestone"
+  | "productLaunch"
+  | "reflection"
+  | "supporterStory"
+  | "businessUpdate";
+
+export type Personality =
+  | "optimistic"
+  | "funny"
+  | "direct"
+  | "educational"
+  | "inspirational"
+  | "reflective"
+  | "calm"
+  | "energetic";
+
+export interface MediaAnalysis {
+  url?: string;                  // raw media url (reference key)
+  primary_category?: string;     // e.g. "trailer repairs"
+  secondary_categories?: string[];
+  emotional_tone?: string;       // e.g. "hard_work", "proud", "stress"
+  story_beats?: string[];        // beats this image fits: problem, work, result, ...
+  visual_summary?: string;
+  recommended_use?: string;
+  confidence_score?: number;     // 0..1
+}
 
 export type VideoData = {
   creator: {
@@ -59,6 +97,9 @@ export type VideoData = {
   // and the total runtime shrinks automatically.
   profileScreenshot?: string;
   feedScreenshots?: string[];
+  // Per-image narrative analysis, aligned by index to feedScreenshots. null where an
+  // image has not been analyzed yet. Used by the Story Engine to match image to beat.
+  mediaAnalysis?: (MediaAnalysis | null)[];
   campaignScreenshot?: string;
   marketplaceScreenshot?: string;
   merchScreenshot?: string;
@@ -84,5 +125,6 @@ export type VideoData = {
   goal?: 'subs' | 'platform'; // 'subs' = win the creator subscribers (fan-facing),
                               // 'platform' = bring creators to Spotlightly
   offer?: string;        // optional incentive shown on the closing card (e.g. "First week free")
+  personality?: Personality; // the creator's persistent voice, flavors story narration
   videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

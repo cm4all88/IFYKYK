@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type {
   VideoData,
@@ -9,27 +9,43 @@ import type {
   ShopItem,
   MerchItem,
 } from "@/components/video/types";
-import { buildScenes, type SceneId } from "@/components/video/scenes";
-import { hookFor } from "@/components/video/hooks";
+import { buildScenes, isStoryType, type SceneId } from "@/components/video/scenes";
+import { storyScriptLine, PERSONALITIES, assignStoryPhotos } from "@/components/video/storyEngine";
+import type { Personality } from "@/components/video/types";
+import { hookFor, hooksFor, type Angle } from "@/components/video/hooks";
+import { ANGLE_LABELS, angleLine, captionFor, hashtagsFor } from "@/components/video/angles";
+import { MUSIC_GENRES, MUSIC_LIBRARY, tracksByGenre, type MusicGenre } from "@/components/video/musicLibrary";
 import { sampleData } from "@/components/video/sampleData";
 import CreatorPicker from "./CreatorPicker";
 
 type ReelStatus = "queued" | "rendering" | "ready" | "failed" | "skipped";
 type ReelItem = { type: VideoType; label: string; status: ReelStatus; url?: string };
 const REEL_TYPES: { type: VideoType; label: string }[] = [
-  { type: "launch", label: "Launch reel" },
-  { type: "campaign", label: "Campaign reel" },
-  { type: "membership", label: "Membership reel" },
-  { type: "marketplace", label: "Marketplace reel" },
-  { type: "merch", label: "Merch reel" },
+  { type: "behindScenes", label: "Behind the Scenes" },
+  { type: "dayInLife", label: "Day in the Life" },
+  { type: "storyTime", label: "Story Time" },
+  { type: "whyJoin", label: "Why Join" },
+  { type: "supportMe", label: "Support Me" },
+  { type: "weeklyHighlight", label: "Weekly Highlight" },
+  { type: "membership", label: "Membership" },
+  { type: "campaign", label: "Campaign" },
+  { type: "marketplace", label: "Marketplace" },
+  { type: "merch", label: "Merch" },
 ];
 const reelEligible = (t: VideoType, d: VideoData): boolean => {
+  const photos = d.feedScreenshots?.length ?? 0;
   switch (t) {
     case "launch": return true;
     case "campaign": return !!d.campaign;
-    case "membership": return !!d.memberships?.length;
+    case "membership":
+    case "whyJoin": return !!d.memberships?.length;
     case "marketplace": return !!d.marketplace?.length;
     case "merch": return !!d.merch?.length;
+    case "supportMe": return !!d.campaign || !!d.memberships?.length;
+    case "behindScenes":
+    case "dayInLife": return photos >= 1;
+    case "storyTime":
+    case "weeklyHighlight": return !!d.memberships?.length || photos >= 1;
     default: return false;
   }
 };
@@ -60,6 +76,7 @@ const SCENE_LABEL: Record<SceneId, string> = {
   memberships: "Memberships",
   campaign: "Campaign",
   photo2: "Photo",
+  photo3: "Photo",
   posts: "Posts",
   marketplace: "Marketplace",
   merch: "Merch",
@@ -71,62 +88,62 @@ export type ScriptSegment = { scene: SceneId; label: string; text: string };
 // One narration line per scene that will actually render. The render service
 // speaks each line on its own, and each scene holds exactly as long as its line.
 function lineForScene(id: SceneId, d: VideoData): string {
+  const angle = (d.videoType ?? "launch") as Angle;
+  if (id !== "hook") {
+    const override = angleLine(angle, id, d);
+    if (override) return override;
+  }
   const name = d.creator.name || "this creator";
   const fname = firstNameOf(name);
-  const handle = d.creator.handle || "";
-  const bio = (d.creator.tagline || "").trim();
+  const handleNoAt = (d.creator.handle || "").replace(/^@/, "");
   const tiers = d.memberships ?? [];
   const camp = d.campaign;
   const market = d.marketplace ?? [];
-  const merch = d.merch ?? [];
   const low = lowestPrice(tiers);
-  const firstPerks = tiers[0]?.perks?.slice(0, 2).join(" and ");
-  const onSpot = `Find ${name} on Spotlightly${handle ? `, ${handle}` : ""}.`;
 
   switch (id) {
     case "hook":
       return hookFor(d);
-    case "photo1":
-    case "photo2":
-      return ""; // lifestyle beats are visual only, no narration
     case "intro":
-      return `Meet ${name}.`;
+      return `This is ${name}.`;
     case "profile":
-      return bio || `${fname}'s whole world, now in one place.`;
+      return `Most people only see the highlights.`;
+    case "photo1":
+      return `There's a lot they don't see.`;
+    case "photo2":
+      return `The early mornings. The work behind it.`;
     case "memberships":
       return tiers.length
-        ? `Become a member${low != null ? ` from $${low} a month` : ""}${firstPerks ? ` and unlock ${firstPerks.toLowerCase()}` : ""}.`
-        : `Become a member and unlock the content made for the people who care most.`;
+        ? `Members get the rest.${low != null ? ` From $${low} a month.` : ""}`
+        : `Members get everything else.`;
     case "campaign":
-      if (!camp) return `Back the campaign and help make it happen.`;
-      if (camp.pct >= 5)
-        return `The ${camp.title} campaign is ${camp.pct} percent funded${camp.backers ? `, with ${camp.backers} people already backing it` : ""}.`;
-      return camp.backers
-        ? `${camp.backers} people are already backing the ${camp.title} campaign.`
-        : `Help kick off the ${camp.title} campaign.`;
+      if (!camp) return `She's raising money for something bigger.`;
+      if (camp.pct >= 5) return `Her ${camp.title} campaign is already ${camp.pct} percent there.`;
+      return `She's raising money for ${camp.title}.`;
     case "posts":
-      return `This is the work, the posts made for the people who follow closest.`;
+      return `The posts only members get to see.`;
     case "marketplace":
-      return market.length
-        ? `${fname} just dropped ${market.slice(0, 3).map((m) => m.title).join(", ")}, straight from the source.`
-        : `Shop ${fname}, straight from the source.`;
+      return market.length ? `She sells her own work too. Like ${market[0].title}.` : `She sells her own work too.`;
     case "merch":
-      return merch.length
-        ? `${fname} merch is here. ${merch.slice(0, 3).map((m) => m.name).join(", ")}, and more.`
-        : `${fname} merch, for the people who show up.`;
+      return `And merch, for the people who show up.`;
     case "cta":
       if ((d.goal ?? "subs") === "platform")
-        return `Follow along, support the work, and get closer than ever. ${onSpot}`;
-      return `Become a member${low != null ? ` from $${low} a month` : ""} and get closer than ever.${handle ? ` Find ${fname} at ${handle}.` : ""}`;
+        return `Follow along and get closer than ever. Find ${fname} on Spotlightly.`;
+      return `Become a member and get closer than ever.${handleNoAt ? ` Find her at ${handleNoAt}.` : ""}`;
     default:
       return "";
   }
 }
 
 function buildScriptSegments(type: VideoType, d: VideoData): ScriptSegment[] {
-  const planned = buildScenes({ ...d, videoType: type });
+  const withType = { ...d, videoType: type };
+  const planned = buildScenes(withType);
   return planned
-    .map((s) => ({ scene: s.id, label: SCENE_LABEL[s.id], text: lineForScene(s.id, d) }))
+    .map((s) => ({
+      scene: s.id,
+      label: SCENE_LABEL[s.id],
+      text: isStoryType(type) ? storyScriptLine(type, s.id, withType) : lineForScene(s.id, withType),
+    }))
     .filter((s) => s.text.trim().length > 0);
 }
 
@@ -254,6 +271,96 @@ export default function VideoStudio() {
   const [copied, setCopied] = useState(false);
   const [bakeVo, setBakeVo] = useState(true);
   const [captionsOn, setCaptionsOn] = useState(true);
+  const [musicGenre, setMusicGenre] = useState<MusicGenre | "all">("all");
+  const [voLoading, setVoLoading] = useState(false);
+  const [voIdx, setVoIdx] = useState<number | null>(null);
+  const voAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [resScale, setResScale] = useState(0.6667); // 1 = 1080p, 0.6667 = 720p, 0.5 = 540p
+
+  const analyzeMedia = async () => {
+    if (!creatorId) {
+      setStatus({ msg: "Pick a creator first.", err: true });
+      return;
+    }
+    setAnalyzing(true);
+    try {
+      const res = await fetch("/api/admin/video-studio/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creatorId }),
+      });
+      const json = await res.json();
+      setAnalyzing(false);
+      if (!res.ok) {
+        setStatus({ msg: json.error || "Analyze failed.", err: true });
+        return;
+      }
+      set({ mediaAnalysis: json.analyses });
+      setShowAnalysis(true);
+      setStatus({
+        msg: json.configured
+          ? `Analyzed ${json.analyzed}, cached ${json.cached}${json.failed ? `, ${json.failed} failed` : ""} of ${json.total} images.`
+          : "Add an Anthropic API key in Admin, Credentials to analyze media.",
+        err: !json.configured,
+      });
+    } catch (e: any) {
+      setAnalyzing(false);
+      setStatus({ msg: "Analyze failed: " + (e?.message ?? e), err: true });
+    }
+  };
+
+  const stopVoiceover = () => {
+    voAudioRef.current?.pause();
+    voAudioRef.current = null;
+    setVoIdx(null);
+  };
+
+  const previewVoiceover = async () => {
+    if (!renderUrl) {
+      setStatus({ msg: "Add the render service url first (in Export).", err: true });
+      return;
+    }
+    stopVoiceover();
+    setVoLoading(true);
+    try {
+      const res = await fetch(renderUrl.replace(/\/$/, "") + "/voiceover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ segments: narrationSegmentsPayload() }),
+      });
+      const json = await res.json();
+      setVoLoading(false);
+      const clips: { audio: string; ok: boolean }[] = (json.clips || []).filter((c: any) => c.ok && c.audio);
+      if (!clips.length) {
+        setStatus({ msg: "No voiceover came back. Check the ElevenLabs key on the render service.", err: true });
+        return;
+      }
+      let i = 0;
+      const playNext = () => {
+        if (i >= clips.length) {
+          setVoIdx(null);
+          voAudioRef.current = null;
+          return;
+        }
+        setVoIdx(i);
+        const a = new Audio(clips[i].audio);
+        voAudioRef.current = a;
+        const advance = () => {
+          i += 1;
+          playNext();
+        };
+        a.onended = advance;
+        a.onerror = advance;
+        a.play().catch(advance);
+      };
+      playNext();
+    } catch (e: any) {
+      setVoLoading(false);
+      setStatus({ msg: "Voiceover preview failed: " + (e?.message ?? e), err: true });
+    }
+  };
   const copyScript = async () => {
     await navigator.clipboard.writeText(segments.map((s) => s.text).join(" "));
     setCopied(true);
@@ -283,11 +390,12 @@ export default function VideoStudio() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            data: { ...base, videoType: r.type },
+            data: { ...base, videoType: r.type, feedScreenshots: assignStoryPhotos(r.type, { ...base, videoType: r.type }) },
             narrationSegments: bakeVo
               ? buildScriptSegments(r.type, base).map((s) => ({ scene: s.scene, text: s.text }))
               : undefined,
             captions: captionsOn,
+            scale: resScale,
           }),
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -317,7 +425,10 @@ export default function VideoStudio() {
   const anyReady = batch.some((b) => b.status === "ready");
 
   const scenes = useMemo(() => buildScenes(data), [data]);
-  const previewData = useMemo(() => ({ ...data, hookText }), [data, hookText]);
+  const previewData = useMemo(
+    () => ({ ...data, hookText, feedScreenshots: assignStoryPhotos(videoType, data) }),
+    [data, hookText, videoType]
+  );
   const seconds = useMemo(
     () => (scenes.reduce((a, s) => a + s.durationInFrames, 0) / 30).toFixed(1),
     [scenes]
@@ -326,6 +437,14 @@ export default function VideoStudio() {
   const set = (patch: Partial<VideoData>) => setData((d) => ({ ...d, ...patch }));
   const setGoal = (g: "subs" | "platform") => {
     const next = { ...data, goal: g };
+    setData(next);
+    setSegments(buildScriptSegments(videoType, next));
+  };
+  const setHook = (text: string) => {
+    setSegments((prev) => prev.map((s) => (s.scene === "hook" ? { ...s, text } : s)));
+  };
+  const setPersonality = (p: Personality) => {
+    const next = { ...data, personality: p };
     setData(next);
     setSegments(buildScriptSegments(videoType, next));
   };
@@ -360,6 +479,7 @@ export default function VideoStudio() {
         return v;
       }) as VideoData;
       clean.hookText = hookText;
+      clean.feedScreenshots = assignStoryPhotos(clean.videoType ?? videoType, clean);
       setStatus({
         msg: stripped
           ? "Rendering... uploaded images are preview only and were skipped. Use hosted urls for export."
@@ -370,7 +490,7 @@ export default function VideoStudio() {
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: clean, narrationSegments: bakeVo ? narrationSegmentsPayload() : undefined, captions: captionsOn }),
+        body: JSON.stringify({ data: clean, narrationSegments: bakeVo ? narrationSegmentsPayload() : undefined, captions: captionsOn, scale: resScale }),
       });
       if (!res.ok) throw new Error("Render failed (" + res.status + ")");
       const vo = res.headers.get("X-Voiceover");
@@ -438,11 +558,34 @@ export default function VideoStudio() {
                   value={videoType}
                   onChange={(e) => setType(e.target.value as VideoType)}
                 >
-                  <option value="launch">Launch reel</option>
-                  <option value="campaign">Campaign reel</option>
-                  <option value="membership">Membership reel</option>
-                  <option value="marketplace">Marketplace reel</option>
-                  <option value="merch">Merch reel</option>
+                  <optgroup label="Stories (Story Engine)">
+                    <option value="struggle">The Struggle</option>
+                    <option value="breakthrough">The Breakthrough</option>
+                    <option value="lesson">A Lesson Learned</option>
+                    <option value="normalDay">A Normal Day</option>
+                    <option value="challenge">A Challenge</option>
+                    <option value="customerStory">A Customer Story</option>
+                    <option value="milestone">A Milestone</option>
+                    <option value="productLaunch">A Product Launch</option>
+                    <option value="reflection">A Personal Reflection</option>
+                    <option value="supporterStory">A Supporter Story</option>
+                    <option value="businessUpdate">A Business Update</option>
+                  </optgroup>
+                  <optgroup label="Story angles">
+                    <option value="behindScenes">Behind the Scenes</option>
+                    <option value="dayInLife">Day in the Life</option>
+                    <option value="storyTime">Story Time</option>
+                    <option value="whyJoin">Why Join</option>
+                    <option value="supportMe">Support Me</option>
+                    <option value="weeklyHighlight">Weekly Highlight</option>
+                  </optgroup>
+                  <optgroup label="Product focus">
+                    <option value="launch">Launch (everything)</option>
+                    <option value="membership">Membership</option>
+                    <option value="campaign">Campaign</option>
+                    <option value="marketplace">Marketplace</option>
+                    <option value="merch">Merch</option>
+                  </optgroup>
                 </select>
               </Field>
               <Field label="Goal">
@@ -463,6 +606,19 @@ export default function VideoStudio() {
                   onChange={(e) => set({ offer: e.target.value || undefined })}
                 />
               </Field>
+              <Field label="Personality (creator's voice)">
+                <select
+                  className="adm-select"
+                  value={data.personality ?? "inspirational"}
+                  onChange={(e) => setPersonality(e.target.value as Personality)}
+                >
+                  {PERSONALITIES.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
             </div>
             <p style={{ fontSize: 11, color: "#d5d5e2", margin: 0 }}>
               {loadingCreator
@@ -472,11 +628,67 @@ export default function VideoStudio() {
           </div>
 
           <div className="card">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
+              <div className="card-title" style={{ margin: 0, padding: 0, border: "none" }}>
+                Story media
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} disabled={analyzing} onClick={analyzeMedia}>
+                  {analyzing ? "Analyzing..." : "Analyze creator media"}
+                </button>
+                {data.mediaAnalysis?.some(Boolean) ? (
+                  <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} onClick={() => setShowAnalysis((s) => !s)}>
+                    {showAnalysis ? "Hide tags" : "Show tags"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: "#d5d5e2", margin: 0 }}>
+              Tags each post image with story beats and emotional tone so the Story Engine matches the
+              right photo to the right beat. Cached, so it only analyzes images it has not seen.
+            </p>
+            {showAnalysis && data.feedScreenshots?.length ? (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>
+                {(data.feedScreenshots ?? []).map((src, i) => {
+                  const a = data.mediaAnalysis?.[i];
+                  return (
+                    <div key={i} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, overflow: "hidden" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
+                      <div style={{ padding: 8, fontSize: 10, color: "#cfcfdd", lineHeight: 1.4 }}>
+                        {a ? (
+                          <>
+                            <div style={{ color: "#f5c842", fontWeight: 600 }}>{a.primary_category ?? "—"}</div>
+                            <div>
+                              {a.emotional_tone ?? "—"} · {Math.round((a.confidence_score ?? 0) * 100)}%
+                            </div>
+                            <div style={{ color: "#8fb0ff" }}>{(a.story_beats ?? []).join(", ") || "no beats"}</div>
+                          </>
+                        ) : (
+                          <div style={{ color: "#6b6b80" }}>not analyzed</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
               <div className="card-title" style={{ margin: 0, padding: 0, border: "none" }}>
                 Voiceover script
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="adm-btn adm-btn--ghost"
+                  style={{ padding: "6px 14px" }}
+                  onClick={voIdx !== null ? stopVoiceover : previewVoiceover}
+                  disabled={voLoading}
+                >
+                  {voLoading ? "Synthesizing..." : voIdx !== null ? "Stop" : "Preview voiceover"}
+                </button>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} onClick={() => setSegments(buildScriptSegments(videoType, data))}>
                   Regenerate
                 </button>
@@ -485,13 +697,48 @@ export default function VideoStudio() {
                 </button>
               </div>
             </div>
+            <div style={{ marginBottom: 12 }}>
+              <label className="adm-label" style={{ display: "block", marginBottom: 6 }}>
+                Hook engine (strongest first, tap to use)
+              </label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {hooksFor(data, 3).map((h, i) => {
+                  const inUse = segments.find((s) => s.scene === "hook")?.text === h.text;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setHook(h.text)}
+                      style={{
+                        textAlign: "left",
+                        padding: "9px 12px",
+                        borderRadius: 8,
+                        border: `1px solid ${inUse ? "#f5c842" : "rgba(255,255,255,0.12)"}`,
+                        background: inUse ? "rgba(245,200,66,0.08)" : "rgba(255,255,255,0.02)",
+                        color: "#e8e8f0",
+                        fontSize: 13,
+                        cursor: "pointer",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
+                      <span>{h.text}</span>
+                      <span style={{ color: "#9a9aae", fontVariantNumeric: "tabular-nums" }}>{h.score}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {segments.map((seg, i) => (
                 <div key={seg.scene}>
-                  <label className="adm-label" style={{ display: "block", marginBottom: 4 }}>{seg.label}</label>
+                  <label className="adm-label" style={{ display: "block", marginBottom: 4 }}>
+                    {seg.label}
+                    {voIdx === i ? <span style={{ color: "#f5c842", marginLeft: 8 }}>now playing</span> : null}
+                  </label>
                   <textarea
                     className="adm-textarea"
-                    style={{ minHeight: 56, lineHeight: 1.6 }}
+                    style={{ minHeight: 56, lineHeight: 1.6, borderColor: voIdx === i ? "#f5c842" : undefined }}
                     value={seg.text}
                     onChange={(e) => setSegmentText(i, e.target.value)}
                   />
@@ -661,9 +908,75 @@ export default function VideoStudio() {
 
           <div className="card">
             <div className="card-title">Music (optional)</div>
-            <Field label="Music url">
-              <input className="adm-input" value={data.music ?? ""} placeholder="https://.../track.mp3" onChange={(e) => set({ music: e.target.value || undefined })} />
+            <div className="field-grid">
+              <Field label="Genre">
+                <select
+                  className="adm-select"
+                  value={musicGenre}
+                  onChange={(e) => setMusicGenre(e.target.value as MusicGenre | "all")}
+                >
+                  <option value="all">All genres</option>
+                  {MUSIC_GENRES.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Track">
+                <select
+                  className="adm-select"
+                  value={MUSIC_LIBRARY.some((t) => t.url === data.music) ? data.music : ""}
+                  onChange={(e) => {
+                    const t = MUSIC_LIBRARY.find((x) => x.url === e.target.value);
+                    set({ music: e.target.value || undefined, ...(t?.volume != null ? { musicVolume: t.volume } : {}) });
+                  }}
+                >
+                  <option value="">
+                    {tracksByGenre(musicGenre).length ? "Choose a track..." : "No tracks yet in this genre"}
+                  </option>
+                  {tracksByGenre(musicGenre).map((t) => (
+                    <option key={t.id} value={t.url}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            {MUSIC_LIBRARY.length === 0 ? (
+              <p style={{ fontSize: 11, color: "#d5d5e2", margin: "0 0 10px" }}>
+                The library is empty. Add hosted, track-licensed music (Pixabay or Mixkit) in
+                components/video/musicLibrary.ts, or paste a url below. Avoid Epidemic, Uppbeat, and
+                Artlist here: their license follows your channel, not the file, so it does not cover a
+                reel a creator posts on their own account.
+              </p>
+            ) : null}
+            <Field label="Or paste a url">
+              <input
+                className="adm-input"
+                value={data.music ?? ""}
+                placeholder="https://spotlightly.b-cdn.net/music/track.mp3"
+                onChange={(e) => set({ music: e.target.value || undefined })}
+              />
             </Field>
+            <Field label={`Volume (${Math.round((data.musicVolume ?? 0.6) * 100)}%)`}>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={data.musicVolume ?? 0.6}
+                onChange={(e) => set({ musicVolume: Number(e.target.value) })}
+                style={{ width: "100%" }}
+              />
+            </Field>
+            {data.music ? (
+              <audio key={data.music} controls src={data.music} style={{ width: "100%", marginTop: 8 }} />
+            ) : null}
+            <p style={{ fontSize: 11, color: "#9a9aae", margin: "8px 0 0" }}>
+              Music auto ducks to about a third of this volume while the voiceover plays, then comes
+              back up under the photo beats.
+            </p>
           </div>
 
           <button className="adm-btn adm-btn--ghost" onClick={() => { setShowJson((s) => !s); setJsonText(JSON.stringify(data, null, 2)); }}>
@@ -693,6 +1006,13 @@ export default function VideoStudio() {
             <Field label="Render service url (optional)">
               <input className="adm-input" value={renderUrl} placeholder="https://your-render-service" onChange={(e) => setRenderUrl(e.target.value)} />
             </Field>
+            <Field label="Resolution">
+              <select className="adm-select" value={resScale} onChange={(e) => setResScale(Number(e.target.value))}>
+                <option value={0.5}>540p (fastest, about 4x)</option>
+                <option value={0.6667}>720p (recommended, about 2x)</option>
+                <option value={1}>1080p (full, slowest)</option>
+              </select>
+            </Field>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="adm-btn adm-btn--primary" onClick={exportMp4}>Export MP4</button>
               <button className="adm-btn adm-btn--ghost" onClick={copyJson}>Copy JSON</button>
@@ -710,26 +1030,51 @@ export default function VideoStudio() {
           </div>
 
           <div className="card" style={{ marginTop: 16 }}>
-            <div className="card-title">Batch reels</div>
+            <div className="card-title">Content pack</div>
             <button className="adm-btn adm-btn--primary" disabled={batchRunning} onClick={runBatch}>
-              {batchRunning ? "Rendering..." : "Render all five reel types"}
+              {batchRunning ? "Rendering..." : "Generate content pack"}
             </button>
+            <p style={{ fontSize: 11, color: "#d5d5e2", margin: "8px 0 0" }}>
+              Renders every angle this creator has data for, each with its own hook, script, pacing,
+              and photo order. Caption and hashtags are generated for each, ready to copy when you post.
+            </p>
 
             {batch.length > 0 ? (
-              <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                {batch.map((b) => (
-                  <li key={b.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                    <span style={{ fontSize: 13 }}>{b.label}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {b.status === "ready" && b.url ? (
-                        <a className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px" }} href={b.url} download={`${handleSlug}-${b.type}.mp4`}>
-                          Download
-                        </a>
+              <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+                {batch.map((b) => {
+                  const packData = { ...data, videoType: b.type } as VideoData;
+                  const caption = captionFor(packData, b.type as Angle);
+                  const tags = hashtagsFor(packData, b.type as Angle).join(" ");
+                  const copyText = `${caption}\n\n${tags}`;
+                  return (
+                    <li key={b.type} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{b.label}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {b.status === "ready" && b.url ? (
+                            <a className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px" }} href={b.url} download={`${handleSlug}-${b.type}.mp4`}>
+                              Download
+                            </a>
+                          ) : null}
+                          <span className={`badge ${badgeClass(b.status)}`}>{statusLabel(b.status)}</span>
+                        </span>
+                      </div>
+                      {b.status !== "skipped" ? (
+                        <div style={{ marginTop: 8 }}>
+                          <div style={{ whiteSpace: "pre-wrap", fontSize: 12, color: "#cfcfdd", lineHeight: 1.5 }}>{caption}</div>
+                          <div style={{ fontSize: 12, color: "#8fb0ff", marginTop: 6 }}>{tags}</div>
+                          <button
+                            className="adm-btn adm-btn--ghost"
+                            style={{ padding: "4px 12px", marginTop: 8 }}
+                            onClick={() => navigator.clipboard?.writeText(copyText)}
+                          >
+                            Copy caption and tags
+                          </button>
+                        </div>
                       ) : null}
-                      <span className={`badge ${badgeClass(b.status)}`}>{statusLabel(b.status)}</span>
-                    </span>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             ) : null}
 

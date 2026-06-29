@@ -7,6 +7,7 @@ import {ShowcaseScene} from './components/ShowcaseScene';
 import {SceneTitle} from './components/SceneTitle';
 import {Logo} from './components/Logo';
 import {AnimatedScreenshot} from './components/AnimatedScreenshot';
+import {PhoneMockup} from './components/PhoneMockup';
 import {CreatorHeader} from './components/CreatorHeader';
 import {MembershipCards} from './components/MembershipCards';
 import {CampaignCard} from './components/CampaignCard';
@@ -51,6 +52,11 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
         <PhotoBeat src={data.feedScreenshots[1]} durationInFrames={durationInFrames} seed={seed} />
       ) : null;
 
+    case 'photo3':
+      return data.feedScreenshots?.[2] ? (
+        <PhotoBeat src={data.feedScreenshots[2]} durationInFrames={durationInFrames} seed={seed} />
+      ) : null;
+
     case 'intro':
       return data.creator.cover || data.creator.avatar ? (
         <FadeScene durationInFrames={durationInFrames}>
@@ -71,7 +77,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
       return (
         <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="The creator" headline={data.creator.name}>
           {data.profileScreenshot ? (
-            <AnimatedScreenshot src={data.profileScreenshot} durationInFrames={durationInFrames} panFrom={[50, 1]} panTo={[50, 99]} />
+            <PhoneMockup src={data.profileScreenshot} durationInFrames={durationInFrames} seed={seed} />
           ) : (
             <CreatorHeader creator={data.creator} showCover={false} />
           )}
@@ -84,7 +90,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
           {data.memberships?.length ? (
             <MembershipCards items={data.memberships} />
           ) : data.profileScreenshot ? (
-            <AnimatedScreenshot src={data.profileScreenshot} durationInFrames={durationInFrames} />
+            <PhoneMockup src={data.profileScreenshot} durationInFrames={durationInFrames} seed={seed} />
           ) : null}
         </ShowcaseScene>
       );
@@ -95,7 +101,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
           {data.campaign ? (
             <CampaignCard campaign={data.campaign} durationInFrames={durationInFrames} />
           ) : data.campaignScreenshot ? (
-            <AnimatedScreenshot src={data.campaignScreenshot} durationInFrames={durationInFrames} fit="contain" />
+            <PhoneMockup src={data.campaignScreenshot} durationInFrames={durationInFrames} seed={seed} />
           ) : null}
         </ShowcaseScene>
       );
@@ -119,7 +125,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
           {data.marketplace?.length ? (
             <MarketplaceGrid items={data.marketplace} />
           ) : data.marketplaceScreenshot ? (
-            <AnimatedScreenshot src={data.marketplaceScreenshot} durationInFrames={durationInFrames} />
+            <PhoneMockup src={data.marketplaceScreenshot} durationInFrames={durationInFrames} seed={seed} />
           ) : null}
         </ShowcaseScene>
       );
@@ -130,7 +136,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
           {data.merch?.length ? (
             <MerchGrid items={data.merch} />
           ) : data.merchScreenshot ? (
-            <AnimatedScreenshot src={data.merchScreenshot} durationInFrames={durationInFrames} />
+            <PhoneMockup src={data.merchScreenshot} durationInFrames={durationInFrames} seed={seed} />
           ) : null}
         </ShowcaseScene>
       );

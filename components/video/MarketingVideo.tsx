@@ -53,7 +53,7 @@ export const MarketingVideo: React.FC<VideoData> = (data) => {
       ) : null}
       {planned.map((s, i) => {
         const clip = data.narrationByScene?.[s.id];
-        const noCaption = s.id === 'intro' || s.id === 'cta' || s.id === 'hook' || s.id === 'photo1' || s.id === 'photo2';
+        const noCaption = s.id === 'intro' || s.id === 'cta' || s.id === 'hook';
         const cap = noCaption ? undefined : data.captionsByScene?.[s.id];
         const el = (
           <Sequence key={s.id} from={from} durationInFrames={s.durationInFrames} name={s.id} layout="none">

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase-server";
 import { bunnySignUrl } from "@/lib/bunny";
+import { loadFeedUrls } from "@/lib/videoStudioFeed";
 
 export const dynamic = "force-dynamic";
 
@@ -101,20 +102,20 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .limit(4);
 
   // Posts with images (reuse their media urls)
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("media_url, media_type, is_pinned, status, created_at")
-    .eq("creator_profile_id", id)
-    .eq("status", "live")
-    .not("media_url", "is", null)
-    .order("is_pinned", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const feed: string[] = await loadFeedUrls(supabase, id);
 
-  const feed: string[] = (posts ?? [])
-    .filter((p: any) => p.media_url && (p.media_type ?? "image") !== "video")
-    .map((p: any) => p.media_url as string)
-    .slice(0, 6);
+  // Attach any cached narrative analysis, aligned to feed by index. Cache only here;
+  // the explicit "Analyze creator media" button is what populates it.
+  let mediaAnalysis: (unknown | null)[] | undefined = undefined;
+  if (feed.length) {
+    const { data: rows } = await supabase
+      .from("creator_media_analysis")
+      .select("media_url, analysis_json")
+      .in("media_url", feed);
+    const byUrl: Record<string, unknown> = {};
+    for (const r of rows ?? []) byUrl[(r as any).media_url] = (r as any).analysis_json;
+    if (Object.keys(byUrl).length) mediaAnalysis = feed.map((u) => byUrl[u] ?? null);
+  }
 
   const rawHandle = String(profile.handle ?? "");
   const handleClean = rawHandle.replace(/^@/, "");
@@ -153,6 +154,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       image: signImg((Array.isArray(m.mockup_urls) && m.mockup_urls[0]) || m.design_url || undefined),
     })),
     feedScreenshots: feed.length ? feed.map((u) => signImg(u) as string) : undefined,
+    mediaAnalysis: mediaAnalysis as any,
     bgIntensity: 0.4,
     goal: "subs",
     videoType: "launch",
