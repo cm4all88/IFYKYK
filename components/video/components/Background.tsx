@@ -21,7 +21,7 @@ export const Background: React.FC<{cover?: string; intensity?: number}> = ({cove
 
   // More intensity = lighter scrim and a crisper (less blurred) image.
   const scrim = 0.95 - 0.23 * i; // 0.95 -> 0.72
-  const blur = 30 - 13 * i; // 30px -> 17px
+  const blur = 12 - 5 * i; // 12px -> 7px (cheap; scrim hides detail)
   const zoom = interpolate(frame, [0, durationInFrames], [1.12, 1.22]);
   const drift = interpolate(frame, [0, durationInFrames], [-2, 2]);
 

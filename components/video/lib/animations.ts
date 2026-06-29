@@ -36,10 +36,10 @@ export const camera = (frame: number, duration: number, seed = 0) => {
 export const enterIn = (frame: number, fps: number, seed = 0) => {
   const s = spring({frame, fps, config: {damping: 200, mass: 0.7}});
   const variants = [
-    {x: [0, 0], y: [70, 0], scale: [0.98, 1], blur: [8, 0]},
-    {x: [110, 0], y: [0, 0], scale: [1, 1], blur: [6, 0]},
-    {x: [-110, 0], y: [0, 0], scale: [1, 1], blur: [6, 0]},
-    {x: [0, 0], y: [0, 0], scale: [1.08, 1], blur: [14, 0]},
+    {x: [0, 0], y: [70, 0], scale: [0.98, 1], blur: [0, 0]},
+    {x: [110, 0], y: [0, 0], scale: [1, 1], blur: [0, 0]},
+    {x: [-110, 0], y: [0, 0], scale: [1, 1], blur: [0, 0]},
+    {x: [0, 0], y: [0, 0], scale: [1.08, 1], blur: [0, 0]},
   ];
   const v = variants[((seed % variants.length) + variants.length) % variants.length];
   const x = interpolate(s, [0, 1], v.x);
