@@ -1,8 +1,23 @@
 import {VideoData} from './types';
 
-// Scroll-stopping openers. The first two seconds decide everything, so the reel
-// leads with one of these before the creator is ever shown.
-const HOOKS = [
+const firstName = (n?: string) => (n || '').trim().split(/\s+/)[0] || 'this creator';
+
+// Fan-facing openers. For a creator running this reel to their OWN audience to win
+// subscribers. They speak to the fan and make them want in.
+const SUBS_HOOKS = (d: VideoData): string[] => {
+  const f = firstName(d.creator?.name);
+  return [
+    `Get closer to ${f}.`,
+    `There is a side of ${f} only members see.`,
+    `Be more than a follower.`,
+    `${f}'s inner circle is open.`,
+    `Support the work. Get the good stuff.`,
+    `This is where you get closer to ${f}.`,
+  ];
+};
+
+// Platform openers. For pulling other creators onto Spotlightly.
+const PLATFORM_HOOKS = [
   'Your followers should not stop at Instagram.',
   'What if your biggest fans had one place to support everything you make?',
   'The page every creator wishes they had.',
@@ -17,10 +32,11 @@ const hashOf = (s: string) => {
   return h;
 };
 
-// Deterministic per creator, so a given creator always gets the same opener
-// (until edited), but different creators vary.
+// Deterministic per creator, so a given creator always gets the same opener (until
+// edited), but different creators vary. Pool depends on the reel's goal.
 export const hookFor = (d: VideoData): string => {
   if (d.hookText && d.hookText.trim()) return d.hookText.trim();
   const key = d.creator?.handle || d.creator?.name || 'spotlightly';
-  return HOOKS[hashOf(key) % HOOKS.length];
+  const pool = (d.goal ?? 'subs') === 'platform' ? PLATFORM_HOOKS : SUBS_HOOKS(d);
+  return pool[hashOf(key) % pool.length];
 };

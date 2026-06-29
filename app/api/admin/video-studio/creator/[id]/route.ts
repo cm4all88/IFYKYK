@@ -154,6 +154,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     })),
     feedScreenshots: feed.length ? feed.map((u) => signImg(u) as string) : undefined,
     bgIntensity: 0.4,
+    goal: "subs",
     videoType: "launch",
   };
 

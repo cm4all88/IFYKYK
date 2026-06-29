@@ -135,14 +135,25 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
         </ShowcaseScene>
       );
 
-    case 'cta':
+    case 'cta': {
+      const prices = (data.memberships ?? [])
+        .map((m) => Number(String(m.price).replace(/[^0-9.]/g, '')))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      const entryPrice = prices.length ? Math.min(...prices) : undefined;
       return (
         <Scene durationInFrames={durationInFrames} seed={seed}>
           <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
-            <CallToAction cta={data.cta} />
+            <CallToAction
+              cta={data.cta}
+              goal={data.goal ?? 'subs'}
+              creatorName={data.creator.name}
+              entryPrice={entryPrice}
+              offer={data.offer}
+            />
           </AbsoluteFill>
         </Scene>
       );
+    }
 
     default:
       return null;

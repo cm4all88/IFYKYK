@@ -4,24 +4,51 @@ import {theme} from '../theme';
 import {Logo} from './Logo';
 import {VideoData} from '../types';
 
-export const CallToAction: React.FC<{cta: VideoData['cta']}> = ({cta}) => {
+const firstNameOf = (n?: string) => (n || '').trim().split(/\s+/)[0] || '';
+
+export const CallToAction: React.FC<{
+  cta: VideoData['cta'];
+  goal?: 'subs' | 'platform';
+  creatorName?: string;
+  entryPrice?: number;
+  offer?: string;
+}> = ({cta, goal = 'subs', creatorName, entryPrice, offer}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const head = spring({frame: frame - 10, fps, config: {damping: 200}});
   const tail = spring({frame: frame - 24, fps, config: {damping: 200}});
+  const offerS = spring({frame: frame - 18, fps, config: {damping: 200}});
   const pulse = 1 + 0.022 * Math.sin(frame / 11);
+
+  const isSubs = goal === 'subs';
+  const first = firstNameOf(creatorName);
+  // For a subscriber reel the close is a direct join ask; for a platform reel it
+  // keeps the brand line.
+  const headline = isSubs ? (first ? `Get closer to ${first}.` : 'Become a member.') : cta.headline;
+  const sub = isSubs ? (entryPrice != null ? `Memberships from $${entryPrice} a month` : cta.sub) : cta.sub;
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 46,
-        textAlign: 'center',
-        padding: '0 70px',
-      }}
-    >
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 40, textAlign: 'center', padding: '0 70px'}}>
       <Logo size={92} />
+      {offer ? (
+        <div
+          style={{
+            opacity: offerS,
+            transform: `translateY(${interpolate(offerS, [0, 1], [16, 0])}px)`,
+            fontFamily: theme.font.sans,
+            fontWeight: 700,
+            fontSize: 34,
+            letterSpacing: '0.02em',
+            color: theme.colors.goldDeep,
+            background: 'rgba(240,180,41,0.12)',
+            border: `1px solid ${theme.colors.gold}`,
+            padding: '12px 30px',
+            borderRadius: 999,
+          }}
+        >
+          {offer}
+        </div>
+      ) : null}
       <div
         style={{
           opacity: head,
@@ -35,19 +62,11 @@ export const CallToAction: React.FC<{cta: VideoData['cta']}> = ({cta}) => {
           maxWidth: 920,
         }}
       >
-        {cta.headline}
+        {headline}
       </div>
-      {cta.sub ? (
-        <div
-          style={{
-            opacity: tail,
-            fontFamily: theme.font.serif,
-            fontStyle: 'italic',
-            fontSize: 46,
-            color: theme.colors.sub,
-          }}
-        >
-          {cta.sub}
+      {sub ? (
+        <div style={{opacity: tail, fontFamily: theme.font.serif, fontStyle: 'italic', fontSize: 46, color: theme.colors.sub}}>
+          {sub}
         </div>
       ) : null}
       {cta.url ? (

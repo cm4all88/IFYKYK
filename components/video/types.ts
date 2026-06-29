@@ -81,5 +81,8 @@ export type VideoData = {
   // synced on-screen text. Built by the render service from ElevenLabs timestamps.
   captionsByScene?: Record<string, {words: {text: string; from: number; to: number}[]}>;
   hookText?: string;     // the opening hook line, shown on screen and spoken first
+  goal?: 'subs' | 'platform'; // 'subs' = win the creator subscribers (fan-facing),
+                              // 'platform' = bring creators to Spotlightly
+  offer?: string;        // optional incentive shown on the closing card (e.g. "First week free")
   videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

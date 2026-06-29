@@ -115,7 +115,9 @@ function lineForScene(id: SceneId, d: VideoData): string {
         ? `${fname} merch is here. ${merch.slice(0, 3).map((m) => m.name).join(", ")}, and more.`
         : `${fname} merch, for the people who show up.`;
     case "cta":
-      return `Follow along, support the work, and get closer than ever. ${onSpot}`;
+      if ((d.goal ?? "subs") === "platform")
+        return `Follow along, support the work, and get closer than ever. ${onSpot}`;
+      return `Become a member${low != null ? ` from $${low} a month` : ""} and get closer than ever.${handle ? ` Find ${fname} at ${handle}.` : ""}`;
     default:
       return "";
   }
@@ -322,6 +324,11 @@ export default function VideoStudio() {
   );
 
   const set = (patch: Partial<VideoData>) => setData((d) => ({ ...d, ...patch }));
+  const setGoal = (g: "subs" | "platform") => {
+    const next = { ...data, goal: g };
+    setData(next);
+    setSegments(buildScriptSegments(videoType, next));
+  };
   const setCreator = (patch: Partial<VideoData["creator"]>) =>
     setData((d) => ({ ...d, creator: { ...d.creator, ...patch } }));
   const setIntro = (patch: Partial<VideoData["intro"]>) =>
@@ -438,11 +445,29 @@ export default function VideoStudio() {
                   <option value="merch">Merch reel</option>
                 </select>
               </Field>
+              <Field label="Goal">
+                <select
+                  className="adm-select"
+                  value={data.goal ?? "subs"}
+                  onChange={(e) => setGoal(e.target.value as "subs" | "platform")}
+                >
+                  <option value="subs">Win the creator subscribers</option>
+                  <option value="platform">Bring creators to Spotlightly</option>
+                </select>
+              </Field>
+              <Field label="Offer (optional)">
+                <input
+                  className="adm-input"
+                  value={data.offer ?? ""}
+                  placeholder="First week free"
+                  onChange={(e) => set({ offer: e.target.value || undefined })}
+                />
+              </Field>
             </div>
             <p style={{ fontSize: 11, color: "#d5d5e2", margin: 0 }}>
               {loadingCreator
                 ? "Loading..."
-                : "Data auto loads from existing Spotlightly tables. The fields below are optional overrides, never required."}
+                : "Goal sets who the reel speaks to. Win subscribers talks to the creator's fans and ends on a join ask. Bring creators to Spotlightly talks to other creators. Offer adds an incentive on the closing card."}
             </p>
           </div>
 
