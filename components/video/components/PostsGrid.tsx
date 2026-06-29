@@ -29,8 +29,9 @@ export const PostsGrid: React.FC<{images: string[]}> = ({images}) => {
     >
       {imgs.map((src, i) => {
         const s = spring({frame: frame - 6 - i * 6, fps, config: {damping: 200}});
-        const sweep = ((frame + i * 22) % 110) / 110; // 0..1 moving light sweep
-        const sweepPos = interpolate(sweep, [0, 1], [-30, 130]);
+        const sweep = ((frame + i * 26) % 130) / 130; // 0..1 moving glint
+        const c = interpolate(sweep, [0, 1], [-20, 120]);
+        const shimmer = `linear-gradient(110deg, rgba(255,255,255,0) ${c - 20}%, rgba(255,255,255,0.10) ${c - 6}%, rgba(255,255,255,0.20) ${c}%, rgba(255,255,255,0.10) ${c + 6}%, rgba(255,255,255,0) ${c + 20}%)`;
         return (
           <div
             key={i}
@@ -47,14 +48,7 @@ export const PostsGrid: React.FC<{images: string[]}> = ({images}) => {
             }}
           >
             <SafeImg src={asset(src) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: `linear-gradient(115deg, transparent ${sweepPos - 16}%, rgba(255,255,255,0.28) ${sweepPos}%, transparent ${sweepPos + 16}%)`,
-                pointerEvents: 'none',
-              }}
-            />
+            <div style={{position: 'absolute', inset: 0, background: shimmer, pointerEvents: 'none'}} />
           </div>
         );
       })}
