@@ -9,6 +9,7 @@ export const CallToAction: React.FC<{cta: VideoData['cta']}> = ({cta}) => {
   const {fps} = useVideoConfig();
   const head = spring({frame: frame - 10, fps, config: {damping: 200}});
   const tail = spring({frame: frame - 24, fps, config: {damping: 200}});
+  const pulse = 1 + 0.022 * Math.sin(frame / 11);
   return (
     <div
       style={{
@@ -53,7 +54,7 @@ export const CallToAction: React.FC<{cta: VideoData['cta']}> = ({cta}) => {
         <div
           style={{
             opacity: tail,
-            transform: `translateY(${interpolate(tail, [0, 1], [20, 0])}px)`,
+            transform: `translateY(${interpolate(tail, [0, 1], [20, 0])}px) scale(${pulse})`,
             marginTop: 8,
             fontFamily: theme.font.sans,
             fontWeight: 700,

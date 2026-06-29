@@ -1,14 +1,24 @@
 import React from 'react';
-import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
-import {dissolve} from '../lib/animations';
+import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
+import {camera, enterIn, exitFade} from '../lib/animations';
 
-// Wraps each scene with a soft dissolve and a barely-there push-in for cinematic life.
-export const Scene: React.FC<{durationInFrames: number; children: React.ReactNode}> = ({
+// Wraps each scene with a clean entrance (rise / slide / scale-blur, cycled by
+// seed), continuous camera motion so nothing is ever static, and a quick fade out
+// at the tail so cuts read as transitions.
+export const Scene: React.FC<{durationInFrames: number; seed?: number; children: React.ReactNode}> = ({
   durationInFrames,
+  seed = 0,
   children,
 }) => {
   const frame = useCurrentFrame();
-  const opacity = dissolve(frame, durationInFrames);
-  const scale = interpolate(frame, [0, durationInFrames], [1, 1.015]);
-  return <AbsoluteFill style={{opacity, transform: `scale(${scale})`}}>{children}</AbsoluteFill>;
+  const {fps} = useVideoConfig();
+  const cam = camera(frame, durationInFrames, seed);
+  const ent = enterIn(frame, fps, seed);
+  const opacity = Math.min(ent.opacity, exitFade(frame, durationInFrames));
+  const blur = ent.blur > 0.4 ? `blur(${ent.blur}px)` : undefined;
+  return (
+    <AbsoluteFill style={{transform: cam.transform}}>
+      <AbsoluteFill style={{opacity, transform: ent.transform, filter: blur}}>{children}</AbsoluteFill>
+    </AbsoluteFill>
+  );
 };

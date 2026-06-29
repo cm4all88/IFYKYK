@@ -10,6 +10,7 @@ import type {
   MerchItem,
 } from "@/components/video/types";
 import { buildScenes, type SceneId } from "@/components/video/scenes";
+import { hookFor } from "@/components/video/hooks";
 import { sampleData } from "@/components/video/sampleData";
 import CreatorPicker from "./CreatorPicker";
 
@@ -52,10 +53,13 @@ const lowestPrice = (tiers: { price?: string }[]) => {
 };
 
 const SCENE_LABEL: Record<SceneId, string> = {
+  hook: "Hook",
   intro: "Opening",
+  photo1: "Photo",
   profile: "Profile",
   memberships: "Memberships",
   campaign: "Campaign",
+  photo2: "Photo",
   posts: "Posts",
   marketplace: "Marketplace",
   merch: "Merch",
@@ -80,6 +84,11 @@ function lineForScene(id: SceneId, d: VideoData): string {
   const onSpot = `Find ${name} on Spotlightly${handle ? `, ${handle}` : ""}.`;
 
   switch (id) {
+    case "hook":
+      return hookFor(d);
+    case "photo1":
+    case "photo2":
+      return ""; // lifestyle beats are visual only, no narration
     case "intro":
       return `Meet ${name}.`;
     case "profile":
@@ -89,9 +98,12 @@ function lineForScene(id: SceneId, d: VideoData): string {
         ? `Become a member${low != null ? ` from $${low} a month` : ""}${firstPerks ? ` and unlock ${firstPerks.toLowerCase()}` : ""}.`
         : `Become a member and unlock the content made for the people who care most.`;
     case "campaign":
-      return camp
-        ? `The ${camp.title} campaign is ${camp.pct} percent funded${camp.backers ? `, with ${camp.backers} people already backing it` : ""}.`
-        : `Back the campaign and help make it happen.`;
+      if (!camp) return `Back the campaign and help make it happen.`;
+      if (camp.pct >= 5)
+        return `The ${camp.title} campaign is ${camp.pct} percent funded${camp.backers ? `, with ${camp.backers} people already backing it` : ""}.`;
+      return camp.backers
+        ? `${camp.backers} people are already backing the ${camp.title} campaign.`
+        : `Help kick off the ${camp.title} campaign.`;
     case "posts":
       return `This is the work, the posts made for the people who follow closest.`;
     case "marketplace":
@@ -248,6 +260,7 @@ export default function VideoStudio() {
   const setSegmentText = (i: number, text: string) =>
     setSegments((prev) => prev.map((s, idx) => (idx === i ? { ...s, text } : s)));
   const narrationSegmentsPayload = () => segments.map((s) => ({ scene: s.scene, text: s.text }));
+  const hookText = segments.find((s) => s.scene === "hook")?.text || undefined;
 
   const runBatch = async () => {
     if (!renderUrl) {
@@ -302,6 +315,7 @@ export default function VideoStudio() {
   const anyReady = batch.some((b) => b.status === "ready");
 
   const scenes = useMemo(() => buildScenes(data), [data]);
+  const previewData = useMemo(() => ({ ...data, hookText }), [data, hookText]);
   const seconds = useMemo(
     () => (scenes.reduce((a, s) => a + s.durationInFrames, 0) / 30).toFixed(1),
     [scenes]
@@ -338,6 +352,7 @@ export default function VideoStudio() {
         }
         return v;
       }) as VideoData;
+      clean.hookText = hookText;
       setStatus({
         msg: stripped
           ? "Rendering... uploaded images are preview only and were skipped. Use hosted urls for export."
@@ -642,7 +657,7 @@ export default function VideoStudio() {
 
         {/* RIGHT: preview + export */}
         <div style={{ position: "sticky", top: 24 }}>
-          <Player data={data} />
+          <Player data={previewData} />
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: "#d5d5e2" }}>
             <span>{scenes.length} scenes</span>
             <span>{seconds}s . 1080x1920 . 30fps</span>

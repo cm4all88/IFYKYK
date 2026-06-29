@@ -29,6 +29,8 @@ export const PostsGrid: React.FC<{images: string[]}> = ({images}) => {
     >
       {imgs.map((src, i) => {
         const s = spring({frame: frame - 6 - i * 6, fps, config: {damping: 200}});
+        const sweep = ((frame + i * 22) % 110) / 110; // 0..1 moving light sweep
+        const sweepPos = interpolate(sweep, [0, 1], [-30, 130]);
         return (
           <div
             key={i}
@@ -41,9 +43,18 @@ export const PostsGrid: React.FC<{images: string[]}> = ({images}) => {
               boxShadow: theme.colors.shadow,
               border: `1px solid ${theme.colors.line}`,
               background: theme.colors.cardBg,
+              position: 'relative',
             }}
           >
             <SafeImg src={asset(src) as string} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: `linear-gradient(115deg, transparent ${sweepPos - 16}%, rgba(255,255,255,0.28) ${sweepPos}%, transparent ${sweepPos + 16}%)`,
+                pointerEvents: 'none',
+              }}
+            />
           </div>
         );
       })}

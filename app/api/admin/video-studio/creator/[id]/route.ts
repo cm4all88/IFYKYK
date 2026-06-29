@@ -66,11 +66,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   if (campaignRow) {
     const { data: donations } = await supabase
       .from("campaign_donations")
-      .select("donor_user_id")
+      .select("donor_user_id, amount")
       .eq("campaign_id", campaignRow.id);
     const backers = new Set((donations ?? []).map((d: any) => d.donor_user_id)).size;
+    const donatedSum = (donations ?? []).reduce((a: number, d: any) => a + Number(d.amount ?? 0), 0);
     const goal = Number(campaignRow.goal_amount ?? 0);
-    const raised = Number(campaignRow.raised_amount ?? 0);
+    // The stored raised_amount can lag behind real donations; use whichever is higher.
+    const raised = Math.max(Number(campaignRow.raised_amount ?? 0), donatedSum);
     campaign = {
       title: campaignRow.title,
       raised: money(raised),

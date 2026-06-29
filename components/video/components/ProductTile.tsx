@@ -4,20 +4,24 @@ import {theme} from '../theme';
 import {asset} from '../lib/assets';
 import {SafeImg} from './SafeImg';
 
-export const ProductTile: React.FC<{title: string; price: string; image?: string; idx: number}> = ({
+export const ProductTile: React.FC<{title: string; price: string; image?: string; idx: number; fan?: boolean}> = ({
   title,
   price,
   image,
   idx,
+  fan = false,
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const s = spring({frame: frame - 6 - idx * 6, fps, config: {damping: 200}});
+  // Merch "fans" into place: each tile rotates in from a slight offset angle.
+  const fanAngle = fan ? interpolate(s, [0, 1], [(idx % 2 === 0 ? -1 : 1) * (5 + idx * 1.5), 0]) : 0;
   return (
     <div
       style={{
         opacity: s,
-        transform: `translateY(${interpolate(s, [0, 1], [44, 0])}px) scale(${interpolate(s, [0, 1], [0.96, 1])})`,
+        transform: `translateY(${interpolate(s, [0, 1], [44, 0])}px) scale(${interpolate(s, [0, 1], [0.96, 1])}) rotate(${fanAngle}deg)`,
+        transformOrigin: 'bottom center',
         background: theme.colors.cardBg,
         border: `1px solid ${theme.colors.line}`,
         borderRadius: 28,

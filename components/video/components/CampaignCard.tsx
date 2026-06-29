@@ -13,6 +13,7 @@ export const CampaignCard: React.FC<{campaign: CampaignData; durationInFrames: n
   const s = spring({frame: frame - 6, fps, config: {damping: 200}});
   const pct = Math.max(0, Math.min(100, campaign.pct));
   const fill = interpolate(easeInOut(overFrames(frame, Math.min(durationInFrames, 75))), [0, 1], [0, pct]);
+  const glow = 0.5 + 0.5 * Math.sin(frame / 16);
   return (
     <div
       style={{
@@ -23,7 +24,7 @@ export const CampaignCard: React.FC<{campaign: CampaignData; durationInFrames: n
         border: `1px solid ${theme.colors.line}`,
         borderRadius: 40,
         padding: 56,
-        boxShadow: theme.colors.shadow,
+        boxShadow: `${theme.colors.shadow}, 0 0 ${44 + 26 * glow}px rgba(240,180,41,${0.16 + 0.16 * glow})`,
         display: 'flex',
         flexDirection: 'column',
         gap: 30,

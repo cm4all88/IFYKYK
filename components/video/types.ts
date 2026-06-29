@@ -80,5 +80,6 @@ export type VideoData = {
   // Per-scene word-timed captions (frames relative to the scene start), for the
   // synced on-screen text. Built by the render service from ElevenLabs timestamps.
   captionsByScene?: Record<string, {words: {text: string; from: number; to: number}[]}>;
+  hookText?: string;     // the opening hook line, shown on screen and spoken first
   videoType?: VideoType; // which scene set to show (default "launch" = all)
 };

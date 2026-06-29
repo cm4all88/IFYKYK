@@ -10,17 +10,21 @@ export const MembershipCards: React.FC<{items: Membership[]}> = ({items}) => {
     <div style={{display: 'flex', flexDirection: 'column', gap: 30, width: 900}}>
       {items.slice(0, 3).map((m, i) => {
         const s = spring({frame: frame - 6 - i * 7, fps, config: {damping: 200}});
+        const glow = 0.5 + 0.5 * Math.sin(frame / 18);
+        const featuredShadow = m.featured
+          ? `${theme.colors.shadow}, 0 0 ${36 + 24 * glow}px rgba(240,180,41,${0.14 + 0.14 * glow})`
+          : theme.colors.shadow;
         return (
           <div
             key={i}
             style={{
               opacity: s,
-              transform: `translateY(${interpolate(s, [0, 1], [44, 0])}px)`,
+              transform: `translateY(${interpolate(s, [0, 1], [44, 0])}px) scale(${interpolate(s, [0, 1], [0.94, 1])})`,
               background: theme.colors.cardBg,
               border: `1px solid ${m.featured ? theme.colors.gold : theme.colors.line}`,
               borderRadius: 32,
               padding: '40px 44px',
-              boxShadow: theme.colors.shadow,
+              boxShadow: featuredShadow,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

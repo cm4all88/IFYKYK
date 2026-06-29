@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill} from 'remotion';
+import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
 import {VideoData} from './types';
 import {SceneId} from './scenes';
 import {Scene} from './components/Scene';
@@ -15,51 +15,63 @@ import {MerchGrid} from './components/MerchGrid';
 import {PostsGrid} from './components/PostsGrid';
 import {CallToAction} from './components/CallToAction';
 import {HeroIntro} from './components/HeroIntro';
+import {HookScene} from './components/HookScene';
+import {PhotoBeat} from './components/PhotoBeat';
+import {exitFade} from './lib/animations';
 
-// Maps each scene id to its content. Scenes prefer crisp native cards when
-// structured data is present, and fall back to an animated screenshot otherwise.
-export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFrames: number}> = ({
+// Simple fade-only wrapper for full-bleed scenes, which manage their own motion
+// (a slide would reveal the edges of a full-frame image).
+const FadeScene: React.FC<{durationInFrames: number; children: React.ReactNode}> = ({durationInFrames, children}) => {
+  const frame = useCurrentFrame();
+  const opacity = Math.min(
+    interpolate(frame, [0, 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'}),
+    exitFade(frame, durationInFrames)
+  );
+  return <AbsoluteFill style={{opacity}}>{children}</AbsoluteFill>;
+};
+
+export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFrames: number; index?: number}> = ({
   id,
   data,
   durationInFrames,
+  index = 0,
 }) => {
+  const seed = index;
   switch (id) {
+    case 'hook':
+      return <HookScene data={data} durationInFrames={durationInFrames} />;
+
+    case 'photo1':
+      return data.feedScreenshots?.[0] ? (
+        <PhotoBeat src={data.feedScreenshots[0]} durationInFrames={durationInFrames} seed={seed} />
+      ) : null;
+
+    case 'photo2':
+      return data.feedScreenshots?.[1] ? (
+        <PhotoBeat src={data.feedScreenshots[1]} durationInFrames={durationInFrames} seed={seed} />
+      ) : null;
+
     case 'intro':
-      return (
-        <Scene durationInFrames={durationInFrames}>
-          {data.creator.cover || data.creator.avatar ? (
-            <HeroIntro
-              creator={data.creator}
-              headline={data.intro.headline}
-              durationInFrames={durationInFrames}
-            />
-          ) : (
-            <AbsoluteFill
-              style={{
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                gap: 60,
-                padding: '0 80px',
-              }}
-            >
-              <Logo size={150} />
-              <SceneTitle headline={data.intro.headline} delay={16} />
-            </AbsoluteFill>
-          )}
+      return data.creator.cover || data.creator.avatar ? (
+        <FadeScene durationInFrames={durationInFrames}>
+          <HeroIntro creator={data.creator} headline={data.intro.headline} durationInFrames={durationInFrames} />
+        </FadeScene>
+      ) : (
+        <Scene durationInFrames={durationInFrames} seed={seed}>
+          <AbsoluteFill
+            style={{alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 60, padding: '0 80px'}}
+          >
+            <Logo size={150} />
+            <SceneTitle headline={data.intro.headline} delay={16} />
+          </AbsoluteFill>
         </Scene>
       );
 
     case 'profile':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} kicker="The creator" headline={data.creator.name}>
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="The creator" headline={data.creator.name}>
           {data.profileScreenshot ? (
-            <AnimatedScreenshot
-              src={data.profileScreenshot}
-              durationInFrames={durationInFrames}
-              panFrom={[50, 1]}
-              panTo={[50, 99]}
-            />
+            <AnimatedScreenshot src={data.profileScreenshot} durationInFrames={durationInFrames} panFrom={[50, 1]} panTo={[50, 99]} />
           ) : (
             <CreatorHeader creator={data.creator} showCover={false} />
           )}
@@ -68,7 +80,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'memberships':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} kicker="Memberships" headline="Recurring support, their way">
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Memberships" headline="Recurring support, their way">
           {data.memberships?.length ? (
             <MembershipCards items={data.memberships} />
           ) : data.profileScreenshot ? (
@@ -79,7 +91,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'campaign':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} kicker="Campaign" headline="Fund the next big thing">
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Campaign" headline="Fund the next big thing">
           {data.campaign ? (
             <CampaignCard campaign={data.campaign} durationInFrames={durationInFrames} />
           ) : data.campaignScreenshot ? (
@@ -90,17 +102,12 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'posts':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} kicker="Exclusive posts" headline="Content for the inner circle">
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Exclusive posts" headline="Content for the inner circle">
           {data.feedScreenshots?.length ? (
             data.feedScreenshots.length > 1 ? (
               <PostsGrid images={data.feedScreenshots} />
             ) : (
-              <AnimatedScreenshot
-                src={data.feedScreenshots[0]}
-                durationInFrames={durationInFrames}
-                panFrom={[50, 2]}
-                panTo={[50, 98]}
-              />
+              <AnimatedScreenshot src={data.feedScreenshots[0]} durationInFrames={durationInFrames} panFrom={[50, 2]} panTo={[50, 98]} />
             )
           ) : null}
         </ShowcaseScene>
@@ -108,7 +115,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'marketplace':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} kicker="Marketplace" headline="Sell beyond the subscription">
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Marketplace" headline="Sell beyond the subscription">
           {data.marketplace?.length ? (
             <MarketplaceGrid items={data.marketplace} />
           ) : data.marketplaceScreenshot ? (
@@ -119,7 +126,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'merch':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} kicker="Merch" headline="Their brand, in the real world">
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Merch" headline="Their brand, in the real world">
           {data.merch?.length ? (
             <MerchGrid items={data.merch} />
           ) : data.merchScreenshot ? (
@@ -130,7 +137,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'cta':
       return (
-        <Scene durationInFrames={durationInFrames}>
+        <Scene durationInFrames={durationInFrames} seed={seed}>
           <AbsoluteFill style={{alignItems: 'center', justifyContent: 'center'}}>
             <CallToAction cta={data.cta} />
           </AbsoluteFill>
