@@ -85,6 +85,13 @@ export interface BeatTimeline {
   durationFrames: number;
 }
 
+export interface VideoClip {
+  url: string;          // hosted mp4 (a creator's own short clip / reel / TikTok)
+  label?: string;       // overlay text, e.g. "How she made this", "More of this"
+  trimStart?: number;   // seconds into the source to start from (default 0)
+  maxSeconds?: number;  // cap the length used (default ~3.7s)
+}
+
 export type VideoData = {
   creator: {
     name: string;
@@ -108,6 +115,9 @@ export type VideoData = {
   // and the total runtime shrinks automatically.
   profileScreenshot?: string;
   feedScreenshots?: string[];
+  // Creator's own short video clips, stitched into the reel as muted, vertical,
+  // beat-timed cutaways with an overlay label. Up to 3 used.
+  clips?: VideoClip[];
   // Music beat timeline, attached by the render service when sync-to-music is on.
   // Drives scene cut points and motion. Absent in studio preview (analysis happens at
   // render time), so preview uses fixed timing and the final render is beat-synced.
@@ -136,6 +146,9 @@ export type VideoData = {
   // Per-scene word-timed captions (frames relative to the scene start), for the
   // synced on-screen text. Built by the render service from ElevenLabs timestamps.
   captionsByScene?: Record<string, {words: {text: string; from: number; to: number}[]}>;
+  // One caption track for the whole video, used in fluid-read mode where a single
+  // continuous voiceover plays across all scenes. Word times are absolute.
+  captionsGlobal?: {words: {text: string; from: number; to: number}[]};
   hookText?: string;     // the opening hook line, shown on screen and spoken first
   goal?: 'subs' | 'platform'; // 'subs' = win the creator subscribers (fan-facing),
                               // 'platform' = bring creators to Spotlightly

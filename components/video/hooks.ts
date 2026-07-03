@@ -1,4 +1,4 @@
-import {VideoData} from './types';
+import {VideoData, MediaAnalysis} from './types';
 
 const firstName = (n?: string) => (n || '').trim().split(/\s+/)[0] || 'this creator';
 
@@ -45,6 +45,36 @@ const HOOKS: Hook[] = [
   {text: "Here's what you missed this week.", angles: ['weeklyHighlight']},
 ];
 
+// Niche-aware openers. Only used when we can name what the creator actually does,
+// from their analyzed photos or what they sell. {niche} is a short noun phrase like
+// "making coffee" or "trailer repairs". These make the hook fit this creator instead
+// of anyone.
+const NICHE_HOOKS: string[] = [
+  'The part of {niche} nobody posts.',
+  'This is what {niche} really looks like.',
+  '{niche}. The part you never see.',
+  'Everyone sees {niche}. Not the rest.',
+];
+
+// A short phrase for what this creator does: the most common photo category (weighted
+// by confidence), else the first thing they sell. Undefined when we can't tell.
+const nicheOf = (d: VideoData): string | undefined => {
+  const rows = (d.mediaAnalysis?.filter(Boolean) as MediaAnalysis[] | undefined) ?? [];
+  if (rows.length) {
+    const tally: Record<string, number> = {};
+    for (const m of rows) {
+      const c = (m.primary_category || '').trim().toLowerCase();
+      if (!c || c.length > 34) continue;
+      tally[c] = (tally[c] || 0) + (m.confidence_score ?? 0.5);
+    }
+    const best = Object.entries(tally).sort((a, b) => b[1] - a[1])[0];
+    if (best && best[1] >= 0.8) return best[0];
+  }
+  const sell = d.marketplace?.[0]?.title || d.merch?.[0]?.name;
+  if (sell && sell.length <= 34) return sell.toLowerCase();
+  return undefined;
+};
+
 const STRONG_OPENERS = ['nobody', 'everyone', 'this', 'they', 'what', 'most', 'the', 'here', 'so', 'following', 'behind'];
 const FEATURE_WORDS = /\b(subscribe|membership|exclusive|unlock|platform|sign up|link in bio|discount)\b/i;
 const CURIOSITY = /\b(nobody|never|no one|secret|hidden|don'?t see|what you|the part|behind|missed|this happened)\b/i;
@@ -75,19 +105,32 @@ export const scoreHook = (text: string): number => {
   return Math.max(0, Math.min(100, s));
 };
 
-const fill = (text: string, d: VideoData) => text.replace(/\{first\}/g, firstName(d.creator?.name));
+const fill = (text: string, d: VideoData, niche?: string) =>
+  text.replace(/\{first\}/g, firstName(d.creator?.name)).replace(/\{niche\}/g, niche ?? '');
 
 const angleOf = (d: VideoData): Angle => (d.videoType as Angle) ?? 'launch';
 
-// Top N hooks for this creator and angle, already scored and personalized.
+// Top N hooks for this creator and angle, already scored and personalized. When we can
+// name the creator's niche, niche-specific openers are blended in and get a relevance
+// bump so they tend to surface first.
 export const hooksFor = (d: VideoData, n = 3): {text: string; score: number}[] => {
   const angle = angleOf(d);
   const key = d.creator?.handle || d.creator?.name || 'spotlightly';
   const jitter = hashOf(key) % 4;
+  const niche = nicheOf(d);
   const eligible = HOOKS.filter((h) => !h.angles || h.angles.includes(angle));
   const pool = eligible.length ? eligible : HOOKS;
-  return pool
-    .map((h, i) => ({text: fill(h.text, d), score: Math.min(100, scoreHook(h.text) + ((i + jitter) % 3))}))
+  const generic = pool.map((h, i) => ({
+    text: fill(h.text, d),
+    score: Math.min(100, scoreHook(h.text) + ((i + jitter) % 3)),
+  }));
+  const nicheScored = niche
+    ? NICHE_HOOKS.map((t, i) => ({
+        text: fill(t, d, niche),
+        score: Math.min(100, scoreHook(t.replace(/\{niche\}/g, niche)) + 10 + ((i + jitter) % 2)),
+      }))
+    : [];
+  return [...nicheScored, ...generic]
     .sort((a, b) => b.score - a.score)
     .slice(0, n);
 };

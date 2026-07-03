@@ -121,13 +121,31 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const handleClean = rawHandle.replace(/^@/, "");
   const handleDisplay = rawHandle ? (rawHandle.startsWith("@") ? rawHandle : "@" + rawHandle) : "";
 
+  // Grabbed profile text is freeform: long bios, emoji, pasted urls, overlong tier
+  // perks. Tidy it so it sits in the template instead of overflowing or reading oddly.
+  const stripJunk = (s: unknown): string =>
+    String(s ?? "")
+      .replace(/https?:\/\/\S+/g, "")
+      .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "")
+      .replace(/[\u2190-\u21FF\u2600-\u27BF\u2B00-\u2BFF\uFE0F\u20E3]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  const clampText = (s: unknown, max: number): string => {
+    const t = stripJunk(s);
+    if (t.length <= max) return t;
+    const cut = t.slice(0, max);
+    const sp = cut.lastIndexOf(" ");
+    return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\s]+$/, "");
+  };
+  const tidy = (s: unknown, max: number): string | undefined => clampText(s, max) || undefined;
+
   const data = {
     creator: {
-      name: profile.display_name || "Creator",
+      name: tidy(profile.display_name, 40) || "Creator",
       handle: handleDisplay,
       avatar: signImg(profile.avatar_url),
       cover: signImg(profile.cover_url),
-      tagline: profile.bio || undefined,
+      tagline: tidy(profile.bio, 120),
       founding: false,
     },
     intro: { headline: "One place for your biggest supporters." },
@@ -137,10 +155,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       url: handleClean ? `spotlightly.app/${handleClean}` : "spotlightly.app",
     },
     memberships: (tiers ?? []).map((t: any) => ({
-      name: t.name,
+      name: tidy(t.name, 32) || "Membership",
       price: money(t.price_monthly),
       cadence: "mo",
-      perks: Array.isArray(t.perks) ? t.perks : [],
+      perks: (Array.isArray(t.perks) ? t.perks : [])
+        .map((p: unknown) => tidy(p, 64))
+        .filter(Boolean)
+        .slice(0, 4),
     })),
     campaign,
     marketplace: (listings ?? []).map((l: any) => ({

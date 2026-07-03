@@ -10,6 +10,9 @@ export type SceneId =
   | 'campaign'
   | 'photo2'
   | 'photo3'
+  | 'clip1'
+  | 'clip2'
+  | 'clip3'
   | 'posts'
   | 'marketplace'
   | 'merch'
@@ -28,6 +31,9 @@ export const SCENE_DURATIONS: Record<SceneId, number> = {
   posts: 70,
   photo2: 60,
   photo3: 60,
+  clip1: 110,
+  clip2: 110,
+  clip3: 110,
   marketplace: 80,
   merch: 80,
   cta: 86,
@@ -45,6 +51,11 @@ const SCENE_TAIL = 16;
 // A scene's length: its base duration, or long enough to cover its own narration
 // line plus a short breath, whichever is greater.
 const sceneDuration = (id: SceneId, d: VideoData): number => {
+  if (id === 'clip1' || id === 'clip2' || id === 'clip3') {
+    const i = id === 'clip1' ? 0 : id === 'clip2' ? 1 : 2;
+    const secs = d.clips?.[i]?.maxSeconds;
+    return secs && secs > 0 ? Math.round(secs * 30) : SCENE_DURATIONS[id];
+  }
   const base = SCENE_DURATIONS[id];
   const clip = d.narrationByScene?.[id];
   if (clip && clip.frames > 0) return Math.max(base, clip.frames + SCENE_TAIL);
@@ -65,6 +76,12 @@ const isEnabled = (id: SceneId, d: VideoData): boolean => {
       return Boolean(d.feedScreenshots?.[1]);
     case 'photo3':
       return Boolean(d.feedScreenshots?.[2]);
+    case 'clip1':
+      return Boolean(d.clips?.[0]?.url);
+    case 'clip2':
+      return Boolean(d.clips?.[1]?.url);
+    case 'clip3':
+      return Boolean(d.clips?.[2]?.url);
     case 'memberships':
       return Boolean(d.memberships?.length);
     case 'campaign':
@@ -175,10 +192,39 @@ const snapUp = (target: number, grid: number[], minOut: number): number => {
   return target;
 };
 
+// Weaves the creator's clips into the scene order at natural spots: an early clip
+// after the first photo or the profile (a "how she made this" moment), a mid clip
+// after the offers, and a closing clip right before the CTA ("more of this").
+const withClips = (ids: SceneId[], d: VideoData): SceneId[] => {
+  const has = (i: number) => Boolean(d.clips?.[i]?.url);
+  if (!has(0) && !has(1) && !has(2)) return ids;
+  const out = [...ids];
+  const insertAfter = (anchors: SceneId[], clip: SceneId) => {
+    for (let i = out.length - 1; i >= 0; i--) {
+      if (anchors.includes(out[i])) {
+        out.splice(i + 1, 0, clip);
+        return;
+      }
+    }
+    const ci = out.indexOf('cta');
+    if (ci >= 0) out.splice(ci, 0, clip);
+    else out.push(clip);
+  };
+  const insertBeforeCta = (clip: SceneId) => {
+    const ci = out.indexOf('cta');
+    if (ci >= 0) out.splice(ci, 0, clip);
+    else out.push(clip);
+  };
+  if (has(0)) insertAfter(['photo1', 'profile', 'intro'], 'clip1');
+  if (has(1)) insertAfter(['memberships', 'campaign', 'photo2', 'profile'], 'clip2');
+  if (has(2)) insertBeforeCta('clip3');
+  return out;
+};
+
 export const buildScenes = (d: VideoData): PlannedScene[] => {
   // The type's own scene list defines the sequence (story arcs depend on order).
   const allowed = TYPE_SCENES[d.videoType ?? 'launch'] ?? TYPE_SCENES.launch;
-  const ids = allowed.filter((id) => isEnabled(id, d));
+  const ids = withClips(allowed.filter((id) => isEnabled(id, d)), d);
 
   const grid = d.beats?.downbeatFrames?.length ? d.beats.downbeatFrames : null;
   if (!grid) {

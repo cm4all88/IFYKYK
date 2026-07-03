@@ -8,11 +8,12 @@ import type {
   Membership,
   ShopItem,
   MerchItem,
+  VideoClip,
 } from "@/components/video/types";
 import { buildScenes, isStoryType, type SceneId } from "@/components/video/scenes";
 import { storyScriptLine, PERSONALITIES, assignStoryPhotos } from "@/components/video/storyEngine";
 import type { Personality } from "@/components/video/types";
-import { hookFor, hooksFor, type Angle } from "@/components/video/hooks";
+import { hookFor, hooksFor, scoreHook, type Angle } from "@/components/video/hooks";
 import { ANGLE_LABELS, angleLine, captionFor, hashtagsFor } from "@/components/video/angles";
 import { MUSIC_GENRES, MUSIC_LIBRARY, tracksByGenre, type MusicGenre } from "@/components/video/musicLibrary";
 import { sampleData } from "@/components/video/sampleData";
@@ -77,6 +78,9 @@ const SCENE_LABEL: Record<SceneId, string> = {
   campaign: "Campaign",
   photo2: "Photo",
   photo3: "Photo",
+  clip1: "Clip",
+  clip2: "Clip",
+  clip3: "Clip",
   posts: "Posts",
   marketplace: "Marketplace",
   merch: "Merch",
@@ -95,7 +99,6 @@ function lineForScene(id: SceneId, d: VideoData): string {
   }
   const name = d.creator.name || "this creator";
   const fname = firstNameOf(name);
-  const handleNoAt = (d.creator.handle || "").replace(/^@/, "");
   const tiers = d.memberships ?? [];
   const camp = d.campaign;
   const market = d.marketplace ?? [];
@@ -129,7 +132,7 @@ function lineForScene(id: SceneId, d: VideoData): string {
     case "cta":
       if ((d.goal ?? "subs") === "platform")
         return `Follow along and get closer than ever. Find ${fname} on Spotlightly.`;
-      return `Become a member and get closer than ever.${handleNoAt ? ` Find her at ${handleNoAt}.` : ""}`;
+      return `Become a member and get closer than ever. Find ${fname} on Spotlightly.`;
     default:
       return "";
   }
@@ -189,26 +192,60 @@ function AssetInput({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const upload = async (f: File) => {
+    setUploading(true);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.url) {
+        setErr(json.error || "Upload failed");
+        return;
+      }
+      onChange(json.url); // hosted Bunny url, usable in export
+    } catch {
+      setErr("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      <input
-        className="adm-input"
-        value={value ?? ""}
-        placeholder={placeholder ?? "Paste an image url (BunnyCDN)"}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <label className="adm-btn adm-btn--ghost" style={{ whiteSpace: "nowrap", cursor: "pointer" }}>
-        Upload
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <input
-          type="file"
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onChange(URL.createObjectURL(f));
-          }}
+          className="adm-input"
+          value={value ?? ""}
+          placeholder={placeholder ?? "Paste an image url (BunnyCDN)"}
+          onChange={(e) => onChange(e.target.value)}
         />
-      </label>
+        <label className="adm-btn adm-btn--ghost" style={{ whiteSpace: "nowrap", cursor: uploading ? "default" : "pointer", opacity: uploading ? 0.6 : 1 }}>
+          {uploading ? "Uploading..." : "Upload"}
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            disabled={uploading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) upload(f);
+            }}
+          />
+        </label>
+      </div>
+      {err ? <div style={{ fontSize: 11, color: "#f87171", marginTop: 4 }}>{err}</div> : null}
+      {value && value.startsWith("blob:") ? (
+        <div style={{ fontSize: 11, color: "#f5c842", marginTop: 4 }}>
+          Local preview only. Click Upload again to host it, or it gets skipped on export.
+        </div>
+      ) : null}
+      {value && /^(https?:|data:image\/)/.test(value) ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={value} alt="" style={{ marginTop: 6, maxHeight: 56, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)" }} />
+      ) : null}
     </div>
   );
 }
@@ -247,6 +284,7 @@ export default function VideoStudio() {
       const json = await r.json();
       const vd = json.data as VideoData;
       setData({ ...vd, videoType });
+      setAiHooks(null);
       setSegments(buildScriptSegments(videoType, vd));
       setStatus({ msg: "Loaded from Spotlightly. Edit anything below to override." });
     } catch (e) {
@@ -259,6 +297,7 @@ export default function VideoStudio() {
   const setType = (t: VideoType) => {
     setData((d) => ({ ...d, videoType: t }));
     setSegments(buildScriptSegments(t, data));
+    setAiHooks(null);
   };
 
   const [batch, setBatch] = useState<ReelItem[]>([]);
@@ -271,6 +310,7 @@ export default function VideoStudio() {
   const [copied, setCopied] = useState(false);
   const [bakeVo, setBakeVo] = useState(true);
   const [captionsOn, setCaptionsOn] = useState(true);
+  const [fluidVo, setFluidVo] = useState(false);
   const [musicGenre, setMusicGenre] = useState<MusicGenre | "all">("all");
   const [voLoading, setVoLoading] = useState(false);
   const [voIdx, setVoIdx] = useState<number | null>(null);
@@ -279,6 +319,72 @@ export default function VideoStudio() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [resScale, setResScale] = useState(0.6667); // 1 = 1080p, 0.6667 = 720p, 0.5 = 540p
   const [syncMusic, setSyncMusic] = useState(true); // beat-sync cuts to the music when a track is set
+  const [aiHooks, setAiHooks] = useState<string[] | null>(null);
+  const [hooksLoading, setHooksLoading] = useState(false);
+  const [clipUploading, setClipUploading] = useState<number | null>(null);
+
+  const updateClip = (i: number, patch: Partial<VideoClip>) => {
+    const next = [...(data.clips ?? [])];
+    next[i] = { ...(next[i] ?? { url: "" }), ...patch };
+    set({ clips: next });
+  };
+  const removeClip = (i: number) => {
+    const next = [...(data.clips ?? [])];
+    next.splice(i, 1);
+    set({ clips: next.length ? next : undefined });
+  };
+  const uploadClip = async (i: number, f: File) => {
+    setClipUploading(i);
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.url) {
+        setStatus({ msg: json.error || "Clip upload failed.", err: true });
+        return;
+      }
+      updateClip(i, { url: json.url });
+    } catch {
+      setStatus({ msg: "Clip upload failed.", err: true });
+    } finally {
+      setClipUploading(null);
+    }
+  };
+
+  const writeHooks = async () => {
+    setHooksLoading(true);
+    try {
+      const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
+      const categories = Array.from(new Set(rows.map((m) => m.primary_category).filter(Boolean)));
+      const summaries = rows.map((m) => m.visual_summary).filter(Boolean);
+      const sells = [
+        ...(data.marketplace ?? []).map((x: any) => x.title),
+        ...(data.merch ?? []).map((x: any) => x.name),
+        ...(data.memberships ?? []).map((x: any) => x.name),
+      ].filter(Boolean);
+      const res = await fetch("/api/admin/video-studio/hooks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: data.creator.name, bio: data.creator.tagline, angle: videoType, categories, summaries, sells }),
+      });
+      const json = await res.json();
+      setHooksLoading(false);
+      if (!json.configured) {
+        setStatus({ msg: "Add an Anthropic API key in Admin, Credentials to write hooks.", err: true });
+        return;
+      }
+      if (!json.hooks?.length) {
+        setStatus({ msg: "Could not write custom hooks, showing the built in ones.", err: true });
+        return;
+      }
+      setAiHooks(json.hooks);
+      setStatus({ msg: `Wrote ${json.hooks.length} hooks from this creator's content.` });
+    } catch {
+      setHooksLoading(false);
+      setStatus({ msg: "Hook writing failed.", err: true });
+    }
+  };
 
   const analyzeMedia = async () => {
     if (!creatorId) {
@@ -392,8 +498,11 @@ export default function VideoStudio() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             data: { ...base, videoType: r.type, feedScreenshots: assignStoryPhotos(r.type, { ...base, videoType: r.type }) },
-            narrationSegments: bakeVo
+            narrationSegments: bakeVo && !fluidVo
               ? buildScriptSegments(r.type, base).map((s) => ({ scene: s.scene, text: s.text }))
+              : undefined,
+            narrationScript: bakeVo && fluidVo
+              ? buildScriptSegments(r.type, base).map((s) => s.text).join(" ")
               : undefined,
             captions: captionsOn,
             scale: resScale,
@@ -492,7 +601,14 @@ export default function VideoStudio() {
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: clean, narrationSegments: bakeVo ? narrationSegmentsPayload() : undefined, captions: captionsOn, scale: resScale, syncMusic }),
+        body: JSON.stringify({
+          data: clean,
+          narrationSegments: bakeVo && !fluidVo ? narrationSegmentsPayload() : undefined,
+          narrationScript: bakeVo && fluidVo ? narrationSegmentsPayload().map((s) => s.text).join(" ") : undefined,
+          captions: captionsOn,
+          scale: resScale,
+          syncMusic,
+        }),
       });
       if (!res.ok) throw new Error("Render failed (" + res.status + ")");
       const vo = res.headers.get("X-Voiceover");
@@ -678,6 +794,96 @@ export default function VideoStudio() {
           </div>
 
           <div className="card">
+            <div className="card-title" style={{ marginBottom: 8 }}>Video clips</div>
+            <p style={{ fontSize: 11, color: "#d5d5e2", margin: "0 0 12px" }}>
+              Upload short clips from the creator (their reels or TikToks). We stitch them in, muted and
+              vertical, with an overlay like "How she made this", timed to the beat. Keep them short, a few
+              seconds each. Up to three.
+            </p>
+            <datalist id="clip-labels">
+              <option value="More of this" />
+              <option value="Behind the scenes" />
+              <option value="How she made this" />
+              <option value="Want to see more?" />
+              <option value="Come see the rest" />
+            </datalist>
+            {[0, 1, 2].map((i) => {
+              const c = data.clips?.[i];
+              return (
+                <div key={i} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <label className="adm-btn adm-btn--ghost" style={{ cursor: clipUploading === i ? "default" : "pointer", opacity: clipUploading === i ? 0.6 : 1 }}>
+                      {clipUploading === i ? "Uploading..." : c?.url ? "Replace clip" : `Upload clip ${i + 1}`}
+                      <input
+                        type="file"
+                        accept="video/*"
+                        style={{ display: "none" }}
+                        disabled={clipUploading === i}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadClip(i, f);
+                        }}
+                      />
+                    </label>
+                    {c?.url ? (
+                      <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 12px" }} onClick={() => removeClip(i)}>
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  {c?.url ? (
+                    <div style={{ display: "flex", gap: 12, marginTop: 10, alignItems: "flex-start" }}>
+                      <video src={c.url} muted playsInline preload="metadata" style={{ width: 96, borderRadius: 6, border: "1px solid rgba(255,255,255,0.12)" }} />
+                      <div style={{ flex: 1 }}>
+                        <input
+                          className="adm-input"
+                          list="clip-labels"
+                          value={c.label ?? ""}
+                          placeholder='Overlay text, e.g. "How she made this"'
+                          onChange={(e) => updateClip(i, { label: e.target.value })}
+                        />
+                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          <label style={{ flex: 1, fontSize: 10, color: "#9a9aae" }}>
+                            Start at (sec)
+                            <input
+                              type="number"
+                              className="adm-input"
+                              min={0}
+                              step={0.5}
+                              value={c.trimStart ?? 0}
+                              onChange={(e) => updateClip(i, { trimStart: Math.max(0, Number(e.target.value) || 0) })}
+                            />
+                          </label>
+                          <label style={{ flex: 1, fontSize: 10, color: "#9a9aae" }}>
+                            Length (sec)
+                            <input
+                              type="number"
+                              className="adm-input"
+                              min={1}
+                              max={10}
+                              step={0.5}
+                              value={c.maxSeconds ?? ""}
+                              placeholder="auto ~3.7"
+                              onChange={(e) =>
+                                updateClip(i, {
+                                  maxSeconds: e.target.value === "" ? undefined : Math.min(10, Math.max(1, Number(e.target.value) || 0)),
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div style={{ fontSize: 10, color: "#9a9aae", marginTop: 6 }}>
+                          Start picks where the clip begins. Length caps how much is used. Leave overlay blank for no text.
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
               <div className="card-title" style={{ margin: 0, padding: 0, border: "none" }}>
                 Voiceover script
@@ -700,11 +906,22 @@ export default function VideoStudio() {
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <label className="adm-label" style={{ display: "block", marginBottom: 6 }}>
-                Hook engine (strongest first, tap to use)
-              </label>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                <label className="adm-label" style={{ display: "block", margin: 0 }}>
+                  Hook engine (strongest first, tap to use)
+                </label>
+                <button className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px", fontSize: 11 }} disabled={hooksLoading} onClick={writeHooks}>
+                  {hooksLoading ? "Writing..." : aiHooks ? "Rewrite hooks" : "Write specific hooks"}
+                </button>
+              </div>
+              {aiHooks ? (
+                <div style={{ fontSize: 10, color: "#8fb0ff", marginBottom: 6 }}>Written from this creator's photos and bio. Analyze media first for the best results.</div>
+              ) : null}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {hooksFor(data, 3).map((h, i) => {
+                {(aiHooks && aiHooks.length
+                  ? aiHooks.map((t) => ({ text: t, score: scoreHook(t) })).sort((a, b) => b.score - a.score).slice(0, 6)
+                  : hooksFor(data, 3)
+                ).map((h, i) => {
                   const inUse = segments.find((s) => s.scene === "hook")?.text === h.text;
                   return (
                     <button
@@ -755,10 +972,15 @@ export default function VideoStudio() {
               <input type="checkbox" checked={captionsOn} disabled={!bakeVo} onChange={(e) => setCaptionsOn(e.target.checked)} />
               Burn in synced captions (word by word, timed to the voice)
             </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 8, color: bakeVo ? "#e8e8f0" : "#6b6b80" }}>
+              <input type="checkbox" checked={fluidVo} disabled={!bakeVo} onChange={(e) => setFluidVo(e.target.checked)} />
+              Read the whole script as one fluid voiceover (smoother, less choppy)
+            </label>
             <p style={{ marginTop: 8, fontSize: 11, color: "#d5d5e2", lineHeight: 1.6 }}>
               One line per scene, built from this creator. Edit any line. With bake on, Export speaks each line
               with ElevenLabs and times that scene to its line, so the picture changes when the narration does,
-              with the music ducked underneath. Or turn bake off and Copy the lines for any other tool.
+              with the music ducked underneath. Fluid read speaks the whole script in one take for natural cadence,
+              while the visuals still cut on the beat. Or turn bake off and Copy the lines for any other tool.
             </p>
           </div>
 

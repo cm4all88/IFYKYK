@@ -3,7 +3,6 @@ import { hookFor } from "@/components/video/hooks";
 import { beatForScene, isStoryType, STORY_ARCS, type StoryBeat, type SceneId } from "@/components/video/scenes";
 
 const firstName = (n?: string) => (n || "").trim().split(/\s+/)[0] || "this creator";
-const handleNoAt = (h?: string) => (h || "").replace(/^@/, "");
 
 export const PERSONALITIES: { id: Personality; label: string }[] = [
   { id: "optimistic", label: "Optimistic" },
@@ -117,10 +116,9 @@ const BEAT_LINES: Record<StoryBeat, Record<Voice, string>> = {
 const fill = (s: string, d: VideoData) => s.replace(/\{first\}/g, firstName(d.creator?.name));
 
 const ctaLine = (d: VideoData): string => {
-  const h = handleNoAt(d.creator?.handle);
   if ((d.goal ?? "subs") === "platform")
     return `Follow along and get closer than ever. Find ${firstName(d.creator?.name)} on Spotlightly.`;
-  return `Become a member and get closer than ever.${h ? ` Find ${firstName(d.creator?.name)} at ${h}.` : ""}`;
+  return `Become a member and get closer than ever. Find ${firstName(d.creator?.name)} on Spotlightly.`;
 };
 
 // The narration line for a scene inside a story type, written to its beat and voiced

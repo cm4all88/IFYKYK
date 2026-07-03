@@ -18,6 +18,7 @@ import {CallToAction} from './components/CallToAction';
 import {HeroIntro} from './components/HeroIntro';
 import {HookScene} from './components/HookScene';
 import {PhotoBeat} from './components/PhotoBeat';
+import {ClipScene} from './components/ClipScene';
 import {exitFade} from './lib/animations';
 
 // Simple fade-only wrapper for full-bleed scenes, which manage their own motion
@@ -56,6 +57,13 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
       return data.feedScreenshots?.[2] ? (
         <PhotoBeat src={data.feedScreenshots[2]} durationInFrames={durationInFrames} seed={seed} />
       ) : null;
+
+    case 'clip1':
+      return data.clips?.[0]?.url ? <ClipScene clip={data.clips[0]} durationInFrames={durationInFrames} /> : null;
+    case 'clip2':
+      return data.clips?.[1]?.url ? <ClipScene clip={data.clips[1]} durationInFrames={durationInFrames} /> : null;
+    case 'clip3':
+      return data.clips?.[2]?.url ? <ClipScene clip={data.clips[2]} durationInFrames={durationInFrames} /> : null;
 
     case 'intro':
       return data.creator.cover || data.creator.avatar ? (

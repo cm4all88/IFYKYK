@@ -64,10 +64,8 @@ export const ANGLE_SCRIPTS: Partial<Record<Angle, Partial<Record<SceneId, LineFn
   supportMe: {
     photo1: (d) => `${firstName(d.creator.name)} built this from nothing.`,
     photo2: () => "And there's still a long way to go.",
-    cta: (d) => {
-      const h = handleNoAt(d.creator.handle);
-      return `Be one of the people who made it happen.${h ? ` Find ${firstName(d.creator.name)} at ${h}.` : ""}`;
-    },
+    cta: (d) =>
+      `Be one of the people who made it happen. Find ${firstName(d.creator.name)} on Spotlightly.`,
   },
   weeklyHighlight: {
     intro: () => "Here's the week, in case you missed it.",

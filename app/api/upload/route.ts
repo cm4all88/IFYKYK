@@ -20,27 +20,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  // Accept all common image formats including iPhone HEIC
+  // Accept common image formats (incl. iPhone HEIC) and short video clips.
   const okTypes = [
     "image/jpeg", "image/jpg", "image/png", "image/webp",
     "image/gif", "image/heic", "image/heif", "image/avif",
+    "video/mp4", "video/quicktime", "video/webm",
   ];
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const okExts = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif"];
+  const okExts = ["jpg", "jpeg", "png", "webp", "gif", "heic", "heif", "avif", "mp4", "mov", "webm", "m4v"];
+  const videoExts = ["mp4", "mov", "webm", "m4v"];
 
   if (!okTypes.includes(file.type) && !okExts.includes(ext)) {
     return NextResponse.json(
-      { error: `Unsupported file type: ${file.type || ext}. Use JPG, PNG, or WebP.` },
+      { error: `Unsupported file type: ${file.type || ext}. Use an image (JPG, PNG, WebP) or a clip (MP4, MOV).` },
       { status: 400 }
     );
   }
 
-  const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+  const isVideo = file.type.startsWith("video/") || videoExts.includes(ext);
+  const MAX_BYTES = (isVideo ? 50 : 25) * 1024 * 1024;
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "File exceeds 25 MB limit" }, { status: 400 });
+    return NextResponse.json({ error: `File exceeds ${isVideo ? 50 : 25} MB limit` }, { status: 400 });
   }
 
-  const contentType = file.type || "image/jpeg";
+  const contentType = file.type || (isVideo ? "video/mp4" : "image/jpeg");
   const stamp = Date.now();
   const rand = Math.random().toString(36).slice(2, 8);
   const safeExt = okExts.includes(ext) ? ext : "jpg";

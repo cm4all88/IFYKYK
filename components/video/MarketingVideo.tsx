@@ -90,6 +90,7 @@ export const MarketingVideo: React.FC<VideoData> = (data) => {
           return el;
         })}
       </AbsoluteFill>
+      {data.captionsGlobal?.words?.length ? <Captions words={data.captionsGlobal.words} /> : null}
     </AbsoluteFill>
   );
 };
