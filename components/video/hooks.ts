@@ -139,25 +139,51 @@ const isNewCreator = (d: VideoData): boolean => {
 // Top N hooks for this creator and angle, already scored and personalized. New creators
 // get aspirational, get-in-early openers pushed to the top and skip niche hooks (which
 // only look good when there is real content to name).
+// Grind / "behind the work" clichés. Right for a maker or a shop, wrong for a travel
+// or lifestyle creator, so they only surface on behind-the-scenes style angles.
+const GRIND = /(nobody sees|never see what|hard part|finished version|behind every post|\bthe work\b|before sunrise|anyone shows up|nobody posts|result\. not)/i;
+
+// Openers built from THIS creator's real material (their campaign / what they're doing).
+// The most relevant openers there are, so they rank at the very top.
+const subjectHooks = (d: VideoData): string[] => {
+  const out: string[] = [];
+  const first = firstName(d.creator?.name);
+  const camp = (d.campaign?.title || '').trim().replace(/[.\s]+$/, '');
+  if (camp && camp.length >= 4 && camp.length <= 52) {
+    out.push(`${camp}.`);
+    out.push(`This is the one ${first} has been dreaming about.`);
+    out.push(`${camp}. It starts now.`);
+  }
+  return out;
+};
+
 export const hooksFor = (d: VideoData, n = 3): {text: string; score: number}[] => {
   const angle = angleOf(d);
   const key = d.creator?.handle || d.creator?.name || 'spotlightly';
   const jitter = hashOf(key) % 4;
   const isNew = isNewCreator(d);
+  const grindOk = angle === 'behindScenes' || angle === 'dayInLife' || angle === 'storyTime';
+
+  // Most relevant: straight from the creator's campaign / subject.
+  const subject = subjectHooks(d).map((t, i) => ({text: fill(t, d), score: 100 - i}));
+
   const niche = isNew ? undefined : nicheOf(d);
-  const eligible = HOOKS.filter((h) => !h.angles || h.angles.includes(angle));
-  const pool = eligible.length ? eligible : HOOKS;
-  const generic = pool.map((h, i) => ({
-    text: fill(h.text, d),
-    score: Math.min(100, scoreHook(h.text) + ((i + jitter) % 3) + (h.aspirational ? (isNew ? 22 : 6) : 0)),
-  }));
   const nicheScored = niche
     ? NICHE_HOOKS.map((t, i) => ({
         text: fill(t, d, niche),
-        score: Math.min(100, scoreHook(t.replace(/\{niche\}/g, niche)) + 10 + ((i + jitter) % 2)),
+        score: Math.min(99, scoreHook(t.replace(/\{niche\}/g, niche)) + 10 + ((i + jitter) % 2)),
       }))
     : [];
-  return [...nicheScored, ...generic]
+
+  // Generic pool, minus grind clichés unless the angle actually calls for them.
+  const eligible = HOOKS.filter((h) => (!h.angles || h.angles.includes(angle)) && (grindOk || !GRIND.test(h.text)));
+  const pool = eligible.length ? eligible : HOOKS.filter((h) => grindOk || !GRIND.test(h.text));
+  const generic = pool.map((h, i) => ({
+    text: fill(h.text, d),
+    score: Math.min(98, scoreHook(h.text) + ((i + jitter) % 3) + (h.aspirational ? (isNew ? 22 : 6) : 0)),
+  }));
+
+  return [...subject, ...nicheScored, ...generic]
     .sort((a, b) => b.score - a.score)
     .slice(0, n);
 };
