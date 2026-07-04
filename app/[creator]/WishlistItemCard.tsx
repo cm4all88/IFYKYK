@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
+import { InlineError } from "./InlineError";
 
 export default function WishlistItemCard({ item }: { item: any }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function gift() {
+    setError(null);
     setLoading(true);
     const res = await fetch("/api/wishlist/purchase", {
       method: "POST",
@@ -19,7 +22,7 @@ export default function WishlistItemCard({ item }: { item: any }) {
       window.location.href = `/fan-signup?return=${window.location.pathname}`;
       return;
     }
-    alert(data.error || "Something went wrong");
+    setError(data.error || "Something went wrong");
     setLoading(false);
   }
 
@@ -65,6 +68,7 @@ export default function WishlistItemCard({ item }: { item: any }) {
               </button>
               <button onClick={() => setOpen(false)} style={{ background:"none", border:"1px solid var(--border)", color:"var(--muted)", borderRadius:"var(--r-1)", padding:"6px 10px", cursor:"pointer", fontSize:11 }}>✕</button>
             </div>
+            <InlineError message={error} />
           </div>
         )}
       </div>

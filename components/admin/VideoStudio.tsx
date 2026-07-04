@@ -364,6 +364,42 @@ export default function VideoStudio() {
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [resScale, setResScale] = useState(0.6667); // 1 = 1080p, 0.6667 = 720p, 0.5 = 540p
   const [syncMusic, setSyncMusic] = useState(true); // beat-sync cuts to the music when a track is set
+  const [platform, setPlatform] = useState<"tiktok" | "reels" | "shorts">("tiktok");
+  const [lengthTarget, setLengthTarget] = useState<"short" | "standard" | "long">("standard");
+  const [activeTemplate, setActiveTemplate] = useState<string>("launch");
+
+  const VS_TEMPLATES: { id: string; label: string; type: VideoType; open: string | null }[] = [
+    { id: "launch", label: "Creator Launch", type: "launch", open: null },
+    { id: "membership", label: "Subscription Promo", type: "membership", open: "memberships" },
+    { id: "merch", label: "Merch Drop", type: "merch", open: "merch" },
+    { id: "campaign", label: "Campaign Push", type: "campaign", open: "campaign" },
+    { id: "marketplace", label: "Marketplace Promo", type: "marketplace", open: "marketplace" },
+    { id: "behindScenes", label: "Behind the Scenes", type: "behindScenes", open: null },
+    { id: "supportMe", label: "Tip Jar", type: "supportMe", open: null },
+  ];
+  const [openAdvanced, setOpenAdvanced] = useState<string | null>(null);
+
+  const applyTemplate = (t: { id: string; type: VideoType; open: string | null }) => {
+    setActiveTemplate(t.id);
+    setType(t.type);
+    setOpenAdvanced(t.open);
+  };
+  const generateSmart = () => {
+    setSegments(buildScriptSegments(videoType, data));
+    setAiHooks(null);
+    setStatus({ msg: "Built a fresh script and scenes for this goal. Edit anything, then export." });
+  };
+  const saveDraft = () => {
+    try {
+      localStorage.setItem(
+        `vs-draft-${creatorId || "blank"}`,
+        JSON.stringify({ data, videoType, platform, lengthTarget })
+      );
+      setStatus({ msg: "Draft saved on this device." });
+    } catch {
+      setStatus({ msg: "Could not save the draft.", err: true });
+    }
+  };
   const [aiHooks, setAiHooks] = useState<string[] | null>(null);
   const [hooksLoading, setHooksLoading] = useState(false);
   const [clipUploading, setClipUploading] = useState<number | null>(null);
@@ -706,23 +742,53 @@ export default function VideoStudio() {
         Video <em>Studio</em>
       </h1>
       <p className="adm-page-lede">
-        Build a vertical marketing video (1080 x 1920) and preview it live. Works from any
-        computer. Paste hosted screenshots, or use the structured cards.
+        Pick a creator, pick a goal, generate, edit the scenes, export. Vertical 1080 x 1920, made for
+        TikTok and Reels.
       </p>
+      <style>{`
+        details.vs-adv > summary { list-style: none; cursor: pointer; font-weight: 600; font-size: 13px; color: #e8e8f0; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; background: #17181B; display: flex; align-items: center; justify-content: space-between; }
+        details.vs-adv > summary::-webkit-details-marker { display: none; }
+        details.vs-adv > summary::after { content: "+"; color: #9a9aae; font-size: 16px; }
+        details.vs-adv[open] > summary::after { content: "\\2013"; }
+      `}</style>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0,1fr) 380px",
-          gap: 24,
+          gridTemplateColumns: "300px minmax(0,1fr) 380px",
+          gap: 20,
           alignItems: "start",
         }}
       >
-        {/* LEFT: controls */}
-        <div>
+        {/* LEFT: setup */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 24 }}>
+          <div className="card">
+            <div className="card-title">Template</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {VS_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => applyTemplate(t)}
+                  style={{
+                    textAlign: "left",
+                    padding: "9px 12px",
+                    borderRadius: 8,
+                    border: `1px solid ${activeTemplate === t.id ? "#f5c842" : "rgba(255,255,255,0.12)"}`,
+                    background: activeTemplate === t.id ? "rgba(245,200,66,0.08)" : "rgba(255,255,255,0.02)",
+                    color: "#e8e8f0",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="card">
             <div className="card-title">Source</div>
-            <div className="field-grid">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <Field label="Creator">
                 <CreatorPicker creators={creators} value={creatorId} onChange={loadCreator} loading={loadingCreator} />
               </Field>
@@ -772,6 +838,20 @@ export default function VideoStudio() {
                   <option value="platform">Bring creators to Spotlightly</option>
                 </select>
               </Field>
+              <Field label="Platform">
+                <select className="adm-select" value={platform} onChange={(e) => setPlatform(e.target.value as "tiktok" | "reels" | "shorts")}>
+                  <option value="tiktok">TikTok</option>
+                  <option value="reels">Instagram Reels</option>
+                  <option value="shorts">YouTube Shorts</option>
+                </select>
+              </Field>
+              <Field label="Length">
+                <select className="adm-select" value={lengthTarget} onChange={(e) => setLengthTarget(e.target.value as "short" | "standard" | "long")}>
+                  <option value="short">Short (about 15s)</option>
+                  <option value="standard">Standard (about 30s)</option>
+                  <option value="long">Long (about 45s)</option>
+                </select>
+              </Field>
               <Field label="Offer (optional)">
                 <input
                   className="adm-input"
@@ -780,7 +860,7 @@ export default function VideoStudio() {
                   onChange={(e) => set({ offer: e.target.value || undefined })}
                 />
               </Field>
-              <Field label="Personality (creator's voice)">
+              <Field label="Tone (creator's voice)">
                 <select
                   className="adm-select"
                   value={data.personality ?? "inspirational"}
@@ -801,6 +881,18 @@ export default function VideoStudio() {
             </p>
           </div>
 
+          <button
+            className="adm-btn adm-btn--primary"
+            style={{ width: "100%", padding: "13px 0", fontSize: 14 }}
+            onClick={generateSmart}
+          >
+            Generate Smart Video
+          </button>
+        </div>
+        {/* end LEFT setup */}
+
+        {/* MIDDLE: content */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           <div className="card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 10 }}>
               <div className="card-title" style={{ margin: 0, padding: 0, border: "none" }}>
@@ -1065,6 +1157,9 @@ export default function VideoStudio() {
             </button>
           </div>
 
+          <details className="vs-adv" open={openAdvanced !== null}>
+            <summary>Advanced content and settings</summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 12 }}>
           <div className="card">
             <div className="card-title">Creator</div>
             <Field label="Name">
@@ -1285,6 +1380,8 @@ export default function VideoStudio() {
               }}>Apply JSON</button>
             </div>
           ) : null}
+          </div>
+          </details>
         </div>
 
         {/* RIGHT: preview + export */}
@@ -1293,6 +1390,31 @@ export default function VideoStudio() {
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: "#d5d5e2" }}>
             <span>{scenes.length} scenes</span>
             <span>{seconds}s . 1080x1920 . 30fps</span>
+          </div>
+
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-title">TikTok / Reels ready</div>
+            {(() => {
+              const platMax = platform === "shorts" ? 60 : platform === "reels" ? 90 : 180;
+              const platLabel = platform === "tiktok" ? "TikTok" : platform === "reels" ? "Reels" : "Shorts";
+              const checks = [
+                { ok: true, label: "Vertical 1080 x 1920 (9:16)" },
+                { ok: Number(seconds) > 0 && Number(seconds) <= platMax, label: `Length ${seconds}s fits ${platLabel}` },
+                { ok: Boolean(segments.find((s) => s.scene === "hook")?.text), label: "Opens on a hook" },
+                { ok: Boolean(segments.find((s) => s.scene === "cta")?.text), label: "Ends on a call to action" },
+                { ok: !bakeVo || captionsOn, label: "Captions on for silent autoplay" },
+              ];
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {checks.map((c, i) => (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                      <span style={{ color: c.ok ? "#8ff0c4" : "#f5c842", width: 14 }}>{c.ok ? "✓" : "!"}</span>
+                      <span style={{ color: "#d5d5e2" }}>{c.label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="card" style={{ marginTop: 16 }}>
@@ -1308,7 +1430,8 @@ export default function VideoStudio() {
               </select>
             </Field>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="adm-btn adm-btn--primary" onClick={exportMp4}>Export MP4</button>
+              <button className="adm-btn adm-btn--primary" onClick={exportMp4}>Export Video</button>
+              <button className="adm-btn adm-btn--ghost" onClick={saveDraft}>Save draft</button>
               <button className="adm-btn adm-btn--ghost" onClick={copyJson}>Copy JSON</button>
             </div>
             {status ? (
@@ -1326,7 +1449,7 @@ export default function VideoStudio() {
           <div className="card" style={{ marginTop: 16 }}>
             <div className="card-title">Content pack</div>
             <button className="adm-btn adm-btn--primary" disabled={batchRunning} onClick={runBatch}>
-              {batchRunning ? "Rendering..." : "Generate content pack"}
+              {batchRunning ? "Rendering..." : "Download content pack"}
             </button>
             <p style={{ fontSize: 11, color: "#d5d5e2", margin: "8px 0 0" }}>
               Renders every angle this creator has data for, each with its own hook, script, pacing,

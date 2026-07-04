@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { InlineError } from "./InlineError";
 
 interface Addback {
   id: string;
@@ -26,6 +27,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
   const [fanHandle, setFanHandle] = useState("");
   const [message, setMessage] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/social-addbacks?profileId=${creatorProfileId}`)
@@ -36,6 +38,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
   async function purchase(addbackId: string) {
     if (!fanHandle.trim()) return;
     setProcessing(true);
+    setError(null);
     const res = await fetch("/api/social-addbacks/purchase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,7 +46,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else alert(data.error ?? "Something went wrong");
+    else setError(data.error ?? "Something went wrong");
     setProcessing(false);
   }
 
@@ -100,6 +103,7 @@ export default function SocialAddbacks({ creatorProfileId, displayName }: { crea
                     style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "8px 12px", color: "#F2F2F0", fontSize: 13, outline: "none", fontFamily: "inherit" }}
                   />
                   <div style={{ display: "flex", gap: 6 }}>
+                    <InlineError message={error} />
                     <button onClick={() => purchase(ab.id)} disabled={processing || !fanHandle.trim()} style={{
                       flex: 1, background: "rgba(242,184,75,0.9)", border: "none", borderRadius: 6,
                       padding: "9px 0", color: "#09090C", fontFamily: mono, fontSize: 10,

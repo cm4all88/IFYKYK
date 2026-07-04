@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { InlineError } from "./InlineError";
 
 interface Props {
   creatorProfileId: string;
@@ -15,12 +16,14 @@ export default function SuperTipButton({ creatorProfileId, handle }: Props) {
   const [message, setMessage] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const finalAmount = custom ? parseFloat(custom) : amount;
 
   async function send() {
     if (!finalAmount || finalAmount < 1) return;
     setLoading(true);
+    setError(null);
     const res = await fetch("/api/super-tip", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -33,7 +36,7 @@ export default function SuperTipButton({ creatorProfileId, handle }: Props) {
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else { alert(data.error ?? "Something went wrong."); setLoading(false); }
+    else { setError(data.error ?? "Something went wrong."); setLoading(false); }
   }
 
   if (!open) {
@@ -94,6 +97,7 @@ export default function SuperTipButton({ creatorProfileId, handle }: Props) {
           style={{ width: "100%", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "9px 14px", color: "var(--text)", fontSize: 14, outline: "none", resize: "none", marginBottom: 16, fontFamily: "inherit" }}
         />
 
+        <InlineError message={error} />
         <button onClick={send} disabled={loading || !finalAmount || finalAmount < 1} className="btn btn--primary" style={{ width: "100%", borderRadius: "var(--r-pill)", padding: "13px 0" }}>
           {loading ? "Loading…" : `Send $${finalAmount || "—"} Super Tip ⭐`}
         </button>

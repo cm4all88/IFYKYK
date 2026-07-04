@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { InlineError } from "./InlineError";
 
 const CATEGORY_EMOJI: Record<string, string> = {
   guide: "📚", course: "🎓", preset: "🎨", template: "📋",
@@ -23,9 +24,11 @@ interface Props {
 
 export default function DigitalProductCard({ product, creatorProfileId }: Props) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function buy() {
     setLoading(true);
+    setError(null);
     const res = await fetch("/api/digital/purchase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -33,7 +36,7 @@ export default function DigitalProductCard({ product, creatorProfileId }: Props)
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else { alert(data.error ?? "Could not start checkout"); setLoading(false); }
+    else { setError(data.error ?? "Could not start checkout"); setLoading(false); }
   }
 
   return (
@@ -63,6 +66,7 @@ export default function DigitalProductCard({ product, creatorProfileId }: Props)
           </p>
         ) : null}
 
+        <InlineError message={error} />
         <button
           onClick={buy}
           disabled={loading}

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { InlineError } from "./InlineError";
 
 interface Tier {
   id: string;
@@ -22,6 +23,7 @@ interface Props {
 export default function TiersSection({ tiers, creatorHandle, creatorName, creatorProfileId, loggedIn = true }: Props) {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const hasYearly = tiers.some(t => t.price_yearly);
 
@@ -31,6 +33,7 @@ export default function TiersSection({ tiers, creatorHandle, creatorName, creato
       window.location.href = `/fan-signup?return=${encodeURIComponent(`/?subscribe=${creatorProfileId}`)}`;
       return;
     }
+    setError(null);
     setLoading(tier.id);
 
     const res = await fetch("/api/subscribe/tier", {
@@ -44,7 +47,7 @@ export default function TiersSection({ tiers, creatorHandle, creatorName, creato
     const data = await res.json();
     if (data.url) window.location.href = data.url;
     else {
-      alert(data.error ?? "Could not start checkout");
+      setError(data.error ?? "Could not start checkout. Please try again.");
       setLoading(null);
     }
   }
@@ -182,6 +185,7 @@ export default function TiersSection({ tiers, creatorHandle, creatorName, creato
           );
         })}
       </div>
+      <InlineError message={error} />
     </div>
   );
 }

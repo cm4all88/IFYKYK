@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { InlineError } from "./InlineError";
 import { REWARD_TYPES, type TierReward, type RewardType } from "@/lib/campaign-rewards";
 
 const NEEDS_CODE: Record<RewardType, boolean> = REWARD_TYPES.reduce((acc, r) => {
@@ -26,10 +27,12 @@ export default function CampaignTiers({
   tiers: Tier[];
 }) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function back(tier: Tier) {
     setLoadingId(tier.id);
     try {
+    setError(null);
       const res = await fetch("/api/campaigns/donate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,9 +43,9 @@ export default function CampaignTiers({
         window.location.href = data.url;
         return;
       }
-      if (data.error) alert(data.error);
+      if (data.error) setError(data.error);
     } catch {
-      alert("Something went wrong. Please try again.");
+      setError("Something went wrong. Please try again.");
     }
     setLoadingId(null);
   }
@@ -157,6 +160,7 @@ export default function CampaignTiers({
           );
         })}
       </div>
+      <InlineError message={error} />
       <p style={{ fontSize: 11, color: "var(--muted)", margin: 0 }}>
         Or use “Support this campaign” above to give any amount.
       </p>

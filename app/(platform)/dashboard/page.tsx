@@ -644,6 +644,40 @@ function OverviewPane({
         </h1>
       </div>
 
+      {/* Persistent payments blocker: cannot be dismissed while Stripe is unconnected,
+          so a creator can never silently end up unable to get paid. */}
+      {!stripeConnected && (
+        <button
+          onClick={() => onSetPane("payments")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            width: "100%",
+            textAlign: "left",
+            background: "rgba(242,184,75,0.1)",
+            border: "1px solid rgba(242,184,75,0.35)",
+            borderRadius: "var(--r-2)",
+            padding: "14px 18px",
+            marginBottom: "var(--s-4)",
+            cursor: "pointer",
+          }}
+        >
+          <span>
+            <span style={{ display: "block", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: "var(--text)" }}>
+              Your page can’t accept payments yet
+            </span>
+            <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>
+              Connect Stripe so your audience can subscribe and pay you directly. Takes about 3 minutes.
+            </span>
+          </span>
+          <span style={{ flexShrink: 0, fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--accent)" }}>
+            Connect Stripe →
+          </span>
+        </button>
+      )}
+
       {/* Onboarding checklist */}
       {!checklistDismissed && (
         <OnboardingChecklist

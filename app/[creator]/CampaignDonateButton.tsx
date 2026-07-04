@@ -1,15 +1,18 @@
 "use client";
 import { useState } from "react";
+import { InlineError } from "./InlineError";
 
 export default function CampaignDonateButton({ campaignId, campaignTitle }: { campaignId: string; campaignTitle: string }) {
   const [amount, setAmount] = useState("10");
   const [message, setMessage] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function donate() {
     const val = parseFloat(amount);
     if (!val || val < 1) return;
+    setError(null);
     setLoading(true);
     const res = await fetch("/api/campaigns/donate", {
       method: "POST",
@@ -18,7 +21,7 @@ export default function CampaignDonateButton({ campaignId, campaignTitle }: { ca
     });
     const data = await res.json();
     if (data.url) { window.location.href = data.url; return; }
-    if (data.error) { alert(data.error); }
+    if (data.error) { setError(data.error); }
     setLoading(false);
   }
 
@@ -61,6 +64,7 @@ export default function CampaignDonateButton({ campaignId, campaignTitle }: { ca
         style={{ width:"100%", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"10px 14px", color:"var(--text)", fontSize:13, outline:"none", marginBottom:"var(--s-4)" }}
         value={message} onChange={e => setMessage(e.target.value)} />
 
+      <InlineError message={error} />
       <div style={{ display:"flex", gap:"var(--s-3)" }}>
         <button onClick={donate} disabled={loading || !amount || Number(amount) < 1}
           className="btn btn--primary" style={{ borderRadius:"var(--r-pill)" }}>

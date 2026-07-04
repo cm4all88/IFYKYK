@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { InlineError } from "./InlineError";
 
 interface Comment {
   id: string;
@@ -22,6 +23,7 @@ export default function CommentSection({ postId, viewerUserId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [boostingId, setBoostingId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!expanded) return;
@@ -48,6 +50,7 @@ export default function CommentSection({ postId, viewerUserId }: Props) {
 
   async function boost(commentId: string) {
     setBoostingId(commentId);
+    setError(null);
     const res = await fetch("/api/comments/boost", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -55,7 +58,7 @@ export default function CommentSection({ postId, viewerUserId }: Props) {
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else { alert(data.error ?? "Could not boost"); setBoostingId(null); }
+    else { setError(data.error ?? "Could not boost"); setBoostingId(null); }
   }
 
   const boosted = comments.filter(c => c.is_boosted && (!c.boosted_until || new Date(c.boosted_until) > new Date()));
@@ -117,6 +120,7 @@ export default function CommentSection({ postId, viewerUserId }: Props) {
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
                 style={{ flex: 1, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "9px 14px", color: "var(--text)", fontSize: 13, outline: "none", fontFamily: "inherit" }}
               />
+              <InlineError message={error} />
               <button onClick={submit} disabled={submitting || !text.trim()} className="btn btn--primary btn--small" style={{ borderRadius: "var(--r-pill)", fontSize: 12 }}>
                 {submitting ? "…" : "Post"}
               </button>

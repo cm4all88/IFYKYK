@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { InlineError } from "./InlineError";
 
 interface Listing {
   id: string;
@@ -34,6 +35,7 @@ export default function CreatorMarketplace({
   const [processing, setProcessing] = useState(false);
   const [purchased, setPurchased] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/marketplace?profileId=${creatorProfileId}`)
@@ -62,6 +64,7 @@ export default function CreatorMarketplace({
 
   async function purchase(listingId: string) {
     setProcessing(true);
+    setError(null);
     const res = await fetch("/api/marketplace/purchase", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -69,7 +72,7 @@ export default function CreatorMarketplace({
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else alert(data.error ?? "Something went wrong");
+    else setError(data.error ?? "Something went wrong");
     setProcessing(false);
   }
 
@@ -143,6 +146,8 @@ export default function CreatorMarketplace({
                     Sold
                   </p>
                 ) : (
+                  <>
+                  <InlineError message={error} />
                   <button onClick={() => purchase(selected.id)} disabled={processing} style={{
                     width: "100%", padding: "14px 0",
                     background: "rgba(242,184,75,0.9)", border: "none", borderRadius: 6,
@@ -154,6 +159,7 @@ export default function CreatorMarketplace({
                   }}>
                     {processing ? "Opening checkout…" : `Purchase · $${selected.price_usd}`}
                   </button>
+                  </>
                 )}
 
                 <p style={{ fontFamily: mono, fontSize: 9, color: "rgba(255,255,255,0.2)", textAlign: "center", marginTop: 10, letterSpacing: "0.06em" }}>
