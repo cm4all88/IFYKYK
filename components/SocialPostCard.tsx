@@ -1,5 +1,7 @@
 'use client'
 
+import { InstagramEmbed } from './InstagramEmbed'
+
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube',
   x: 'X', twitter: 'X', facebook: 'Facebook',
@@ -51,6 +53,9 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
   const label = PLATFORM_LABELS[post.platform] || post.platform
   const color = PLATFORM_COLORS[post.platform] || 'var(--accent, #F0B429)'
   const embed = embedFor(post.platform, post.url)
+  // A real Instagram post (not a profile link): render it live with embed.js unless a
+  // manual/enriched thumbnail is set (which always wins as a guaranteed image).
+  const igPost = post.platform === 'instagram' && /instagram\.com\/(p|reel|reels|tv)\//i.test(post.url)
 
   // Only show a date we actually trust: parseable, after 2010, not in the future.
   const ts = post.original_posted_at ? Date.parse(post.original_posted_at) : NaN
@@ -125,6 +130,8 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
             </p>
           )}
         </a>
+      ) : igPost ? (
+        <InstagramEmbed url={post.url} />
       ) : (
         <a href={post.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none', padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '26px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)' }}>
