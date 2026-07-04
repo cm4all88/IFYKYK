@@ -378,6 +378,7 @@ export default function VideoStudio() {
     { id: "supportMe", label: "Tip Jar", type: "supportMe", open: null },
   ];
   const [openAdvanced, setOpenAdvanced] = useState<string | null>(null);
+  const [simpleMode, setSimpleMode] = useState(true);
 
   const applyTemplate = (t: { id: string; type: VideoType; open: string | null }) => {
     setActiveTemplate(t.id);
@@ -752,6 +753,76 @@ export default function VideoStudio() {
         details.vs-adv[open] > summary::after { content: "\\2013"; }
       `}</style>
 
+      {simpleMode ? (
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 400px", gap: 24, alignItems: "start" }}>
+          <div className="card">
+            <div className="card-title">Make a video</div>
+            <Field label="1. Pick a creator">
+              <CreatorPicker creators={creators} value={creatorId} onChange={loadCreator} loading={loadingCreator} />
+            </Field>
+            <Field label="2. What is this video for?">
+              <select
+                className="adm-select"
+                value={activeTemplate}
+                onChange={(e) => {
+                  const t = VS_TEMPLATES.find((x) => x.id === e.target.value);
+                  if (t) applyTemplate(t);
+                }}
+              >
+                {VS_TEMPLATES.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <button
+              className="adm-btn adm-btn--primary"
+              style={{ width: "100%", padding: "14px 0", fontSize: 15, marginTop: 6 }}
+              onClick={generateSmart}
+            >
+              3. Make the video
+            </button>
+            <p style={{ fontSize: 12, color: "#9a9aae", margin: "10px 0 0", lineHeight: 1.6 }}>
+              Builds a vertical reel from this creator&apos;s page. It plays on the right. When it looks good, download it.
+            </p>
+            <button
+              className="adm-btn adm-btn--primary"
+              style={{ width: "100%", padding: "14px 0", fontSize: 15, marginTop: 14 }}
+              onClick={exportMp4}
+            >
+              Download video
+            </button>
+            {status ? (
+              <div className={`adm-banner ${status.err ? "adm-banner--err" : "adm-banner--ok"}`} style={{ marginTop: 12, marginBottom: 0 }}>
+                {status.msg}
+              </div>
+            ) : null}
+            <button
+              onClick={() => setSimpleMode(false)}
+              style={{ display: "block", background: "none", border: "none", color: "#8fb0ff", cursor: "pointer", fontSize: 12, marginTop: 18, padding: 0, textDecoration: "underline" }}
+            >
+              Edit the script, scenes, music and more
+            </button>
+          </div>
+          <div style={{ position: "sticky", top: 24 }}>
+            <Player data={previewData} />
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12, color: "#d5d5e2" }}>
+              <span>{scenes.length} scenes</span>
+              <span>{seconds}s . vertical</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+      <>
+      <div style={{ marginBottom: 14 }}>
+        <button
+          onClick={() => setSimpleMode(true)}
+          style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", color: "#8fb0ff", cursor: "pointer", fontSize: 12, padding: "6px 14px", borderRadius: 8 }}
+        >
+          Back to the simple view
+        </button>
+      </div>
       <div
         style={{
           display: "grid",
@@ -1508,6 +1579,8 @@ export default function VideoStudio() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

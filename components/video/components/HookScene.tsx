@@ -45,13 +45,14 @@ export const HookScene: React.FC<{data: VideoData; durationInFrames: number}> = 
           }}
         >
           {words.map((w, i) => {
-            const s = spring({frame: frame - 6 - i * 3.5, fps, config: {damping: 200, mass: 0.6}});
+            // Whole line eases in together (no word-by-word popping, which flashes).
+            const s = spring({frame: frame - 6, fps, config: {damping: 200, mass: 0.9}});
             return (
               <span
                 key={i}
                 style={{
                   opacity: s,
-                  transform: `translateY(${interpolate(s, [0, 1], [40, 0])}px)`,
+                  transform: `translateY(${interpolate(s, [0, 1], [26, 0])}px)`,
                   fontFamily: theme.font.sans,
                   fontWeight: 800,
                   fontSize: 86,
