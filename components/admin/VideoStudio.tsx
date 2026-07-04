@@ -1112,7 +1112,7 @@ export default function VideoStudio() {
           <div className="card">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
               <div className="card-title" style={{ margin: 0, padding: 0, border: "none" }}>
-                Voiceover script
+                The script
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button
@@ -1121,23 +1121,23 @@ export default function VideoStudio() {
                   onClick={voIdx !== null ? stopVoiceover : previewVoiceover}
                   disabled={voLoading}
                 >
-                  {voLoading ? "Synthesizing..." : voIdx !== null ? "Stop" : "Preview voiceover"}
+                  {voLoading ? "Loading..." : voIdx !== null ? "Stop" : "Hear the voice"}
                 </button>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "6px 14px" }} onClick={() => setSegments(buildScriptSegments(videoType, data))}>
-                  Regenerate
+                  Rewrite the script
                 </button>
                 <button className="adm-btn adm-btn--primary" style={{ padding: "6px 14px" }} onClick={copyScript}>
-                  {copied ? "Copied" : "Copy"}
+                  {copied ? "Copied" : "Copy text"}
                 </button>
               </div>
             </div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
                 <label className="adm-label" style={{ display: "block", margin: 0 }}>
-                  Hook engine (strongest first, tap to use)
+                  Opening line (tap one to use it)
                 </label>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "5px 12px", fontSize: 11 }} disabled={hooksLoading} onClick={writeHooks}>
-                  {hooksLoading ? "Writing..." : aiHooks ? "Rewrite hooks" : "Write specific hooks"}
+                  {hooksLoading ? "Thinking..." : aiHooks ? "Suggest again" : "Suggest openers"}
                 </button>
               </div>
               {aiHooks ? (
@@ -1168,7 +1168,6 @@ export default function VideoStudio() {
                       }}
                     >
                       <span>{h.text}</span>
-                      <span style={{ color: "#9a9aae", fontVariantNumeric: "tabular-nums" }}>{h.score}</span>
                     </button>
                   );
                 })}
@@ -1192,21 +1191,18 @@ export default function VideoStudio() {
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 12, color: "#e8e8f0" }}>
               <input type="checkbox" checked={bakeVo} onChange={(e) => setBakeVo(e.target.checked)} />
-              Bake this voiceover into the MP4 on export (narrated with ElevenLabs)
+              Add a spoken voice to the video
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 8, color: bakeVo ? "#e8e8f0" : "#6b6b80" }}>
               <input type="checkbox" checked={captionsOn} disabled={!bakeVo} onChange={(e) => setCaptionsOn(e.target.checked)} />
-              Burn in synced captions (word by word, timed to the voice)
+              Show captions on screen
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, marginTop: 8, color: bakeVo ? "#e8e8f0" : "#6b6b80" }}>
               <input type="checkbox" checked={fluidVo} disabled={!bakeVo} onChange={(e) => setFluidVo(e.target.checked)} />
-              Read the whole script as one fluid voiceover (smoother, less choppy)
+              Read it smoothly as one take (less choppy)
             </label>
             <p style={{ marginTop: 8, fontSize: 11, color: "#d5d5e2", lineHeight: 1.6 }}>
-              One line per scene, built from this creator. Edit any line. With bake on, Export speaks each line
-              with ElevenLabs and times that scene to its line, so the picture changes when the narration does,
-              with the music ducked underneath. Fluid read speaks the whole script in one take for natural cadence,
-              while the visuals still cut on the beat. Or turn bake off and Copy the lines for any other tool.
+              One line per scene. Edit any of them. Turn on the spoken voice to have the video narrated, or leave it off and just use the words on screen.
             </p>
           </div>
 
