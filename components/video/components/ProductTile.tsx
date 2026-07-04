@@ -35,7 +35,7 @@ export const ProductTile: React.FC<{title: string; price: string; image?: string
         style={{
           aspectRatio: '1 / 1',
           overflow: 'hidden',
-          background: image ? 'transparent' : 'linear-gradient(135deg, #FFF6E2, #FFE8BD)',
+          background: image ? 'transparent' : 'linear-gradient(135deg, rgba(242,184,75,0.18), rgba(242,184,75,0.05))',
         }}
       >
         {image ? (

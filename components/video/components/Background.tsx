@@ -42,7 +42,7 @@ export const Background: React.FC<{cover?: string; intensity?: number}> = ({cove
             />
           </AbsoluteFill>
           {/* Warm scrim so foreground text and white cards stay readable. */}
-          <AbsoluteFill style={{backgroundColor: `rgba(251,250,247,${scrim})`}} />
+          <AbsoluteFill style={{backgroundColor: `rgba(16,17,20,${scrim})`}} />
         </>
       ) : null}
       <AbsoluteFill
