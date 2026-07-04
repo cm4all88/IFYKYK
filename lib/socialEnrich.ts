@@ -47,6 +47,10 @@ function htmlUnescape(s: string): string {
 function extractImage(html: string): string | null {
   let m = html.match(/"display_url":"([^"]+)"/);
   if (m) return decodeUrlEscapes(m[1]);
+  m = html.match(/"thumbnail_src":"([^"]+)"/);
+  if (m) return decodeUrlEscapes(m[1]);
+  m = html.match(/"image_versions2"[\s\S]{0,500}?"url":"([^"]+)"/);
+  if (m) return decodeUrlEscapes(m[1]);
   m = html.match(/class="EmbeddedMediaImage"[^>]*\ssrc="([^"]+)"/i);
   if (m) return decodeUrlEscapes(m[1]);
   m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
@@ -105,13 +109,21 @@ export async function enrichInstagram(
   const code = igShortcode(url);
   if (!code) return empty;
   try {
-    const res = await fetch(`https://www.instagram.com/p/${code}/embed/captioned/`, {
-      headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
-    });
-    if (!res.ok) return empty;
-    const html = await res.text();
-    const img = extractImage(html);
-    const caption = extractCaption(html);
+    const endpoints = [
+      `https://www.instagram.com/p/${code}/embed/captioned/`,
+      `https://www.instagram.com/p/${code}/embed/`,
+      `https://www.instagram.com/p/${code}/`,
+    ];
+    let img: string | null = null;
+    let caption: string | null = null;
+    for (const ep of endpoints) {
+      const res = await fetch(ep, { headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" } });
+      if (!res.ok) continue;
+      const html = await res.text();
+      if (!img) img = extractImage(html);
+      if (!caption) caption = extractCaption(html);
+      if (img) break;
+    }
     let thumb: string | null = null;
     if (img) {
       const rand = Math.random().toString(36).slice(2, 8);

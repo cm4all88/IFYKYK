@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin";
 import { createServiceClient } from "@/lib/supabase-server";
 import { tiktokDateMs, instagramDateMs } from "@/lib/socialDates";
+import { enrichInstagram, enrichTikTok } from "@/lib/socialEnrich";
 
 function detectPlatform(url: string): string | null {
   if (/instagram\.com/i.test(url)) return "instagram";
@@ -17,6 +18,18 @@ export async function POST(req: Request) {
   let body: any;
   try { body = await req.json(); } catch { return NextResponse.json({ error: "Bad request" }, { status: 400 }); }
 
+  const admin = await createServiceClient();
+
+  // Set (or clear) the image on an existing post: { id, thumbnail_url }.
+  if (body?.id && typeof body.thumbnail_url === "string" && !body.url) {
+    const { error } = await (admin as any)
+      .from("social_posts")
+      .update({ thumbnail_url: body.thumbnail_url || null })
+      .eq("id", body.id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
   const creatorId = String(body?.creator_profile_id || "");
   const url = String(body?.url || "").trim();
   if (!creatorId) return NextResponse.json({ error: "Missing creator" }, { status: 400 });
@@ -28,14 +41,24 @@ export async function POST(req: Request) {
   const ms = platform === "tiktok" ? tiktokDateMs(url) : platform === "instagram" ? instagramDateMs(url) : null;
   if (ms) postedAt = new Date(ms).toISOString();
 
-  const admin = await createServiceClient();
+  let caption: string | null = typeof body.caption === "string" && body.caption.trim() ? body.caption.trim() : null;
+  let thumbnail_url: string | null = typeof body.thumbnail_url === "string" && body.thumbnail_url.trim() ? body.thumbnail_url.trim() : null;
+
+  // Enrich so admin-added posts get a real image card (same as the creator flow).
+  if (!thumbnail_url && platform === "instagram") {
+    try { const e = await enrichInstagram(url); if (e.thumbnail_url) thumbnail_url = e.thumbnail_url; if (!caption && e.caption) caption = e.caption; } catch {}
+  } else if (!thumbnail_url && platform === "tiktok") {
+    try { const e = await enrichTikTok(url); if (e.thumbnail_url) thumbnail_url = e.thumbnail_url; if (!caption && e.caption) caption = e.caption; } catch {}
+  }
+
   const { data, error } = await (admin as any).from("social_posts").insert({
     creator_id: creatorId,
     url,
     platform,
     original_posted_at: postedAt,
-    caption: typeof body.caption === "string" && body.caption.trim() ? body.caption.trim() : null,
-  }).select("id, url, platform").single();
+    caption,
+    thumbnail_url,
+  }).select("id, url, platform, thumbnail_url").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, post: data });
 }

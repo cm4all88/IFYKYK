@@ -9,12 +9,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   x: '#fff', twitter: '#fff', facebook: '#1877F2',
 }
 
-function igEmbed(u: string) {
-  const m = (u || '').match(/instagram\.com\/(p|reel|reels|tv)\/([A-Za-z0-9_-]+)/i);
-  if (!m) return null;
-  let t = m[1].toLowerCase(); if (t === 'reels') t = 'reel';
-  return `https://www.instagram.com/${t}/${m[2]}/embed/`;
-}
 function ttId(u: string) { const m = (u || '').match(/\/video\/(\d{6,25})/); return m ? m[1] : null }
 function ytId(u: string) { const m = (u || '').match(/(?:v=|youtu\.be\/|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{6,})/); return m ? m[1] : null }
 function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); return m ? m[1] : null }
@@ -28,7 +22,12 @@ function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); ret
 // clean link card — never a broken frame.
 function embedFor(platform: string, url: string): { src: string; aspect?: string; width?: number; height?: number; bg: string } | null {
   switch (platform) {
-    case 'instagram': { const src = igEmbed(url); return src ? { src, width: 540, height: 700, bg: '#fff' } : null }
+    // Instagram's iframe embed frequently renders its own broken "this post may be
+    // unavailable, Visit Instagram" card (removed/private posts, or IG blocking the
+    // embed). That looks broken on a creator page, so we skip the iframe entirely and
+    // fall through to the thumbnail (if enriched) or a clean branded link card.
+    case 'instagram':
+      return null;
     case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, width: 325, height: 740, bg: '#000' } : null }
     case 'youtube': { const id = ytId(url); return id ? { src: `https://www.youtube.com/embed/${id}`, aspect: '16 / 9', bg: '#000' } : null }
     case 'x':

@@ -187,7 +187,7 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
             ? {
                 minHeight: "100vh",
                 position: "relative",
-                background: `linear-gradient(180deg, rgba(9,9,12,0.35) 0, rgba(9,9,12,0.58) 320px, rgba(9,9,12,0.82) 760px, rgba(9,9,12,0.9) 100%), url("${bgImg}") top center / cover no-repeat`,
+                background: `linear-gradient(180deg, rgba(9,9,12,0.58) 0, rgba(9,9,12,0.74) 320px, rgba(9,9,12,0.90) 760px, rgba(9,9,12,0.97) 100%), url("${bgImg}") top center / cover no-repeat`,
                 backgroundAttachment: "fixed",
               }
             : { minHeight: "100vh", position: "relative", background: "#09090C" }

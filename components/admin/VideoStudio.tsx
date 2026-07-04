@@ -183,6 +183,36 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// Downscale + JPEG-compress an image in the browser so big screenshots fit under
+// Vercel's 4.5 MB request-body limit. HEIC can't be drawn to canvas, so it's left
+// as-is (and size-guarded).
+async function compressImage(file: File, maxDim = 2000, quality = 0.86): Promise<Blob> {
+  const dataUrl: string = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(new Error("read failed"));
+    r.readAsDataURL(file);
+  });
+  const img: HTMLImageElement = await new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("decode failed"));
+    im.src = dataUrl;
+  });
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no canvas");
+  ctx.drawImage(img, 0, 0, w, h);
+  const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", quality));
+  if (!blob) throw new Error("encode failed");
+  return blob;
+}
+
 function AssetInput({
   value,
   onChange,
@@ -198,8 +228,23 @@ function AssetInput({
     setUploading(true);
     setErr(null);
     try {
+      let blob: Blob = f;
+      let name = f.name;
+      const isHeic = /hei[cf]$/i.test(f.name) || /image\/hei[cf]/i.test(f.type);
+      if (f.type.startsWith("image/") && !isHeic) {
+        try {
+          blob = await compressImage(f);
+          name = f.name.replace(/\.\w+$/, "") + ".jpg";
+        } catch {
+          blob = f; // fall back to original if canvas fails
+        }
+      }
+      if (blob.size > 4.3 * 1024 * 1024) {
+        setErr(`Still ${(blob.size / 1048576).toFixed(1)} MB after compressing. Crop it smaller or paste a hosted link.`);
+        return;
+      }
       const fd = new FormData();
-      fd.append("file", f);
+      fd.append("file", new File([blob], name, { type: blob.type || f.type }));
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.url) {
@@ -334,6 +379,17 @@ export default function VideoStudio() {
     set({ clips: next.length ? next : undefined });
   };
   const uploadClip = async (i: number, f: File) => {
+    // Vercel serverless functions reject request bodies over 4.5 MB, so a big clip
+    // can't go through /api/upload at all. Only small clips upload in-app; anything
+    // larger has to be hosted directly and pasted as a link.
+    const MAX_INLINE = 4.3 * 1024 * 1024;
+    if (f.size > MAX_INLINE) {
+      setStatus({
+        msg: `That clip is ${(f.size / 1048576).toFixed(0)} MB. Clips over about 4 MB can't upload through the app. Host it (Bunny, or any public mp4) and paste the link in the clip field instead.`,
+        err: true,
+      });
+      return;
+    }
     setClipUploading(i);
     try {
       const fd = new FormData();
@@ -796,9 +852,10 @@ export default function VideoStudio() {
           <div className="card">
             <div className="card-title" style={{ marginBottom: 8 }}>Video clips</div>
             <p style={{ fontSize: 11, color: "#d5d5e2", margin: "0 0 12px" }}>
-              Upload short clips from the creator (their reels or TikToks). We stitch them in, muted and
+              Add short clips from the creator (their reels or TikToks). We stitch them in, muted and
               vertical, with an overlay like "How she made this", timed to the beat. Keep them short, a few
-              seconds each. Up to three.
+              seconds each. Up to three. Small clips can Upload here; larger ones need to be hosted (Bunny, or
+              any public mp4 link) and pasted in, since the app can't accept uploads over about 4 MB.
             </p>
             <datalist id="clip-labels">
               <option value="More of this" />
@@ -812,8 +869,14 @@ export default function VideoStudio() {
               return (
                 <div key={i} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: 12, marginBottom: 8 }}>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <label className="adm-btn adm-btn--ghost" style={{ cursor: clipUploading === i ? "default" : "pointer", opacity: clipUploading === i ? 0.6 : 1 }}>
-                      {clipUploading === i ? "Uploading..." : c?.url ? "Replace clip" : `Upload clip ${i + 1}`}
+                    <input
+                      className="adm-input"
+                      value={c?.url ?? ""}
+                      placeholder="Paste a hosted clip URL (mp4)"
+                      onChange={(e) => updateClip(i, { url: e.target.value })}
+                    />
+                    <label className="adm-btn adm-btn--ghost" style={{ whiteSpace: "nowrap", cursor: clipUploading === i ? "default" : "pointer", opacity: clipUploading === i ? 0.6 : 1 }}>
+                      {clipUploading === i ? "Uploading..." : "Upload"}
                       <input
                         type="file"
                         accept="video/*"

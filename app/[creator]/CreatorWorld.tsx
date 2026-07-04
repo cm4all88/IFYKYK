@@ -263,7 +263,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
               srcSet={bunnyImageSrcSet(bgImg, [768, 1280, 1920, 2560], { quality: 82 })}
               sizes="100vw"
               alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
-            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(9,9,12,0.30) 0%, rgba(9,9,12,0.58) 34%, rgba(9,9,12,0.86) 72%, rgba(9,9,12,0.95) 100%)" }} />
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(9,9,12,0.58) 0%, rgba(9,9,12,0.74) 32%, rgba(9,9,12,0.90) 64%, rgba(9,9,12,0.97) 100%)" }} />
           </div>
         ) : null}
         <div style={{ position: "relative", zIndex: 1, maxWidth: 1040, margin: "0 auto", padding: "0 24px" }}>
