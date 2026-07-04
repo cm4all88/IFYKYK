@@ -150,9 +150,12 @@ const subjectHooks = (d: VideoData): string[] => {
   const first = firstName(d.creator?.name);
   const camp = (d.campaign?.title || '').trim().replace(/[.\s]+$/, '');
   if (camp && camp.length >= 4 && camp.length <= 52) {
-    out.push(`${camp}.`);
+    // Tease the campaign. Do NOT repeat the title verbatim, the campaign scene says it,
+    // so an opener that echoes it makes the reel repeat itself.
     out.push(`This is the one ${first} has been dreaming about.`);
-    out.push(`${camp}. It starts now.`);
+    out.push(`${first} is going all in on this.`);
+    out.push(`This is the big one for ${first}.`);
+    out.push(`You'll want to be part of this one.`);
   }
   return out;
 };
