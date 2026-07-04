@@ -18,6 +18,7 @@ export type Angle =
 interface Hook {
   text: string; // may contain {first}
   angles?: Angle[]; // affinity; absent = fits any angle
+  aspirational?: boolean; // sells the future / being early; good for new creators
 }
 
 // Story-first openers. Narrator-safe (third person / universal), curiosity-led,
@@ -43,6 +44,22 @@ const HOOKS: Hook[] = [
   {text: "{first} can't do it alone.", angles: ['supportMe', 'campaign']},
   {text: 'Every big thing needs a few believers.', angles: ['supportMe', 'campaign']},
   {text: "Here's what you missed this week.", angles: ['weeklyHighlight']},
+  // Aspirational / viral: sell the future and being early. These carry a new creator
+  // whose page is still light, and they land as viral openers for anyone.
+  {text: 'This is day one.', aspirational: true},
+  {text: "You're early. That's the whole point.", aspirational: true},
+  {text: 'Remember this face.', aspirational: true},
+  {text: "One day you'll say you were here first.", aspirational: true},
+  {text: 'This is the start of something.', aspirational: true},
+  {text: 'Get in before everyone else does.', aspirational: true},
+  {text: 'The ones who show up early never regret it.', aspirational: true},
+  {text: 'Something is starting here.', aspirational: true},
+  {text: 'Be one of the first.', aspirational: true},
+  {text: 'You found this at the right time.', aspirational: true},
+  {text: 'Watch what happens next.', aspirational: true},
+  {text: "Save this. You'll want to remember where it started.", aspirational: true},
+  {text: 'Not everyone gets to be early.', aspirational: true},
+  {text: 'The beginning is the best part to catch.', aspirational: true},
 ];
 
 // Niche-aware openers. Only used when we can name what the creator actually does,
@@ -75,10 +92,10 @@ const nicheOf = (d: VideoData): string | undefined => {
   return undefined;
 };
 
-const STRONG_OPENERS = ['nobody', 'everyone', 'this', 'they', 'what', 'most', 'the', 'here', 'so', 'following', 'behind'];
+const STRONG_OPENERS = ['nobody', 'everyone', 'this', 'they', 'what', 'most', 'the', 'here', 'so', 'following', 'behind', 'you', 'remember', 'watch', 'get', 'save', 'be', 'something', 'not', 'one'];
 const FEATURE_WORDS = /\b(subscribe|membership|exclusive|unlock|platform|sign up|link in bio|discount)\b/i;
-const CURIOSITY = /\b(nobody|never|no one|secret|hidden|don'?t see|what you|the part|behind|missed|this happened)\b/i;
-const EMOTION = /\b(almost|quit|walk(ed)? away|hard|real|truth|honest|alone|believers|sunrise|before anyone)\b/i;
+const CURIOSITY = /\b(nobody|never|no one|secret|hidden|don'?t see|what you|the part|behind|missed|this happened|early|first|day one|beginning|starts?|remember|watch|before everyone)\b/i;
+const EMOTION = /\b(almost|quit|walk(ed)? away|hard|real|truth|honest|alone|believers|sunrise|before anyone|never regret|right time|one day|here first)\b/i;
 
 const hashOf = (s: string) => {
   let h = 0;
@@ -110,19 +127,29 @@ const fill = (text: string, d: VideoData, niche?: string) =>
 
 const angleOf = (d: VideoData): Angle => (d.videoType as Angle) ?? 'launch';
 
-// Top N hooks for this creator and angle, already scored and personalized. When we can
-// name the creator's niche, niche-specific openers are blended in and get a relevance
-// bump so they tend to surface first.
+// A creator is "new" when their page is still light: few posts, no campaign traction.
+// For these, we sell the future instead of reaching for thin content.
+const isNewCreator = (d: VideoData): boolean => {
+  const posts = d.feedScreenshots?.length ?? 0;
+  const raised = parseFloat(String(d.campaign?.raised ?? "").replace(/[^0-9.]/g, "")) || 0;
+  const backers = d.campaign?.backers ?? 0;
+  return Boolean(d.creator?.founding) || (posts < 3 && raised < 1 && backers < 2);
+};
+
+// Top N hooks for this creator and angle, already scored and personalized. New creators
+// get aspirational, get-in-early openers pushed to the top and skip niche hooks (which
+// only look good when there is real content to name).
 export const hooksFor = (d: VideoData, n = 3): {text: string; score: number}[] => {
   const angle = angleOf(d);
   const key = d.creator?.handle || d.creator?.name || 'spotlightly';
   const jitter = hashOf(key) % 4;
-  const niche = nicheOf(d);
+  const isNew = isNewCreator(d);
+  const niche = isNew ? undefined : nicheOf(d);
   const eligible = HOOKS.filter((h) => !h.angles || h.angles.includes(angle));
   const pool = eligible.length ? eligible : HOOKS;
   const generic = pool.map((h, i) => ({
     text: fill(h.text, d),
-    score: Math.min(100, scoreHook(h.text) + ((i + jitter) % 3)),
+    score: Math.min(100, scoreHook(h.text) + ((i + jitter) % 3) + (h.aspirational ? (isNew ? 22 : 6) : 0)),
   }));
   const nicheScored = niche
     ? NICHE_HOOKS.map((t, i) => ({

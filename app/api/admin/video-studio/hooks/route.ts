@@ -25,6 +25,7 @@ Voice rules, follow every one:
 - Short. Most lines under 8 words.
 - No em dashes and no hyphens anywhere. Use periods or commas.
 - Grounded in THIS creator's real work below. A stranger must not be able to swap in any other creator. If the work is about coffee, the hook should feel like coffee.
+- If the work below is thin or empty, the creator is new. Do NOT reach for or invent specifics. Instead sell the future and being early: this is day one, get in before everyone, remember this face, watch what happens next. Aspirational and viral beats literal. Make being early feel exciting, not empty.
 
 Creator: ${name}
 What they do, from their photos: ${categories.join(", ") || "unknown"}

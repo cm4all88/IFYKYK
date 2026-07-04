@@ -25,8 +25,9 @@ export const PhoneMockup: React.FC<{src: string; durationInFrames: number; seed?
   const dir = seed % 2 === 0 ? 1 : -1;
   const rotY = interpolate(t, [0, 1], [7 * dir, -5 * dir]);
   const rotX = Math.sin(frame / 60) * 2.2;
-  // Slow vertical "scroll" of the page inside the screen.
-  const scrollY = interpolate(t, [0, 1], [2, 38]);
+  // Slow vertical "scroll" of the page inside the screen, bounded so a short page
+  // never reveals black at the bottom.
+  const scrollY = interpolate(t, [0, 1], [1, 20]);
 
   const W = 560;
   const H = 1180;
@@ -47,8 +48,8 @@ export const PhoneMockup: React.FC<{src: string; durationInFrames: number; seed?
         }}
       >
         <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 64, overflow: 'hidden', background: '#000'}}>
-          <div style={{position: 'absolute', inset: 0, transform: `translateY(-${scrollY}%)`}}>
-            <SafeImg src={asset(src) as string} style={{width: '100%', display: 'block'}} />
+          <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: '128%', transform: `translateY(-${scrollY}%)`}}>
+            <SafeImg src={asset(src) as string} style={{width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block'}} />
           </div>
           {/* Dynamic island */}
           <div
