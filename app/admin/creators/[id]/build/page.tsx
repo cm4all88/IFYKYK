@@ -33,7 +33,7 @@ export default async function BuildPage(props: { params: Promise<{ id: string }>
 
   const { data: socialPosts } = await (admin as any)
     .from("social_posts")
-    .select("id, url, platform")
+    .select("id, url, platform, thumbnail_url")
     .eq("creator_id", id)
     .order("created_at", { ascending: false })
     .limit(100);

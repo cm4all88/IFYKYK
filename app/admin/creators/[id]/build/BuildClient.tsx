@@ -18,7 +18,7 @@ type Creator = {
 };
 type Post = { id: string; caption: string | null; media_url: string | null; media_type: string | null; created_at: string };
 type Pick = { id: string; label: string; url: string | null; image_url: string | null; note: string | null };
-type SocialPost = { id: string; url: string; platform: string };
+type SocialPost = { id: string; url: string; platform: string; thumbnail_url?: string | null };
 type Tier = { id: string; name: string; description: string | null; price_monthly: number; price_yearly: number | null; perks: string[] | null };
 
 async function uploadFile(file: File): Promise<string> {
@@ -207,6 +207,40 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
     if (!confirm("Remove this post?")) return;
     const res = await fetch(`/api/admin/creators/social-post?id=${id}`, { method: "DELETE" });
     if (res.ok) setSocialPosts(socialPosts.filter((sp) => sp.id !== id));
+  }
+
+  // Set (or replace) a social post's image. Instagram often can't be scraped, so this
+  // lets you drop the real image in manually so the card shows content, not a link.
+  async function uploadSocialThumb(id: string, file: File | undefined) {
+    if (!file) return;
+    if (file.size > 4.3 * 1024 * 1024) {
+      setSocialMsg(`That image is ${(file.size / 1048576).toFixed(1)} MB. Use one under about 4 MB.`);
+      return;
+    }
+    setSocialMsg("Setting image…");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const uj = await up.json().catch(() => ({}));
+      if (!up.ok || !uj.url) {
+        setSocialMsg(uj.error || "Upload failed.");
+        return;
+      }
+      const res = await fetch("/api/admin/creators/social-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, thumbnail_url: uj.url }),
+      });
+      if (res.ok) {
+        setSocialPosts(socialPosts.map((sp) => (sp.id === id ? { ...sp, thumbnail_url: uj.url } : sp)));
+        setSocialMsg("Image set.");
+      } else {
+        setSocialMsg("Could not set the image.");
+      }
+    } catch {
+      setSocialMsg("Upload failed.");
+    }
   }
 
   function resetTierForm() {
@@ -462,8 +496,18 @@ export default function BuildClient({ creator, initialPosts, initialPicks, initi
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             {socialPosts.map((sp) => (
               <div key={sp.id} style={{ display: "flex", gap: 12, alignItems: "center", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+                {sp.thumbnail_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={sp.thumbnail_url} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                ) : (
+                  <span style={{ width: 40, height: 40, borderRadius: 6, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🔗</span>
+                )}
                 <span style={{ fontSize: 11, textTransform: "uppercase", color: "var(--muted, #888)", width: 70, flexShrink: 0 }}>{sp.platform}</span>
                 <a href={sp.url} target="_blank" rel="noopener" style={{ flex: 1, fontSize: 12, color: "var(--muted, #888)", wordBreak: "break-all" }}>{sp.url}</a>
+                <label className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {sp.thumbnail_url ? "Change image" : "Set image"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => uploadSocialThumb(sp.id, e.target.files?.[0])} />
+                </label>
                 <button className="adm-btn adm-btn--ghost" style={{ padding: "4px 10px" }} onClick={() => deleteSocial(sp.id)}>Remove</button>
               </div>
             ))}
