@@ -1,11 +1,13 @@
 // The creator's post image urls, in the exact order the Video Studio uses them.
-// Now includes gallery images (media_urls), so a creator with multi photo posts gives
-// the reel plenty to work with instead of one photo on repeat. Shared by the data
-// loader and the media analyzer so per-image analysis stays aligned by index.
+// Includes gallery images (media_urls) so a creator with multi photo posts gives the
+// reel plenty to work with. Shared by the loader and the analyzer so per-image analysis
+// stays aligned by index.
 export async function loadFeedUrls(supabase: any, creatorProfileId: string): Promise<string[]> {
-  const base = () =>
+  // NOTE: .select() must come first in a Supabase query, before any filters.
+  const run = (cols: string) =>
     supabase
       .from("posts")
+      .select(cols)
       .eq("creator_profile_id", creatorProfileId)
       .eq("status", "live")
       .not("media_url", "is", null)
@@ -13,18 +15,18 @@ export async function loadFeedUrls(supabase: any, creatorProfileId: string): Pro
       .order("created_at", { ascending: false })
       .limit(12);
 
-  // Try to read the gallery column; fall back if migration 058 has not been run.
-  let posts: any[] | null = null;
-  const withGallery = await base().select("media_url, media_urls, media_type, is_pinned, status, created_at");
+  // Try the gallery column; fall back if migration 058 has not been run yet.
+  let posts: any[] = [];
+  const withGallery = await run("media_url, media_urls, media_type, is_pinned, status, created_at");
   if (withGallery.error) {
-    const legacy = await base().select("media_url, media_type, is_pinned, status, created_at");
+    const legacy = await run("media_url, media_type, is_pinned, status, created_at");
     posts = legacy.data ?? [];
   } else {
     posts = withGallery.data ?? [];
   }
 
   const urls: string[] = [];
-  for (const p of posts ?? []) {
+  for (const p of posts) {
     const gallery =
       Array.isArray(p.media_urls) && p.media_urls.length
         ? p.media_urls
