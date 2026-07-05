@@ -394,6 +394,17 @@ export default function VideoStudio() {
     setOpenAdvanced(t.open);
   };
   const generateSmart = () => {
+    if (!creatorId) { setStatus({ msg: "Pick a creator first. This is still the sample data.", err: true }); return; }
+    {
+      const _sel = creators.find((c) => c.id === creatorId);
+      const _dh = (data.creator?.handle || "").replace(/^@/, "").toLowerCase();
+      const _sh = (_sel?.handle || "").replace(/^@/, "").toLowerCase();
+      if (_sel && _sh && _dh !== _sh) {
+        setStatus({ msg: `The editor still had other data loaded. Reloading ${_sel.display_name}, then click again.`, err: true });
+        loadCreator(creatorId);
+        return;
+      }
+    }
     setSegments(buildScriptSegments(videoType, data));
     setAiHooks(null);
     setStatus({ msg: "Built a fresh script and scenes for this goal. Edit anything, then export." });
@@ -492,6 +503,16 @@ export default function VideoStudio() {
 
   const writeCaptionAI = async () => {
     if (!creatorId) { setStatus({ msg: "Pick a creator first. This is still the sample data.", err: true }); return; }
+    {
+      const _sel = creators.find((c) => c.id === creatorId);
+      const _dh = (data.creator?.handle || "").replace(/^@/, "").toLowerCase();
+      const _sh = (_sel?.handle || "").replace(/^@/, "").toLowerCase();
+      if (_sel && _sh && _dh !== _sh) {
+        setStatus({ msg: `The editor still had other data loaded. Reloading ${_sel.display_name}, then click again.`, err: true });
+        loadCreator(creatorId);
+        return;
+      }
+    }
     setCaptionLoading(true);
     try {
       const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
@@ -533,6 +554,16 @@ export default function VideoStudio() {
 
   const writeScriptAI = async () => {
     if (!creatorId) { setStatus({ msg: "Pick a creator first. This is still the sample data.", err: true }); return; }
+    {
+      const _sel = creators.find((c) => c.id === creatorId);
+      const _dh = (data.creator?.handle || "").replace(/^@/, "").toLowerCase();
+      const _sh = (_sel?.handle || "").replace(/^@/, "").toLowerCase();
+      if (_sel && _sh && _dh !== _sh) {
+        setStatus({ msg: `The editor still had other data loaded. Reloading ${_sel.display_name}, then click again.`, err: true });
+        loadCreator(creatorId);
+        return;
+      }
+    }
     setScriptLoading(true);
     try {
       const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
