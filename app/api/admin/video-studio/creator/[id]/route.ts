@@ -101,20 +101,30 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .order("created_at", { ascending: false })
     .limit(4);
 
-  // Posts with images (reuse their media urls)
-  const feed: string[] = await loadFeedUrls(supabase, id);
+  // Posts with images (reuse their media urls). Never let a feed or analysis hiccup fail
+  // the whole creator load.
+  let feed: string[] = [];
+  try {
+    feed = await loadFeedUrls(supabase, id);
+  } catch {
+    feed = [];
+  }
 
   // Attach any cached narrative analysis, aligned to feed by index. Cache only here;
   // the explicit "Analyze creator media" button is what populates it.
   let mediaAnalysis: (unknown | null)[] | undefined = undefined;
   if (feed.length) {
-    const { data: rows } = await supabase
-      .from("creator_media_analysis")
-      .select("media_url, analysis_json")
-      .in("media_url", feed);
-    const byUrl: Record<string, unknown> = {};
-    for (const r of rows ?? []) byUrl[(r as any).media_url] = (r as any).analysis_json;
-    if (Object.keys(byUrl).length) mediaAnalysis = feed.map((u) => byUrl[u] ?? null);
+    try {
+      const { data: rows } = await supabase
+        .from("creator_media_analysis")
+        .select("media_url, analysis_json")
+        .in("media_url", feed);
+      const byUrl: Record<string, unknown> = {};
+      for (const r of rows ?? []) byUrl[(r as any).media_url] = (r as any).analysis_json;
+      if (Object.keys(byUrl).length) mediaAnalysis = feed.map((u) => byUrl[u] ?? null);
+    } catch {
+      /* analysis is optional */
+    }
   }
 
   const rawHandle = String(profile.handle ?? "");

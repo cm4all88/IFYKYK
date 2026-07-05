@@ -328,7 +328,10 @@ export default function VideoStudio() {
     setStatus({ msg: "Loading creator from the database..." });
     try {
       const r = await fetch(`/api/admin/video-studio/creator/${id}`);
-      if (!r.ok) throw new Error("Could not load that creator");
+      if (!r.ok) {
+        const detail = await r.json().catch(() => ({} as any));
+        throw new Error(detail.error ? `${detail.error} (${r.status})` : `Could not load that creator (${r.status})`);
+      }
       const json = await r.json();
       // A newer creator was picked while this was loading, drop this stale result so the
       // wrong creator's data can never win the race.
