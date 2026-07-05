@@ -85,7 +85,7 @@ const isEnabled = (id: SceneId, d: VideoData): boolean => {
     case 'memberships':
       return Boolean(d.memberships?.length);
     case 'campaign':
-      return Boolean(d.campaign || d.campaignScreenshot);
+      return Boolean((d.campaign && d.campaign.title && d.campaign.title.trim()) || d.campaignScreenshot);
     case 'posts':
       return Boolean(d.feedScreenshots?.length);
     case 'marketplace':

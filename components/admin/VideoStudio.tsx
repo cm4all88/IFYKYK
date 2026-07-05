@@ -38,12 +38,12 @@ const reelEligible = (t: VideoType, d: VideoData): boolean => {
   const photos = d.feedScreenshots?.length ?? 0;
   switch (t) {
     case "launch": return true;
-    case "campaign": return !!d.campaign;
+    case "campaign": return !!(d.campaign && d.campaign.title && d.campaign.title.trim());
     case "membership":
     case "whyJoin": return !!d.memberships?.length;
     case "marketplace": return !!d.marketplace?.length;
     case "merch": return !!d.merch?.length;
-    case "supportMe": return !!d.campaign || !!d.memberships?.length;
+    case "supportMe": return !!(d.campaign && d.campaign.title && d.campaign.title.trim()) || !!d.memberships?.length;
     case "behindScenes":
     case "dayInLife": return photos >= 1;
     case "storyTime":
@@ -406,6 +406,8 @@ export default function VideoStudio() {
   const [aiHooks, setAiHooks] = useState<string[] | null>(null);
   const [hooksLoading, setHooksLoading] = useState(false);
   const [scriptLoading, setScriptLoading] = useState(false);
+  const [captionLoading, setCaptionLoading] = useState(false);
+  const [aiCaption, setAiCaption] = useState<{ description: string; hashtags: string[] } | null>(null);
   const [clipUploading, setClipUploading] = useState<number | null>(null);
 
   const updateClip = (i: number, patch: Partial<VideoClip>) => {
@@ -479,6 +481,46 @@ export default function VideoStudio() {
     } catch {
       setHooksLoading(false);
       setStatus({ msg: "Hook writing failed.", err: true });
+    }
+  };
+
+  const writeCaptionAI = async () => {
+    setCaptionLoading(true);
+    try {
+      const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
+      const categories = Array.from(new Set(rows.map((m) => m.primary_category).filter(Boolean)));
+      const summaries = rows.map((m) => m.visual_summary).filter(Boolean);
+      const isNew = (data.feedScreenshots?.length ?? 0) < 3 && !data.campaign?.raised;
+      const res = await fetch("/api/admin/video-studio/caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.creator.name,
+          handle: data.creator.handle,
+          bio: data.creator.tagline,
+          angle: videoType,
+          platform,
+          categories,
+          summaries,
+          campaign: data.campaign ? { title: data.campaign.title } : null,
+          isNew,
+        }),
+      });
+      const json = await res.json();
+      setCaptionLoading(false);
+      if (!json.configured) {
+        setStatus({ msg: "Add an Anthropic API key in Admin, Credentials to write viral captions.", err: true });
+        return;
+      }
+      if (!json.description && !(json.hashtags || []).length) {
+        setStatus({ msg: "Could not write a caption, showing the built in one.", err: true });
+        return;
+      }
+      setAiCaption({ description: json.description || "", hashtags: json.hashtags || [] });
+      setStatus({ msg: "Wrote a viral caption and hashtags for this creator." });
+    } catch {
+      setCaptionLoading(false);
+      setStatus({ msg: "Caption writing failed.", err: true });
     }
   };
 
@@ -1358,6 +1400,41 @@ export default function VideoStudio() {
               <div className="vs-row-card" style={{ marginTop: 14 }}>
                 <div className="vs-side-title">Ready check</div>
                 {checks.map((c, i) => <div key={i} className={`vs-check ${c.ok ? "ok" : ""}`}><span>{c.ok ? "✓" : "!"}</span><span>{c.label}</span></div>)}
+              </div>
+
+              <div className="vs-row-card" style={{ marginTop: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div className="vs-side-title" style={{ margin: 0 }}>Caption for the post</div>
+                  <button className="adm-btn adm-btn--primary" style={{ padding: "6px 12px", whiteSpace: "nowrap" }} disabled={captionLoading} onClick={writeCaptionAI}>
+                    {captionLoading ? "Writing" : aiCaption ? "Rewrite with AI" : "Write viral caption with AI"}
+                  </button>
+                </div>
+                {(() => {
+                  const caption = aiCaption?.description || captionFor(data, videoType as Angle);
+                  const tags = (aiCaption?.hashtags?.length ? aiCaption.hashtags : hashtagsFor(data, videoType as Angle)).join(" ");
+                  const full = `${caption}\n\n${tags}`;
+                  return (
+                    <>
+                      <textarea
+                        readOnly
+                        value={caption}
+                        className="adm-input"
+                        style={{ minHeight: 96, resize: "vertical", width: "100%", lineHeight: 1.5, marginTop: 10 }}
+                      />
+                      <div style={{ fontSize: 12.5, color: "#8fb0ff", marginTop: 8, wordBreak: "break-word", lineHeight: 1.6 }}>{tags}</div>
+                      <button
+                        className="adm-btn adm-btn--ghost"
+                        style={{ marginTop: 10 }}
+                        onClick={() => {
+                          navigator.clipboard?.writeText(full);
+                          setStatus({ msg: "Caption and hashtags copied. Paste them into TikTok or Reels." });
+                        }}
+                      >
+                        Copy caption and hashtags
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="vs-footer-actions">
