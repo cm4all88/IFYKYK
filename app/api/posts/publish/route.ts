@@ -83,7 +83,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Add a payment method in Billing to publish.", billingLocked: true }, { status: 402 });
   }
 
-  const { caption, mediaUrl, mediaType, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt, tags, postType, expiresAt, scheduledAt, isPinned, campaignId, requiredTierId } = await req.json();
+  const { caption, mediaUrl, mediaType, media, tier, creatorProfileId, lockType, unlockPrice, earlyAccessAt, tags, postType, expiresAt, scheduledAt, isPinned, campaignId, requiredTierId } = await req.json();
+
+  // Normalize media into an ordered gallery. Accepts the new `media` array
+  // ([{url,type}, ...]) and falls back to the single mediaUrl for older callers.
+  const gallery: { url: string; type: "image" | "video" }[] = Array.isArray(media)
+    ? media
+        .filter((m: any) => m && typeof m.url === "string" && m.url.trim())
+        .map((m: any) => ({ url: m.url.trim(), type: m.type === "video" ? "video" : "image" }))
+    : mediaUrl
+    ? [{ url: String(mediaUrl).trim(), type: mediaType === "video" ? "video" : "image" }]
+    : [];
+  const coverUrl = gallery[0]?.url ?? null;
+  const coverType = gallery.length > 1 ? "gallery" : gallery[0]?.type ?? null;
 
   // Scheduling is a Starter entitlement. Publishing now stays free (Opening Act).
   // Enforced here, not just in the UI, so the gate can't be bypassed.
@@ -161,8 +173,8 @@ export async function POST(req: NextRequest) {
     .insert({
       creator_profile_id: creatorProfileId,
       caption: caption?.trim() || null,
-      media_url: mediaUrl || null,
-      media_type: normalizeMediaType(mediaType),
+      media_url: coverUrl,
+      media_type: normalizeMediaType(coverType),
       tier: resolvedTier,
       lock_type: resolvedLockType,
       unlock_price: lockType === "purchase" ? (unlockPrice ?? null) : null,
@@ -181,5 +193,16 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Save the full ordered gallery. Best effort and decoupled from the insert above so
+  // publishing never breaks if migration 058 has not been run yet.
+  if (post?.id && gallery.length > 1) {
+    try {
+      await (supabase as any).from("posts").update({ media_urls: gallery }).eq("id", post.id);
+    } catch {
+      // Column not present yet — the cover still posted fine.
+    }
+  }
+
   return NextResponse.json({ post });
 }

@@ -117,7 +117,7 @@ async function loadWorld(handle: string) {
 
   const { data: posts } = await supabase
     .from("posts")
-    .select("id, caption, media_url, media_type, tier, lock_type, required_tier_id, is_pinned, created_at, likes_count, tags")
+    .select("id, caption, media_url, media_urls, media_type, tier, lock_type, required_tier_id, is_pinned, created_at, likes_count, tags")
     .eq("creator_profile_id", sp.id).eq("status", "live")
     .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
     .order("created_at", { ascending: false }).limit(18);
@@ -157,16 +157,27 @@ async function loadWorld(handle: string) {
   const content = await Promise.all(ranked.map(async (p: any) => {
     const ent = entitled(p);
     const mt = String(p.media_type ?? "");
-    const isImg = mt.startsWith("image");
-    const isVid = mt.startsWith("video");
+    // Unify old single-media and new gallery posts into one ordered list.
+    const galleryRaw: { url: string; type: string }[] = Array.isArray(p.media_urls) && p.media_urls.length
+      ? p.media_urls.filter((m: any) => m && m.url).map((m: any) => ({ url: String(m.url), type: m.type === "video" ? "video" : "image" }))
+      : p.media_url
+      ? [{ url: String(p.media_url), type: mt.startsWith("video") ? "video" : "image" }]
+      : [];
+    const coverType = galleryRaw[0]?.type ?? (mt.startsWith("video") ? "video" : "image");
+    const isImg = coverType === "image";
+    const isVid = coverType === "video";
     let blur: string | null = null;
-    if (!ent && isImg && p.media_url) blur = await blurDataUrl(p.media_url);
+    if (!ent && isImg && galleryRaw[0]?.url) blur = await blurDataUrl(galleryRaw[0].url);
+    // SECURITY: signed gallery urls go ONLY to entitled viewers. Everyone else gets
+    // an empty gallery and just the blurred cover.
+    const mediaUrls = ent ? galleryRaw.map((m) => ({ url: bunnySignUrl(m.url), type: m.type })) : [];
     return {
       id: p.id,
       caption: p.caption ?? null,
       isImg, isVid,
       entitled: ent,
-      mediaUrl: ent && p.media_url ? bunnySignUrl(p.media_url) : null,
+      mediaUrl: mediaUrls[0]?.url ?? null,
+      mediaUrls,
       blur,
       lockTierName: tierNameOf(p.required_tier_id ?? null),
       tags: Array.isArray(p.tags) ? (p.tags as string[]).filter(Boolean) : [],

@@ -3987,8 +3987,7 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
   const [loading, setLoading] = useState(true);
   const [composing, setComposing] = useState(false);
   const [body, setBody] = useState("");
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [mediaType, setMediaType] = useState("");
+  const [media, setMedia] = useState<{ url: string; type: string }[]>([]);
   const [postTags, setPostTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [suggestingTags, setSuggestingTags] = useState(false);
@@ -4062,8 +4061,9 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         caption: body.trim() || null,
-        mediaUrl: mediaUrl || null,
-        mediaType: mediaType || null,
+        media,
+        mediaUrl: media[0]?.url || null,
+        mediaType: media[0]?.type || null,
         creatorProfileId: profile.id,
         tier,
         lockType,
@@ -4084,8 +4084,7 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
     }
 
     setBody("");
-    setMediaUrl("");
-    setMediaType("");
+    setMedia([]);
     setPostTags([]);
     setPostType("post");
     setExpiresAt("");
@@ -4125,21 +4124,28 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
             rows={6}
             autoFocus
           />
-          {mediaUrl && (
-            <div style={{ padding:"0 0 var(--s-3)", position:"relative", display:"inline-block" }}>
-              {mediaType === "video" ? (
-                mediaUrl.includes("iframe.mediadelivery.net") ? (
-                  <div style={{ position:"relative", paddingTop:"56.25%", borderRadius:"var(--r-1)", overflow:"hidden", maxWidth:320 }}>
-                    <iframe src={mediaUrl} style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }} allow="autoplay" />
-                  </div>
-                ) : (
-                  <video src={mediaUrl} style={{ maxHeight:180, borderRadius:"var(--r-1)" }} controls />
-                )
-              ) : (
-                <img src={mediaUrl} alt="" style={{ maxHeight:180, borderRadius:"var(--r-1)", display:"block" }} />
-              )}
-              <button type="button" onClick={() => { setMediaUrl(""); setMediaType(""); }}
-                style={{ position:"absolute", top:4, right:4, background:"rgba(0,0,0,.7)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</button>
+          {media.length > 0 && (
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", padding:"0 0 var(--s-3)" }}>
+              {media.map((mi, idx) => (
+                <div key={idx} style={{ position:"relative", display:"inline-block" }}>
+                  {mi.type === "video" ? (
+                    mi.url.includes("iframe.mediadelivery.net") ? (
+                      <div style={{ position:"relative", width:130, paddingTop:"75%", borderRadius:"var(--r-1)", overflow:"hidden" }}>
+                        <iframe src={mi.url} style={{ position:"absolute", top:0, left:0, width:"100%", height:"100%", border:"none" }} allow="autoplay" />
+                      </div>
+                    ) : (
+                      <video src={mi.url} style={{ height:110, borderRadius:"var(--r-1)", display:"block" }} />
+                    )
+                  ) : (
+                    <img src={mi.url} alt="" style={{ height:110, borderRadius:"var(--r-1)", display:"block" }} />
+                  )}
+                  <button type="button" onClick={() => setMedia((m) => m.filter((_, i) => i !== idx))}
+                    style={{ position:"absolute", top:4, right:4, background:"rgba(0,0,0,.7)", border:"none", color:"#fff", borderRadius:"50%", width:22, height:22, cursor:"pointer", fontSize:13, lineHeight:1 }}>×</button>
+                  {idx === 0 && media.length > 1 && (
+                    <span style={{ position:"absolute", bottom:4, left:4, background:"rgba(0,0,0,.7)", color:"#fff", fontSize:9, padding:"2px 6px", borderRadius:3, letterSpacing:"0.05em" }}>COVER</span>
+                  )}
+                </div>
+              ))}
             </div>
           )}
           {/* Tags */}
@@ -4171,7 +4177,7 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
               />
               <button type="button" disabled={suggestingTags || !body.trim()} onClick={async () => {
                 setSuggestingTags(true);
-                const res = await fetch("/api/posts/tags", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ caption:body, mediaType }) });
+                const res = await fetch("/api/posts/tags", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ caption:body, mediaType: media[0]?.type }) });
                 const data = await res.json();
                 if (data.tags) setPostTags(prev => Array.from(new Set([...prev, ...data.tags])).slice(0, 8));
                 setSuggestingTags(false);
@@ -4282,14 +4288,16 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <label style={{ cursor:"pointer", fontFamily:"var(--font-display)", fontSize:12, fontWeight:600, color:"var(--text-faint)", padding:"8px 14px", border:"1px solid var(--border)", borderRadius:"var(--r-2)" }}>
                 {uploading ? "Uploading…" : "🖼️ Image"}
-                <input type="file" accept="image/*" style={{ display:"none" }} disabled={uploading}
+                <input type="file" accept="image/*" multiple style={{ display:"none" }} disabled={uploading}
                   onChange={async (e) => {
-                    const file = e.target.files?.[0]; if (!file) return;
+                    const files = Array.from(e.target.files || []); if (!files.length) return;
                     setUploading(true);
-                    const fd = new FormData(); fd.append("file", file);
-                    const res = await fetch("/api/upload", { method:"POST", body:fd });
-                    const data = await res.json();
-                    if (data.url) { setMediaUrl(data.url); setMediaType("image"); }
+                    for (const file of files) {
+                      const fd = new FormData(); fd.append("file", file);
+                      const res = await fetch("/api/upload", { method:"POST", body:fd });
+                      const data = await res.json();
+                      if (data.url) setMedia((m) => [...m, { url: data.url, type: "image" }]);
+                    }
                     setUploading(false); e.target.value = "";
                   }} />
               </label>
@@ -4297,15 +4305,14 @@ function PostsPane({ profile, setErr, canSchedule, onUpgrade }: { profile: Profi
                 <VideoUpload
                   label="🎬 Video"
                   onUpload={({ cdnUrl }) => {
-                    setMediaUrl(cdnUrl);
-                    setMediaType("video");
+                    setMedia((m) => [...m, { url: cdnUrl, type: "video" }]);
                   }}
                 />
               </div>
             </div>
             <div style={{ display:"flex", alignItems:"center", gap:14 }}>
               <p className="hint" style={{ margin:0 }}>{body.length} chars</p>
-              <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && !mediaUrl)}>
+              <button type="submit" className="btn btn--primary" disabled={posting || (!body.trim() && media.length === 0)}>
                 {posting ? (scheduledAt ? "Scheduling…" : "Publishing…") : (scheduledAt ? `Schedule for ${new Date(scheduledAt).toLocaleDateString()}` : "Publish")}
               </button>
             </div>

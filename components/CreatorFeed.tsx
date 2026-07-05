@@ -11,6 +11,7 @@ type Item = {
   isVid: boolean;
   entitled: boolean;
   mediaUrl: string | null;
+  mediaUrls?: { url: string; type: string }[];
   blur: string | null;
   lockTierName: string | null;
   tags: string[];
@@ -42,6 +43,8 @@ export default function CreatorFeed({ items, viewerUserId, fn }: { items: Item[]
   const [sort, setSort] = React.useState<"new" | "liked">("new");
   const [tag, setTag] = React.useState<string | null>(null);
   const [open, setOpen] = React.useState<Item | null>(null);
+  const [galleryIdx, setGalleryIdx] = React.useState(0);
+  React.useEffect(() => { setGalleryIdx(0); }, [open]);
 
   const allTags = React.useMemo(() => {
     const set = new Set<string>();
@@ -80,6 +83,11 @@ export default function CreatorFeed({ items, viewerUserId, fn }: { items: Item[]
               onClick={() => { if (p.entitled) setOpen(p); }}
               style={{ position: "relative", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", cursor: p.entitled ? "pointer" : "default" }}
             >
+              {p.entitled && p.mediaUrls && p.mediaUrls.length > 1 ? (
+                <span style={{ position: "absolute", top: 10, right: 10, background: "rgba(0,0,0,0.62)", color: "#fff", fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, zIndex: 2, pointerEvents: "none" }}>
+                  ▦ {p.mediaUrls.length}
+                </span>
+              ) : null}
               {p.entitled && p.mediaUrl && p.isImg ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.mediaUrl} alt="" style={{ width: "100%", height: 256, objectFit: "cover", display: "block" }} />
@@ -133,12 +141,51 @@ export default function CreatorFeed({ items, viewerUserId, fn }: { items: Item[]
             <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 12px 0" }}>
               <button onClick={() => setOpen(null)} style={{ background: "transparent", border: "none", color: "var(--muted)", fontSize: 20, cursor: "pointer", lineHeight: 1 }}>✕</button>
             </div>
-            {open.mediaUrl && open.isImg ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={open.mediaUrl} alt="" style={{ width: "100%", maxHeight: 460, objectFit: "contain", display: "block", background: "#000" }} />
-            ) : open.mediaUrl && open.isVid ? (
-              <video src={open.mediaUrl} controls autoPlay playsInline style={{ width: "100%", maxHeight: 460, display: "block", background: "#000" }} />
-            ) : null}
+            {(() => {
+              const gallery = (open.mediaUrls && open.mediaUrls.length
+                ? open.mediaUrls
+                : open.mediaUrl
+                ? [{ url: open.mediaUrl, type: open.isVid ? "video" : "image" }]
+                : []);
+              if (!gallery.length) return null;
+              const i = Math.min(galleryIdx, gallery.length - 1);
+              const cur = gallery[i];
+              const multi = gallery.length > 1;
+              const arrow = (side: "left" | "right"): React.CSSProperties => ({
+                position: "absolute", top: "50%", [side]: 10, transform: "translateY(-50%)",
+                width: 40, height: 40, borderRadius: 999, border: "none", cursor: "pointer",
+                background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 24, lineHeight: 1,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              });
+              return (
+                <div style={{ position: "relative", background: "#000" }}>
+                  {cur.type === "video" ? (
+                    cur.url.includes("iframe.mediadelivery.net") ? (
+                      <div style={{ position: "relative", paddingTop: "56.25%" }}>
+                        <iframe src={`${cur.url}&responsive=true&autoplay=true`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }} allow="autoplay; fullscreen" allowFullScreen />
+                      </div>
+                    ) : (
+                      <video src={cur.url} controls autoPlay playsInline style={{ width: "100%", maxHeight: 460, display: "block", background: "#000" }} />
+                    )
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={cur.url} alt="" style={{ width: "100%", maxHeight: 460, objectFit: "contain", display: "block", background: "#000" }} />
+                  )}
+                  {multi ? (
+                    <>
+                      <button aria-label="Previous" onClick={() => setGalleryIdx((n) => (n - 1 + gallery.length) % gallery.length)} style={arrow("left")}>‹</button>
+                      <button aria-label="Next" onClick={() => setGalleryIdx((n) => (n + 1) % gallery.length)} style={arrow("right")}>›</button>
+                      <div style={{ position: "absolute", top: 12, left: 12, background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 11, padding: "3px 9px", borderRadius: 999 }}>{i + 1} / {gallery.length}</div>
+                      <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6 }}>
+                        {gallery.map((_, d) => (
+                          <span key={d} onClick={() => setGalleryIdx(d)} style={{ width: d === i ? 18 : 7, height: 7, borderRadius: 999, background: d === i ? "var(--accent, #F2B84B)" : "rgba(255,255,255,0.5)", cursor: "pointer", transition: "width .2s" }} />
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              );
+            })()}
 
             <div style={{ padding: "16px 20px 22px" }}>
               {open.caption ? <p style={{ fontSize: 14.5, color: "var(--text, #F7F3EC)", lineHeight: 1.6, margin: "0 0 12px" }}>{open.caption}</p> : null}
