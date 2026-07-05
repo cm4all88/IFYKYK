@@ -6,6 +6,9 @@ import { bunnySignUrl } from "@/lib/bunny";
 import { loadFeedUrls } from "@/lib/videoStudioFeed";
 
 export const dynamic = "force-dynamic";
+// Vision on many images can run long; give it room so it doesn't time out and return an
+// empty body (which the client then can't parse). Analysis is cached, so later runs are fast.
+export const maxDuration = 60;
 
 const signImg = (u?: string | null): string | undefined => {
   if (!u) return undefined;
@@ -102,7 +105,7 @@ export async function POST(req: Request) {
   for (const r of cachedRows ?? []) byUrl[r.media_url] = r.analysis_json as Tags;
 
   const missing = feed.filter((u) => !byUrl[u]);
-  const CAP = 15; // guard against runaway vision spend per click
+  const CAP = 8; // vision calls per click; the rest analyze on the next click (cached in between)
   const toAnalyze = missing.slice(0, CAP);
 
   const { ANTHROPIC_API_KEY } = await getSecrets(["ANTHROPIC_API_KEY"]);

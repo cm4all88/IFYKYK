@@ -309,6 +309,7 @@ export default function VideoStudio() {
     { id: string; display_name: string; handle: string; avatar_url?: string }[]
   >([]);
   const [creatorId, setCreatorId] = useState("");
+  const loadReq = useRef(0);
   const [loadingCreator, setLoadingCreator] = useState(false);
   const videoType = (data.videoType ?? "launch") as VideoType;
 
@@ -322,21 +323,26 @@ export default function VideoStudio() {
   const loadCreator = async (id: string) => {
     setCreatorId(id);
     if (!id) return;
+    const req = ++loadReq.current;
     setLoadingCreator(true);
     setStatus({ msg: "Loading creator from the database..." });
     try {
       const r = await fetch(`/api/admin/video-studio/creator/${id}`);
       if (!r.ok) throw new Error("Could not load that creator");
       const json = await r.json();
+      // A newer creator was picked while this was loading, drop this stale result so the
+      // wrong creator's data can never win the race.
+      if (req !== loadReq.current) return;
       const vd = json.data as VideoData;
       setData({ ...vd, videoType });
       setAiHooks(null);
+      setAiCaption(null);
       setSegments(buildScriptSegments(videoType, vd));
       setStatus({ msg: "Loaded from Spotlightly. Edit anything below to override." });
     } catch (e) {
-      setStatus({ msg: (e as Error).message, err: true });
+      if (req === loadReq.current) setStatus({ msg: (e as Error).message, err: true });
     } finally {
-      setLoadingCreator(false);
+      if (req === loadReq.current) setLoadingCreator(false);
     }
   };
 
@@ -485,6 +491,7 @@ export default function VideoStudio() {
   };
 
   const writeCaptionAI = async () => {
+    if (!creatorId) { setStatus({ msg: "Pick a creator first. This is still the sample data.", err: true }); return; }
     setCaptionLoading(true);
     try {
       const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
@@ -525,6 +532,7 @@ export default function VideoStudio() {
   };
 
   const writeScriptAI = async () => {
+    if (!creatorId) { setStatus({ msg: "Pick a creator first. This is still the sample data.", err: true }); return; }
     setScriptLoading(true);
     try {
       const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
@@ -577,8 +585,12 @@ export default function VideoStudio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ creatorId }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       setAnalyzing(false);
+      if (!json) {
+        setStatus({ msg: "Analysis timed out before finishing. Click Analyze again, finished images are cached so it picks up where it left off.", err: true });
+        return;
+      }
       if (!res.ok) {
         setStatus({ msg: json.error || "Analyze failed.", err: true });
         return;
