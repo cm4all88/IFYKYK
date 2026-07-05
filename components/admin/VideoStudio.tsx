@@ -121,9 +121,9 @@ function lineForScene(id: SceneId, d: VideoData): string {
         ? `Members get the rest.${low != null ? ` From $${low} a month.` : ""}`
         : `Members get everything else.`;
     case "campaign":
-      if (!camp) return `She's raising money for something bigger.`;
-      if (camp.pct >= 5) return `Her ${camp.title} campaign is already ${camp.pct} percent there.`;
-      return `She's raising money for ${camp.title}.`;
+      if (!camp) return `${fname} is chasing something big.`;
+      if (camp.pct >= 5) return `${fname}'s campaign is already ${camp.pct} percent funded.`;
+      return `${camp.title}. Help ${fname} get there.`;
     case "posts":
       return `The posts only members get to see.`;
     case "marketplace":
@@ -405,6 +405,7 @@ export default function VideoStudio() {
   };
   const [aiHooks, setAiHooks] = useState<string[] | null>(null);
   const [hooksLoading, setHooksLoading] = useState(false);
+  const [scriptLoading, setScriptLoading] = useState(false);
   const [clipUploading, setClipUploading] = useState<number | null>(null);
 
   const updateClip = (i: number, patch: Partial<VideoClip>) => {
@@ -478,6 +479,47 @@ export default function VideoStudio() {
     } catch {
       setHooksLoading(false);
       setStatus({ msg: "Hook writing failed.", err: true });
+    }
+  };
+
+  const writeScriptAI = async () => {
+    setScriptLoading(true);
+    try {
+      const rows = (data.mediaAnalysis ?? []).filter(Boolean) as any[];
+      const categories = Array.from(new Set(rows.map((m) => m.primary_category).filter(Boolean)));
+      const summaries = rows.map((m) => m.visual_summary).filter(Boolean);
+      const tiers = (data.memberships ?? []).map((t: any) => ({ name: t.name, price: t.price ?? t.price_monthly ?? "" }));
+      const scenes = segments.map((s) => ({ id: s.scene, label: s.label, current: s.text }));
+      const res = await fetch("/api/admin/video-studio/script", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.creator.name,
+          bio: data.creator.tagline,
+          angle: videoType,
+          categories,
+          summaries,
+          campaign: data.campaign ? { title: data.campaign.title, goal: data.campaign.goal } : null,
+          tiers,
+          scenes,
+        }),
+      });
+      const json = await res.json();
+      setScriptLoading(false);
+      if (!json.configured) {
+        setStatus({ msg: "Add an Anthropic API key in Admin, Credentials to write scripts with AI.", err: true });
+        return;
+      }
+      const lines: Record<string, string> = json.lines || {};
+      if (!Object.keys(lines).length) {
+        setStatus({ msg: "Could not write a custom script, keeping the current lines.", err: true });
+        return;
+      }
+      setSegments(segments.map((s) => (lines[s.scene] ? { ...s, text: lines[s.scene] } : s)));
+      setStatus({ msg: "Wrote a fresh script from this creator. Edit any line." });
+    } catch {
+      setScriptLoading(false);
+      setStatus({ msg: "Script writing failed.", err: true });
     }
   };
 
@@ -1186,6 +1228,7 @@ export default function VideoStudio() {
                 <div className="vs-tiny-actions">
                   <button className="adm-btn adm-btn--ghost" onClick={voIdx !== null ? stopVoiceover : previewVoiceover} disabled={voLoading}>{voLoading ? "Loading" : voIdx !== null ? "Stop" : "Hear voice"}</button>
                   <button className="adm-btn adm-btn--ghost" onClick={() => setSegments(buildScriptSegments(videoType, data))}>Rewrite all</button>
+                  <button className="adm-btn adm-btn--primary" disabled={scriptLoading} onClick={writeScriptAI}>{scriptLoading ? "Writing" : "Write with AI"}</button>
                   <button className="adm-btn adm-btn--primary" onClick={copyScript}>{copied ? "Copied" : "Copy"}</button>
                 </div>
               </div>
