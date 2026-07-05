@@ -105,7 +105,7 @@ export const SceneRouter: React.FC<{id: SceneId; data: VideoData; durationInFram
 
     case 'campaign':
       return (
-        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Campaign" headline="Fund the next big thing">
+        <ShowcaseScene durationInFrames={durationInFrames} seed={seed} kicker="Campaign" headline="Back the dream">
           {data.campaign ? (
             <CampaignCard campaign={data.campaign} durationInFrames={durationInFrames} />
           ) : data.campaignScreenshot ? (
