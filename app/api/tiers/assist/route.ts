@@ -68,8 +68,11 @@ export async function POST(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ error: "Couldn't reach the assistant just now. Try again." }, { status: 200 });
 
     const data = await res.json();
-    let raw: string = data.content?.[0]?.text ?? "";
+    let raw: string = (data.content?.find((c: any) => c.type === "text")?.text ?? data.content?.[0]?.text ?? "");
     raw = raw.replace(/```json|```/g, "").trim();
+    const s = raw.indexOf("{");
+    const e = raw.lastIndexOf("}");
+    if (s >= 0 && e > s) raw = raw.slice(s, e + 1);
     let parsed: any;
     try { parsed = JSON.parse(raw); } catch { return NextResponse.json({ error: "The assistant returned something unexpected. Try again." }, { status: 200 }); }
 

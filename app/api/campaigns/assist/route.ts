@@ -89,8 +89,12 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await res.json();
-    let raw: string = data.content?.[0]?.text ?? "";
+    let raw: string = (data.content?.find((c: any) => c.type === "text")?.text ?? data.content?.[0]?.text ?? "");
     raw = raw.replace(/```json|```/g, "").trim();
+    // Pull out the JSON object even if the model wrapped it in a sentence or two.
+    const s = raw.indexOf("{");
+    const e = raw.lastIndexOf("}");
+    if (s >= 0 && e > s) raw = raw.slice(s, e + 1);
 
     let parsed: any;
     try {

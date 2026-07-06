@@ -63,7 +63,10 @@ export async function POST(req: Request) {
     if (!res.ok) return NextResponse.json({ description: "", hashtags: [], configured: true });
     const data = await res.json();
     const text: string = data?.content?.find((c: any) => c.type === "text")?.text ?? "";
-    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    let _raw = text.replace(/```json|```/g, "").trim();
+    const _s = _raw.indexOf("{"); const _e = _raw.lastIndexOf("}");
+    if (_s >= 0 && _e > _s) _raw = _raw.slice(_s, _e + 1);
+    const parsed = JSON.parse(_raw);
     let description = typeof parsed?.description === "string" ? parsed.description.trim() : "";
     description = description.replace(/\s*[—–-]\s*/g, ", ").slice(0, 600);
     const hashtags = cleanArr(parsed?.hashtags)

@@ -36,6 +36,49 @@ export default function AdminCampaignBuilder({
   function addTier() { setTiers((prev) => [...prev, { amount: 0, title: "", description: "", rewards: [] }]); }
   function removeTier(i: number) { setTiers((prev) => prev.filter((_, idx) => idx !== i)); }
 
+  function downloadTemplate() {
+    const tpl = {
+      title: "Chasing Music Across Europe",
+      description: "One or two sentences on what the campaign is and why it matters.",
+      goal: 3500,
+      tiers: [
+        { amount: 10, title: "Postcard From Europe", description: "Follow along from day one.", rewards: [{ type: "recognition", label: "Your name in my thank you post" }] },
+        { amount: 25, title: "Co Explorer", description: "Get the inside story as it unfolds.", rewards: [{ type: "content", label: "Weekly updates and stories" }] },
+        { amount: 50, title: "Front Row", description: "A closer seat to the whole thing.", rewards: [{ type: "content", label: "Behind the scenes photos and videos" }] },
+      ],
+    };
+    const blob = new Blob([JSON.stringify(tpl, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "spotlightly-campaign-template.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importFile(file: File) {
+    try {
+      const j = JSON.parse(await file.text());
+      setTitle(String(j.title ?? ""));
+      setDescription(String(j.description ?? ""));
+      setGoal(j.goal != null && j.goal !== "" ? String(j.goal) : "");
+      setTiers(
+        (Array.isArray(j.tiers) ? j.tiers : []).map((t: any) => ({
+          amount: Number(t.amount) || 0,
+          title: String(t.title ?? t.name ?? ""),
+          description: String(t.description ?? ""),
+          rewards: (Array.isArray(t.rewards) ? t.rewards : []).map((r: any) =>
+            typeof r === "string" ? { type: "custom", label: r } : { type: String(r.type ?? "custom"), label: String(r.label ?? "") }
+          ),
+        }))
+      );
+      setNote(null);
+      setStep("review");
+    } catch {
+      setNote("That file could not be read. Download the template and keep it as valid JSON.");
+    }
+  }
+
   async function assist() {
     setStep("generating"); setNote(null);
     try {
@@ -95,10 +138,19 @@ export default function AdminCampaignBuilder({
               <span style={{ color: "#fff", fontSize: 15 }}>✨ Help me write it</span>
               <span style={{ display: "block", color: "var(--muted,#888)", fontSize: 12.5, marginTop: 2 }}>Answer a few questions and the assistant drafts the title, goal, and backing tiers.</span>
             </button>
-            <button className="adm-btn adm-btn--ghost" onClick={() => { if (tiers.length === 0) setTiers([{ amount: 0, title: "", description: "", rewards: [] }]); setStep("review"); }} style={{ width: "100%", textAlign: "left", padding: 16, display: "block" }}>
+            <button className="adm-btn adm-btn--ghost" onClick={() => { if (tiers.length === 0) setTiers([{ amount: 0, title: "", description: "", rewards: [] }]); setStep("review"); }} style={{ width: "100%", textAlign: "left", padding: 16, display: "block", marginBottom: 10 }}>
               <span style={{ color: "#fff", fontSize: 15 }}>I have the details</span>
               <span style={{ display: "block", color: "var(--muted,#888)", fontSize: 12.5, marginTop: 2 }}>Go straight to the form and type what they already have.</span>
             </button>
+            <label className="adm-btn adm-btn--ghost" style={{ width: "100%", textAlign: "left", padding: 16, display: "block", cursor: "pointer" }}>
+              <span style={{ color: "#fff", fontSize: 15 }}>📄 Upload a campaign file</span>
+              <span style={{ display: "block", color: "var(--muted,#888)", fontSize: 12.5, marginTop: 2 }}>Built it outside the app? Upload the filled in template and it loads straight into the form.</span>
+              <input type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ""; }} />
+            </label>
+            <button onClick={downloadTemplate} style={{ background: "none", border: "none", color: "var(--accent, #F2B84B)", fontSize: 12.5, cursor: "pointer", marginTop: 12, padding: 0, textDecoration: "underline" }}>
+              Download the campaign template
+            </button>
+            {note ? <p style={{ fontSize: 12.5, color: "#f87171", marginTop: 10 }}>{note}</p> : null}
           </div>
         ) : null}
 
