@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
-import { sendMerchShippedEmail, sendMerchDeliveredEmail, sendAdminAlert } from "@/lib/email";
+import { sendMerchShippedEmail, sendAdminAlert } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -83,14 +83,14 @@ export async function POST(req: NextRequest) {
   const creatorHandle = prod?.creator?.handle ?? null;
 
   const update: Record<string, any> = { updated_at: new Date().toISOString() };
-  let notify: "shipped" | "delivered" | null = null;
+  let notifyShipped = false;
 
   if (type === "package_shipped") {
     update.status = "shipped";
     if (shipment?.tracking_number) update.tracking_number = String(shipment.tracking_number);
     if (shipment?.tracking_url) update.tracking_url = String(shipment.tracking_url);
     // Only notify the first time we mark it shipped.
-    if (mo.status !== "shipped" && mo.status !== "delivered") notify = "shipped";
+    if (mo.status !== "shipped" && mo.status !== "delivered") notifyShipped = true;
   } else if (type === "order_updated") {
     const mapped = mapStatus(order?.status);
     if (mapped) update.status = mapped;
@@ -112,32 +112,26 @@ export async function POST(req: NextRequest) {
 
   await (supabase as any).from("merch_orders").update(update).eq("id", mo.id);
 
-  // ── Tell the fan (in-app + email) ────────────────────────────────
-  if (notify && mo.fan_user_id) {
+  // ── Tell the fan their order shipped (in-app + email) ────────────
+  if (notifyShipped && mo.fan_user_id) {
     const link = "/account?tab=orders";
-    const nType = notify === "shipped" ? "merch_shipped" : "merch_delivered";
-    const title = notify === "shipped" ? "Your order shipped 📦" : "Your order was delivered 🎉";
-    const body = notify === "shipped"
-      ? `${productName}${creatorHandle ? ` from @${creatorHandle}` : ""} is on its way.`
-      : `${productName}${creatorHandle ? ` from @${creatorHandle}` : ""} was delivered.`;
+    const body = `${productName}${creatorHandle ? ` from @${creatorHandle}` : ""} is on its way.`;
 
     // Service client bypasses RLS, so this insert always lands.
     await (supabase as any).from("notifications").insert({
-      user_id: mo.fan_user_id, type: nType, title, body, link,
+      user_id: mo.fan_user_id, type: "merch_shipped", title: "Your order shipped 📦", body, link,
     });
 
     // Email — look the fan's address up via the admin API.
     try {
       const { data: au } = await (supabase as any).auth.admin.getUserById(mo.fan_user_id);
       const email = au?.user?.email;
-      if (email && notify === "shipped") {
+      if (email) {
         await sendMerchShippedEmail(email, productName, {
           trackingUrl: update.tracking_url ?? null,
           trackingNumber: update.tracking_number ?? null,
           creatorHandle,
         });
-      } else if (email && notify === "delivered") {
-        await sendMerchDeliveredEmail(email, productName, creatorHandle);
       }
     } catch { /* non-fatal */ }
   }
