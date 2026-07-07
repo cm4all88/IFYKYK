@@ -31,6 +31,26 @@ export async function GET(req: NextRequest) {
     .update({ status: "live", scheduled_at: null })
     .in("id", ids);
 
+  // Notify each creator's subscribers that a scheduled post is now live.
+  try {
+    const { notifySubscribers } = await import("@/lib/notify");
+    const creatorIds = Array.from(new Set(due.map((p: any) => p.creator_profile_id).filter(Boolean)));
+    const { data: cps } = await supabase
+      .from("creator_profiles").select("id, handle, display_name").in("id", creatorIds as string[]);
+    const byId = new Map((cps ?? []).map((c: any) => [c.id, c]));
+    for (const p of due) {
+      const c = byId.get(p.creator_profile_id);
+      const who = c?.display_name || (c?.handle ? `@${c.handle}` : "A creator");
+      await notifySubscribers({
+        creatorProfileId: p.creator_profile_id,
+        type: "new_post",
+        title: `${who} posted`,
+        body: "New post is live",
+        link: c?.handle ? `/${c.handle}` : "/feed",
+      });
+    }
+  } catch { /* non-fatal */ }
+
   console.log(`Published ${ids.length} scheduled posts`);
   return NextResponse.json({ published: ids.length });
 }

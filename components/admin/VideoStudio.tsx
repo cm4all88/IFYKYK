@@ -659,7 +659,7 @@ export default function VideoStudio() {
     try {
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/voiceover", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-render-key": process.env.NEXT_PUBLIC_RENDER_SECRET ?? "" },
         body: JSON.stringify({ segments: narrationSegmentsPayload() }),
       });
       const json = await res.json();
@@ -720,7 +720,7 @@ export default function VideoStudio() {
       try {
         const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-render-key": process.env.NEXT_PUBLIC_RENDER_SECRET ?? "" },
           body: JSON.stringify({
             data: { ...base, videoType: r.type, feedScreenshots: assignStoryPhotos(r.type, { ...base, videoType: r.type }) },
             narrationSegments: bakeVo && !fluidVo
@@ -825,7 +825,7 @@ export default function VideoStudio() {
       });
       const res = await fetch(renderUrl.replace(/\/$/, "") + "/render", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-render-key": process.env.NEXT_PUBLIC_RENDER_SECRET ?? "" },
         body: JSON.stringify({
           data: clean,
           narrationSegments: bakeVo && !fluidVo ? narrationSegmentsPayload() : undefined,

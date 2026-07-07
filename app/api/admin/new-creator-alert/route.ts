@@ -12,13 +12,20 @@ export async function POST() {
 
   const { data: profiles } = await (supabase as any)
     .from("creator_profiles")
-    .select("handle, display_name, kind")
+    .select("handle, display_name, kind, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1);
 
   const profile = profiles?.[0];
-  if (profile?.handle) {
+
+  // Replay guard: this endpoint is called once, right after signup. Only fire the
+  // alert for a genuinely fresh profile (created in the last 10 minutes) so a
+  // logged-in user can't POST it repeatedly to spam the admin inbox.
+  const createdAt = profile?.created_at ? new Date(profile.created_at).getTime() : 0;
+  const isFresh = createdAt > 0 && Date.now() - createdAt < 10 * 60 * 1000;
+
+  if (profile?.handle && isFresh) {
     await sendAdminAlert(
       `New creator: @${profile.handle}`,
       "New creator signed up. 🎬",

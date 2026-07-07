@@ -83,6 +83,34 @@ export async function sendMessageEmail(to: string, fromName: string, preview: st
   await send(to, `New message on Spotlightly from ${fromName}`, html);
 }
 
+// ── Merch order updates (fan-facing) ────────────────────────────────
+export async function sendMerchShippedEmail(
+  to: string,
+  productName: string,
+  opts: { trackingUrl?: string | null; trackingNumber?: string | null; creatorHandle?: string | null } = {}
+) {
+  const { trackingUrl, trackingNumber, creatorHandle } = opts;
+  const track = trackingUrl
+    ? `<a href="${trackingUrl}" style="display:inline-block;background:#F0B429;color:#09090C;font-weight:bold;font-size:13px;padding:14px 28px;border-radius:4px;text-decoration:none;">Track your package →</a>`
+    : `<p style="font-size:14px;color:rgba(255,255,255,0.5);margin:0;">Tracking details will appear here once the carrier scans your package.</p>`;
+  const html = base(`
+    <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:300;color:#ffffff;margin:0 0 12px;">Your order is on its way. 📦</h1>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:0 0 20px;">Your <strong style="color:#ffffff;">${productName}</strong>${creatorHandle ? ` from <strong style="color:#F0B429;">@${creatorHandle}</strong>` : ""} has shipped.</p>
+    ${trackingNumber ? `<p style="font-size:13px;color:rgba(255,255,255,0.5);margin:0 0 20px;">Tracking #: <span style="color:#ffffff;font-family:monospace;">${trackingNumber}</span></p>` : ""}
+    ${track}
+  `);
+  await send(to, `Your Spotlightly order has shipped`, html);
+}
+
+export async function sendMerchDeliveredEmail(to: string, productName: string, creatorHandle?: string | null) {
+  const html = base(`
+    <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:300;color:#ffffff;margin:0 0 12px;">Delivered. 🎉</h1>
+    <p style="font-size:15px;color:rgba(255,255,255,0.7);line-height:1.7;margin:0 0 24px;">Your <strong style="color:#ffffff;">${productName}</strong>${creatorHandle ? ` from <strong style="color:#F0B429;">@${creatorHandle}</strong>` : ""} was delivered. We hope you love it.</p>
+    ${creatorHandle ? `<a href="https://spotlightly.app/${creatorHandle}" style="display:inline-block;background:#F0B429;color:#09090C;font-weight:bold;font-size:13px;padding:14px 28px;border-radius:4px;text-decoration:none;">Back to @${creatorHandle} →</a>` : ""}
+  `);
+  await send(to, `Your Spotlightly order was delivered`, html);
+}
+
 // ── Admin alerts ────────────────────────────────────────────────────
 // Internal heads-up emails to the platform owner so they don't have to log in
 // to know something happened. Recipient is the configured admin address.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { createCloudflareLiveInput } from "@/lib/cloudflare-stream";
+import { notifySubscribers } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
   // Verify profile ownership
   const { data: profile } = await (supabase as any)
     .from("creator_profiles")
-    .select("id")
+    .select("id, handle, display_name")
     .eq("id", creatorProfileId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -39,6 +40,16 @@ export async function POST(req: NextRequest) {
       rtmp_url: null,
       stream_key: live.uid,
     });
+
+    // Tell subscribers the stream is on — the highest-intent notification there is.
+    notifySubscribers({
+      creatorProfileId,
+      type: "live_started",
+      title: `${profile.display_name || (profile.handle ? "@" + profile.handle : "A creator")} is live 🔴`,
+      body: title || "Live now",
+      link: profile.handle ? `/${profile.handle}` : "/feed",
+      exceptUserId: user.id,
+    }).catch(() => {});
 
     // whipUrl is the per-input ingest credential — only returned to the broadcasting creator here.
     return NextResponse.json({

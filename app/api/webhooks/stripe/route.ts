@@ -483,36 +483,56 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
       const addr = ship.address ?? {};
       const fanEmail = s.customer_details?.email ?? "";
 
-      // Try to place the fulfillment order with Loudcap. Never block recording
-      // the sale on this — the creator has already been paid.
+      // Place the fulfillment order with Loudcap. Never block recording the sale
+      // on this — the creator has already been paid. If it can't be placed, the
+      // order is stored as unfulfilled and the admin is alerted (not swallowed).
       let loudcapOrderId = `unfulfilled_${s.id}`;
       let orderStatus = "pending";
       let trackingNumber: string | null = null;
       let trackingUrl: string | null = null;
+      let fulfillError: string | null = null;
 
       try {
         const { LOUDCAP_API_KEY } = await getSecrets(["LOUDCAP_API_KEY"]);
-        if (LOUDCAP_API_KEY && meta.loudcap_product_id) {
+        if (!LOUDCAP_API_KEY) {
+          fulfillError = "LOUDCAP_API_KEY not set";
+        } else {
           const auth = { Authorization: `Bearer ${LOUDCAP_API_KEY}`, "Content-Type": "application/json" };
 
-          // Resolve the fulfillment variant from the chosen size.
-          let variantId: number | null = null;
-          const prodRes = await fetch(`https://api.printful.com/store/products/${meta.loudcap_product_id}`, { headers: auth });
-          if (prodRes.ok) {
-            const { result } = await prodRes.json();
-            const variants = result?.sync_variants ?? [];
-            const wanted = (meta.size ?? "").toLowerCase();
-            const match = variants.find((v: any) =>
-              wanted && String(v.name ?? "").toLowerCase().includes(wanted)
-            );
-            variantId = (match ?? variants[0])?.id ?? null;
+          // The exact variant the fan bought, resolved at checkout from the
+          // product's variant_map. No fuzzy name matching, no silent fallback.
+          let variantId: number | null =
+            meta.loudcap_variant_id && Number.isFinite(Number(meta.loudcap_variant_id))
+              ? Number(meta.loudcap_variant_id)
+              : null;
+
+          // Backward-compat: legacy products (created before variant_map) carry
+          // no variant id. Resolve by exact size, and only then.
+          if (!variantId && meta.loudcap_product_id) {
+            const prodRes = await fetch(`https://api.printful.com/store/products/${meta.loudcap_product_id}`, { headers: auth });
+            if (prodRes.ok) {
+              const { result } = await prodRes.json();
+              const variants = result?.sync_variants ?? [];
+              const wanted = String(meta.size ?? "").trim().toLowerCase();
+              const match = variants.find((v: any) => {
+                const sz = String(v.size ?? "").trim().toLowerCase();
+                if (sz && sz === wanted) return true;
+                const tail = String(v.name ?? "").split("/").pop()?.trim().toLowerCase();
+                return !!wanted && tail === wanted;
+              });
+              // Only auto-pick when the product has exactly one variant.
+              variantId = match?.id ?? (variants.length === 1 ? variants[0]?.id : null) ?? null;
+            }
           }
 
-          if (variantId) {
+          if (!variantId) {
+            fulfillError = `No matching Loudcap variant for size "${meta.size ?? "?"}"`;
+          } else {
             const orderRes = await fetch("https://api.printful.com/orders?confirm=1", {
               method: "POST",
               headers: auth,
               body: JSON.stringify({
+                external_id: `sl_${s.id}`, // idempotency guard against webhook retries
                 recipient: {
                   name: ship.name ?? "",
                   address1: addr.line1 ?? "",
@@ -532,10 +552,29 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
               orderStatus = "in_production";
               trackingNumber = result?.shipments?.[0]?.tracking_number ?? null;
               trackingUrl = result?.shipments?.[0]?.tracking_url ?? null;
+            } else {
+              fulfillError = `Loudcap order rejected (HTTP ${orderRes.status}): ${(await orderRes.text()).slice(0, 300)}`;
             }
           }
         }
-      } catch { /* non-fatal — record the sale as pending for manual fulfillment */ }
+      } catch (e: any) {
+        fulfillError = `Loudcap order threw: ${e?.message ?? "unknown"}`;
+      }
+
+      // Make a failed fulfillment VISIBLE so it can be placed manually.
+      if (fulfillError) {
+        sendAdminAlert(
+          `Merch order needs manual fulfillment — ${meta.product_name ?? "product"}`,
+          "A paid merch order didn't reach Loudcap.",
+          [
+            `Product: ${meta.product_name ?? "?"}${meta.size ? ` (${meta.size})` : ""}`,
+            `Reason: ${fulfillError}`,
+            `Fan email: ${fanEmail || "unknown"}`,
+            `Stripe session: ${s.id}`,
+            `Ship to: ${ship.name ?? ""}, ${addr.city ?? ""} ${addr.state ?? ""} ${addr.postal_code ?? ""} ${addr.country ?? ""}`,
+          ]
+        ).catch(() => {});
+      }
 
       await (supabase as any).from("merch_orders").insert({
         merch_product_id: meta.product_id,

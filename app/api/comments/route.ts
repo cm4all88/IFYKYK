@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { notifyCreatorByProfile } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const postId = new URL(req.url).searchParams.get("postId");
@@ -52,6 +53,17 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Ping the creator (skipped if they commented on their own post).
+  notifyCreatorByProfile({
+    creatorProfileId: post.creator_profile_id,
+    type: "new_comment",
+    title: "New comment",
+    body: content.trim().slice(0, 90),
+    link: "/dashboard?pane=posts",
+    exceptUserId: user.id,
+  }).catch(() => {});
+
   return NextResponse.json({ comment });
 }
 

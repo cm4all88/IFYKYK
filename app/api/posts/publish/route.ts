@@ -4,6 +4,7 @@ import { isBillingLocked } from "@/lib/billing";
 import { can } from "@/lib/entitlements";
 import { moderateChatMessage } from "@/lib/advisor";
 import { getSecrets } from "@/lib/settings";
+import { notifySubscribers } from "@/lib/notify";
 
 // AI honesty check for locked posts — separate from content moderation.
 // Verifies the description accurately represents what's being sold.
@@ -202,6 +203,26 @@ export async function POST(req: NextRequest) {
     } catch {
       // Column not present yet — the cover still posted fine.
     }
+  }
+
+  // ── Tell subscribers a new post is up ────────────────────────────
+  // Only for posts that go live now (scheduled posts notify from the cron when
+  // they publish). This is the retention loop: without it, a creator posts and
+  // no one is told. Best effort — never blocks the response body meaning.
+  if (post?.id && !scheduledAt) {
+    try {
+      const { data: cp } = await (supabase as any)
+        .from("creator_profiles").select("handle, display_name").eq("id", creatorProfileId).maybeSingle();
+      const who = cp?.display_name || (cp?.handle ? `@${cp.handle}` : "A creator");
+      await notifySubscribers({
+        creatorProfileId,
+        type: "new_post",
+        title: `${who} posted`,
+        body: caption?.trim()?.slice(0, 90) || "New post",
+        link: cp?.handle ? `/${cp.handle}` : "/feed",
+        exceptUserId: user.id,
+      });
+    } catch { /* non-fatal */ }
   }
 
   return NextResponse.json({ post });

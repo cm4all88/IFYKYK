@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { bunnySignUrl } from "@/lib/bunny";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -56,12 +57,39 @@ export async function GET(req: NextRequest) {
   const { data: posts } = await query;
 
   // Step 5: Attach unlock status
-  const enriched = (posts ?? []).map((p: any) => ({
-    ...p,
-    isUnlocked: p.tier === "free" || unlockedIds.has(p.id),
-    // Subscriber fans can see premium posts from creators they sub to
-    isSubscribed: creatorIds.includes(p.creator_profile_id),
-  }));
+  // SECURITY: a locked post's original media_url must NEVER reach the client.
+  // The old code sent the raw URL and let the browser CSS-blur it — anyone could
+  // pull the real file from the DOM/network. Here the server strips it: a locked
+  // post carries no media_url at all, just a `locked` flag so the client can show
+  // the "Behind the curtain" panel. Visible media is signed so Bunny Token
+  // Authentication can be switched on without breaking the feed.
+  const enriched = (posts ?? []).map((p: any) => {
+    const isUnlocked = p.tier === "free" || unlockedIds.has(p.id);
+    const base = {
+      ...p,
+      isUnlocked,
+      isSubscribed: creatorIds.includes(p.creator_profile_id),
+    };
+    if (!isUnlocked && p.tier !== "free") {
+      // Locked: reveal nothing about the file itself.
+      return {
+        ...base,
+        locked: true,
+        locked_type: p.media_type ?? null, // for the icon only
+        media_url: null,
+        media_urls: [],
+      };
+    }
+    // Visible: sign the URL(s) so they keep working under Bunny token auth.
+    return {
+      ...base,
+      locked: false,
+      media_url: p.media_url ? bunnySignUrl(p.media_url) : null,
+      media_urls: Array.isArray(p.media_urls)
+        ? p.media_urls.filter((m: any) => m?.url).map((m: any) => ({ ...m, url: bunnySignUrl(m.url) }))
+        : p.media_urls,
+    };
+  });
 
   // Filter locked if requested
   const filtered = filter === "locked"

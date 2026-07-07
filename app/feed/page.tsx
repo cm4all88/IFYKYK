@@ -44,6 +44,8 @@ interface Post {
   is_pinned: boolean;
   isUnlocked: boolean;
   isSubscribed: boolean;
+  locked?: boolean;
+  locked_type?: string | null;
   creator_profile: Creator;
 }
 
@@ -184,15 +186,18 @@ function VideoMedia({ src }: { src: string }) {
 // ── Post card ──────────────────────────────────────────────────
 function PostCard({ post }: { post: Post }) {
   const creator = post.creator_profile;
+  const isLocked = post.locked ?? (!post.isUnlocked && post.tier !== "free");
+  // Locked posts carry no media_url (stripped server-side). "hasMedia" governs
+  // the real media render; locked posts render a curtain panel instead.
   const hasMedia = !!post.media_url;
-  const isLocked = !post.isUnlocked && post.tier !== "free";
+  const showMediaBox = hasMedia || isLocked;
 
   return (
     <article className="feed-card">
       {/* Playbill credit line */}
       <div style={{
         display: "flex", alignItems: "center", gap: 13, padding: "18px 22px",
-        borderBottom: hasMedia ? "1px solid rgba(255,255,255,0.05)" : "none",
+        borderBottom: showMediaBox ? "1px solid rgba(255,255,255,0.05)" : "none",
       }}>
         <Link href={`/${creator.handle}`} style={{ flexShrink: 0 }}>
           <Avatar url={creator.avatar_url} name={creator.display_name} size={38} />
@@ -220,14 +225,13 @@ function PostCard({ post }: { post: Post }) {
       </div>
 
       {/* Media */}
-      {hasMedia && (
+      {showMediaBox && (
         <div style={{ position: "relative", background: "#080809" }}>
           {isLocked ? (
-            <div style={{ position: "relative", overflow: "hidden" }}>
-              {post.media_type === "video"
-                ? <video src={post.media_url!} muted style={{ width: "100%", display: "block", maxHeight: 380, objectFit: "cover", filter: "blur(22px) brightness(0.38)", transform: "scale(1.06)" }} />
-                : <img src={post.media_url!} alt="" style={{ width: "100%", display: "block", maxHeight: 380, objectFit: "cover", filter: "blur(22px) brightness(0.38)", transform: "scale(1.06)" }} />
-              }
+            <div style={{ position: "relative", overflow: "hidden", minHeight: 240,
+              background: "radial-gradient(ellipse 120% 90% at 50% 30%, rgba(30,30,38,0.9) 0%, #0b0b0f 100%)" }}>
+              {/* No raw media here — the original never leaves the server for a
+                  locked post. Just a tasteful placeholder + call to unlock. */}
               <div style={{
                 position: "absolute", inset: 0, display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center", gap: 16, padding: 24,
@@ -303,6 +307,19 @@ function EmptyState() {
   );
 }
 
+function DiscoverEmpty() {
+  return (
+    <div className="empty-state">
+      <p className="empty-state-icon">✦</p>
+      <h2 className="empty-state-title">New acts are arriving.</h2>
+      <p className="empty-state-body" style={{ maxWidth: 380, margin: "0 auto var(--s-8)" }}>
+        There's nothing fresh to show just yet. Browse everyone on the platform and find your first creators.
+      </p>
+      <Link href="/explore" className="btn btn--primary">Explore creators</Link>
+    </div>
+  );
+}
+
 // ── Loading skeleton ───────────────────────────────────────────
 function Skeleton() {
   return (
@@ -340,6 +357,8 @@ export default function FeedPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [cursor, setCursor] = useState<string | null>(null);
   const [needsInterests, setNeedsInterests] = useState<boolean | null>(null);
+  const [tab, setTab] = useState<"lineup" | "foryou">("lineup");
+  const [discoverCursor, setDiscoverCursor] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -356,6 +375,27 @@ export default function FeedPage() {
     if (!append) setLoading(true);
     else setLoadingMore(true);
 
+    // ── For You (discovery) ──────────────────────────────────────
+    if (tab === "foryou") {
+      const params = new URLSearchParams();
+      if (cur) params.set("cursor", cur);
+      const res = await fetch(`/api/feed/discover?${params}`);
+      if (res.status === 401) { router.push("/login"); return; }
+      const data = await res.json();
+      if (append) setPosts((prev) => [...prev, ...(data.posts ?? [])]);
+      else {
+        setPosts(data.posts ?? []);
+        setCreators([]);
+        setLiveStreams([]);
+      }
+      setDiscoverCursor(data.cursor ?? null);
+      setHasMore(data.hasMore ?? false);
+      setLoading(false);
+      setLoadingMore(false);
+      return;
+    }
+
+    // ── Your lineup (subscriptions) ──────────────────────────────
     const params = new URLSearchParams({ filter: f });
     if (cur) params.set("cursor", cur);
 
@@ -368,15 +408,26 @@ export default function FeedPage() {
       setPosts(data.posts ?? []);
       setCreators(data.creators ?? []);
       setLiveStreams(data.liveStreams ?? []);
+      // Cold start: nothing to follow yet → send them to discovery instead of an
+      // empty stage. The tab change re-triggers load() via the effect below.
+      if ((data.creators?.length ?? 0) === 0 && (data.posts?.length ?? 0) === 0) {
+        setTab("foryou");
+        return;
+      }
     }
     setHasMore(data.hasMore ?? false);
     setLoading(false);
     setLoadingMore(false);
   }
 
-  useEffect(() => { if (needsInterests === false) load(filter, null, false); }, [filter, needsInterests]);
+  useEffect(() => { if (needsInterests === false) load(filter, null, false); }, [filter, needsInterests, tab]);
 
   function loadMore() {
+    if (tab === "foryou") {
+      if (!discoverCursor) return;
+      load(filter, discoverCursor, true);
+      return;
+    }
     if (!posts.length) return;
     const last = posts[posts.length - 1].created_at;
     setCursor(last);
@@ -414,7 +465,14 @@ export default function FeedPage() {
         <div style={{ maxWidth: 660, margin: "0 auto", padding: "0 24px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", padding: "18px 0 0" }}>
             <Link href="/" className="brand-logo" style={{ justifySelf: "start", fontSize: 22 }}>Spot<span>light</span>ly</Link>
-            <span className="feed-kicker">Your lineup</span>
+            <div style={{ justifySelf: "center", display: "flex", alignItems: "center", gap: 4 }}>
+              <button onClick={() => setTab("foryou")} className={`feed-filter${tab === "foryou" ? " feed-filter--active" : ""}`}>
+                For You
+              </button>
+              <button onClick={() => setTab("lineup")} className={`feed-filter${tab === "lineup" ? " feed-filter--active" : ""}`}>
+                Your Lineup
+              </button>
+            </div>
             <div style={{ justifySelf: "end", display: "flex", alignItems: "center", gap: 8 }}>
               <Link href="/wall" className="nav-pill nav-pill--secondary" title="This month's top creators">🏅 Wall</Link>
               {isCreator && (
@@ -424,14 +482,16 @@ export default function FeedPage() {
             </div>
           </div>
 
-          {/* Filter pills */}
-          <div style={{ display: "flex", gap: 0, borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "14px 0 0", scrollbarWidth: "none" }}>
-            {FILTERS.map(({ key, label }) => (
-              <button key={key} onClick={() => setFilter(key)} className={`feed-filter${filter === key ? " feed-filter--active" : ""}`}>
-                {label}
-              </button>
-            ))}
-          </div>
+          {/* Filter pills (lineup only — discovery is one ranked stream) */}
+          {tab === "lineup" && (
+            <div style={{ display: "flex", gap: 0, borderBottom: "1px solid rgba(255,255,255,0.07)", padding: "14px 0 0", scrollbarWidth: "none" }}>
+              {FILTERS.map(({ key, label }) => (
+                <button key={key} onClick={() => setFilter(key)} className={`feed-filter${filter === key ? " feed-filter--active" : ""}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </header>
 
@@ -441,14 +501,14 @@ export default function FeedPage() {
         {/* Editorial intro */}
         <div style={{ textAlign: "center", padding: "56px 0 44px" }}>
           <h1 className="feed-hero" style={{ fontSize: "clamp(38px, 7vw, 60px)", marginBottom: 14 }}>
-            Tonight's <em>lineup.</em>
+            {tab === "foryou" ? <>Worth <em>discovering.</em></> : <>Tonight's <em>lineup.</em></>}
           </h1>
         </div>
 
-        <LiveNowSection streams={liveStreams} />
+        {tab === "lineup" && <LiveNowSection streams={liveStreams} />}
 
-        {/* Creator strip */}
-        {!loading && creators.length > 0 && (
+        {/* Creator strip (lineup only) */}
+        {tab === "lineup" && !loading && creators.length > 0 && (
           <div style={{ marginBottom: 16, marginLeft: -24, marginRight: -24 }}>
             <CreatorStrip creators={creators} />
           </div>
@@ -457,7 +517,7 @@ export default function FeedPage() {
         {loading ? (
           <Skeleton />
         ) : posts.length === 0 ? (
-          <EmptyState />
+          tab === "foryou" ? <DiscoverEmpty /> : <EmptyState />
         ) : (
           <>
             {grouped.map(({ label, posts: dayPosts }) => (
