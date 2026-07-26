@@ -68,13 +68,66 @@ describe("apply-creator-triage.sql", () => {
     expect(stageCount("qualified")).toBe(15);
     expect(stageCount("identified")).toBe(10);
     expect(stageCount("disqualified")).toBe(75);
-    expect((sql.match(/^ {2}\('/gm) ?? []).length).toBe(100);
+    expect((sql.match(/^ {4}\('/gm) ?? []).length).toBe(100);
   });
 
-  it("runs in exactly one transaction", () => {
-    expect(sql.match(/^begin;$/gm)).toHaveLength(1);
-    expect(sql.match(/^commit;$/gm)).toHaveLength(1);
-    expect(sql.split("$$")).toHaveLength(3); // one balanced DO block
+  /**
+   * The Supabase SQL Editor changes transaction context between top-level
+   * statements, which killed ON COMMIT DROP temp tables mid-script (42P01).
+   * The whole operation must therefore be a single DO block, and the temp
+   * tables must be dropped explicitly rather than by transaction lifetime.
+   */
+  it("is exactly one top-level statement", () => {
+    expect(sql.match(/\$triage\$/g)).toHaveLength(2);
+    expect(sql).toMatch(/do \$triage\$/);
+
+    // count semicolons outside quotes and outside the dollar-quoted body
+    let depth = 0;
+    let inQuote = false;
+    let inBody = false;
+    let topLevel = 0;
+    for (let i = 0; i < code.length; i++) {
+      if (code.startsWith("$triage$", i)) {
+        inBody = !inBody;
+        i += 7;
+        continue;
+      }
+      if (inBody) continue;
+      const c = code[i];
+      if (inQuote) {
+        if (c === "'") {
+          if (code[i + 1] === "'") i++;
+          else inQuote = false;
+        }
+      } else if (c === "'") inQuote = true;
+      else if (c === "(") depth++;
+      else if (c === ")") depth--;
+      else if (c === ";" && depth === 0) topLevel++;
+    }
+    expect(topLevel).toBe(1);
+    expect(depth).toBe(0);
+    expect(inQuote).toBe(false);
+  });
+
+  it("does not rely on transaction lifetime for its temp tables", () => {
+    expect(code).not.toContain("on commit drop");
+    expect(sql).toMatch(/^\s*drop table _tri;/m);
+    expect(sql).toMatch(/^\s*drop table _match;/m);
+    expect(code).toContain("drop table if exists _tri");
+    expect(code).toContain("drop table if exists _match");
+  });
+
+  it("reports every count it verifies", () => {
+    for (const frag of [
+      "matched: %",
+      "qualified  (PRIORITY): %",
+      "identified (BACKUP):   %",
+      "disqualified (REJECT): %",
+    ]) {
+      expect(sql).toContain(`raise notice '${frag}`);
+    }
+    expect(sql).toMatch(/expected 15\/10\/75/);
+    expect(code).toContain("get diagnostics n_updated = row_count");
   });
 
   it("contains no destructive or schema-changing statement", () => {
@@ -99,7 +152,7 @@ describe("apply-creator-triage.sql", () => {
 
   it("only ever targets rows resolved by the preflight match", () => {
     expect(code).toContain("update public.creator_prospects");
-    expect(code).toMatch(/where\s+p\.id\s*=\s*m\.id/);
+    expect(code).toMatch(/where\s+cp\.id\s*=\s*m\.id/);
   });
 
   it("uses only stage values the admin filter already offers", () => {
