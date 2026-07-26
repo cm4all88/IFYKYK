@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { sendNotifyEmail } from "@/lib/email";
 
 // Runs daily. For creators whose card was declined (status 'past_due'):
 //  • within the 7-day grace window → send one warning email per day
@@ -35,11 +36,7 @@ export async function GET(req: NextRequest) {
   async function emailUser(userId: string, subject: string, body: string) {
     const { data: au } = await supabase.auth.admin.getUserById(userId);
     if (!au?.user?.email) return;
-    await fetch(`${appUrl}/api/email/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: au.user.email, subject, preview: subject, body }),
-    }).catch(() => {});
+    await sendNotifyEmail({ to: au.user.email, subject, preview: subject, body }).catch(() => false);
   }
 
   for (const r of rows ?? []) {
