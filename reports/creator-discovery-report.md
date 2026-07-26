@@ -1,20 +1,20 @@
 # Creator discovery report
 
 **Run date:** 2026-07-25
-**Output:** `data/creator-prospects-discovered.csv` — 50 verified creators
+**Output:** `data/creator-prospects-discovered.csv` — 52 verified creators
 **Method:** free web search + individual page fetches. No paid APIs, no credentials, $0 spent.
 
 ---
 
 ## Headline result
 
-**50 creators verified. 3 contactable today. 0 imported. 0 contacted.**
+**52 creators verified. 3 contactable today. 0 imported. 0 contacted.**
 
 Every row was confirmed by fetching the creator's own page and recording only what
 was literally displayed. Nothing is inferred, estimated, or taken from a
 search-result snippet.
 
-The list stops at 50 rather than 100 because that is how many met the verification
+The list stops at 52 rather than 100 because that is how many met the verification
 standard within the working limit. It is not padded.
 
 ---
@@ -45,7 +45,7 @@ their own site for enquiries:
 | Seme Cosplay | `info@semecosplay.com` | own site, commissions page |
 | Christian R. P. Kurtis | `Inklingdesignstattoo@gmail.com` | own site (studio address, not personal) |
 
-**The other 47 cannot be reached through the outreach flow yet.** Sourcing their
+**The other 49 cannot be reached through the outreach flow yet.** Sourcing their
 addresses means either per-creator manual research on their own domains, a paid
 enrichment service, or using the `dm` channel the system already supports.
 
@@ -65,7 +65,7 @@ contact — which is the standard you set.
 ## The second finding: follower counts are not verifiable
 
 Instagram and TikTok are login-walled, and scraping authenticated pages is out of
-bounds. So the `followers` column is **empty on all 50 rows by design** rather than
+bounds. So the `followers` column is **empty on all 52 rows by design** rather than
 filled with plausible guesses.
 
 Patreon **member** counts *were* often visible and are recorded — in the notes,
@@ -83,19 +83,19 @@ already paying.
 
 | Niche | Count |
 |---|---|
-| Cosplay | 17 |
+| Cosplay | 18 |
 | Tattoo and body art | 12 |
 | Music (independent) | 8 |
 | Alternative fashion / modelling | 7 |
-| Fitness | 6 |
-| **Total** | **50** |
+| Fitness | 7 |
+| **Total** | **52** |
 
 ### By platform
 
 | Platform | Count |
 |---|---|
 | Patreon | 47 |
-| Own website (`other`) | 3 |
+| Own website (`other`) | 5 |
 
 Platform records what was actually fetched and verified. Instagram, TikTok, Twitch
 and YouTube handles appear in the notes where a page displayed them, but are **not**
@@ -106,7 +106,7 @@ claimed as the verified platform, because those profiles were never fetched.
 | Contact method | Count |
 |---|---|
 | Public business email, creator-published | **3** |
-| Own website or link page identified | 9 |
+| Own website or link page identified | 11 |
 | Linked social handles recorded | ~30 |
 | **Reachable today through the built outreach flow** | **3** |
 
@@ -115,8 +115,8 @@ claimed as the verified platform, because those profiles were never fetched.
 | Band | Count | Reading |
 |---|---|---|
 | 80–100 | 5 | Strong — contactable, or multi-service monetisation |
-| 70–79 | 21 | Good — proven paid base, active |
-| 60–69 | 15 | Moderate — monetising, weaker signal or slower cadence |
+| 70–79 | 22 | Good — proven paid base, active |
+| 60–69 | 16 | Moderate — monetising, weaker signal or slower cadence |
 | 40–59 | 9 | Weak — early monetisation, flagged low priority |
 
 Scores are my assessment, not a fact found on a page. Rubric: monetisation depth
@@ -143,7 +143,7 @@ contactability (0–10).
 
 ## Rejected candidates
 
-Eighteen candidates evaluated and excluded.
+Twenty candidates evaluated and excluded.
 
 | Candidate | Reason |
 |---|---|
@@ -162,6 +162,8 @@ Eighteen candidates evaluated and excluded.
 | Mike Mangan Music, Nicoletta Rosellini, KaddiCosplay, Nero_cosplayer (Ko-fi) | HTTP 403 on every request. Unverifiable. |
 | HASfit, Emma Blackery, Cody Johnson, Josh Groban | Large established brands or major-label artists, well outside the 1k–250k band. |
 | Bandcamp label results | Record labels, not individual creators. |
+| DesignedBy3D | Self-describes as a "professional cosplay studio" with a team, not an individual. |
+| Coscove, FM-Anime, Etsy commission listings | Marketplaces and shops, not individual creators. |
 
 **The first two matter most.** Both were cases where the search-result title did not
 match the live page. Had snippets been trusted instead of fetching every URL, both
@@ -196,7 +198,7 @@ no member count at all.
   (migration `060_creator_prospects.sql` written but unapplied), so there is nothing
   to collide with. The unique indexes on `lower(email)` and
   `(platform, lower(platform_handle))` will enforce it at import.
-- **Against `creator_profiles`:** **not performed — no database access.** All 50 are
+- **Against `creator_profiles`:** **not performed — no database access.** All 52 are
   Patreon or independent-web creators with no known Spotlightly presence, so
   collision is unlikely, but this check is outstanding.
 
@@ -213,11 +215,11 @@ The CSV was parsed through the real `parseProspectCsv` implementation used by th
 importer:
 
 ```
-ROWS: 50
+ROWS: 52
 row errors: 0        unknown headers: 0        internal duplicates: 0
 follower_count populated: 0 (blank by design)
 email populated: 3 (all syntactically valid)
-by platform: patreon 47, other 3
+by platform: patreon 47, other 5
 ```
 
 Every row will land at stage `identified`. Nothing is auto-qualified.
@@ -243,7 +245,7 @@ Every row will land at stage `identified`. Nothing is auto-qualified.
 
 ## What needs your decision
 
-1. **Email sourcing is the bottleneck.** 3 of 50 are contactable. The creator-owned-website
+1. **Email sourcing is the bottleneck.** 3 of 52 are contactable. The creator-owned-website
    seam works and is barely tapped — a focused pass targeting creators with their own
    domains would raise that ratio substantially, and having a domain is itself a
    qualifying signal.
