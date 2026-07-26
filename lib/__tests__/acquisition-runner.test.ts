@@ -66,6 +66,25 @@ describe("isUsLocation", () => {
     }
   });
 
+  /**
+   * Regression: the Canada check was ", ca," which matches
+   * "San Francisco, CA, USA", and ", de" matches Delaware. Every Californian
+   * was silently rejected as foreign.
+   */
+  it("does not mistake US state codes for country codes", () => {
+    expect(isUsLocation("San Francisco, CA, USA")).toBe(true);
+    expect(isUsLocation("Los Angeles, CA, USA")).toBe(true);
+    expect(isUsLocation("Wilmington, DE, USA")).toBe(true);
+    expect(isUsLocation("New Orleans, LA, USA")).toBe(true);
+    // "india" is a substring of "Indianapolis"; "china" of "Chinatown".
+    expect(isUsLocation("Indianapolis, IN, USA")).toBe(true);
+    expect(isUsLocation("Chinatown, San Francisco, CA")).toBe(true);
+    // ...while the countries themselves are still caught by name.
+    expect(isUsLocation("Toronto, Canada")).toBe(false);
+    expect(isUsLocation("Alberta, Canada")).toBe(false);
+    expect(isUsLocation("Berlin, Germany")).toBe(false);
+  });
+
   it("lets an explicit foreign country beat a US-looking token", () => {
     // The single most dangerous false positive: a state name inside a
     // non-US string would otherwise qualify someone abroad.

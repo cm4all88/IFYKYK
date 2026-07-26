@@ -81,9 +81,25 @@ export function isUsLocation(location: string | null | undefined): boolean {
     "mexico","argentina","chile","south africa","philippines","indonesia",
     "malaysia","thailand","vietnam","russia","ukraine","turkey","greece",
     "hungary","romania","israel","uae","dubai",
-    ", uk", ", gb", ", ca,", ", de", ", fr", ", au", ", nz", ", nl",
+    // Two-letter country suffixes only where they cannot collide with a US
+    // state code. ", ca" is California far more often than Canada and ", de"
+    // is Delaware — including them rejected every Californian as foreign.
+    // Canada and Germany are already caught by name above.
+    ", uk", ", gb", ", fr", ", au", ", nz", ", nl",
   ];
-  if (foreign.some((f) => s.includes(f))) return false;
+  // Word-boundary matched, NOT substring: "india" as a substring matches
+  // "Indianapolis", and "china" matches "Chinatown". A plain includes() here
+  // silently rejected US cities.
+  const escape = (f: string) => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (
+    foreign.some((f) =>
+      f.startsWith(", ")
+        ? s.includes(f)
+        : new RegExp(`\\b${escape(f)}\\b`).test(s)
+    )
+  ) {
+    return false;
+  }
 
   if (/\b(usa|u\.s\.a\.|united states|u\.s\.)\b/.test(s)) return true;
 
@@ -142,7 +158,7 @@ const ACTIVITY_RE =
   /(copyright\s*\(c\)?\s*2026|©\s*2026|\b2026\b[^.]{0,60}(convention|modified|window|release|post)|most recent post|posted\s+yesterday|booked\s+(two|2)\s+to\s+four|commissions?\s+(are\s+)?open|last modified on)/i;
 
 const MONETIZATION_RE =
-  /\b(patreon|ko-?fi|commission|merch|shop|store|subscription|tiers?|paid member|deposit|per session|\/month|\bUSD\b|\bEUR\b|pre-?order|wishlist|gumroad|etsy|bandcamp)\b/i;
+  /\b(patreon|ko-?fi|commission|merch|shop|store|subscription|tiers?|paid member|deposit|per session|\/month|\bUSD\b|\bEUR\b|pre-?order|wishlist|gumroad|etsy|bandcamp|coaching|personal training|training program|programme)\b/i;
 
 export function qualify(p: QualificationInput): QualificationResult {
   const reasons: DisqualifyReason[] = [];
