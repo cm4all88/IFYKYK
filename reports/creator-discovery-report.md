@@ -1,20 +1,20 @@
 # Creator discovery report
 
 **Run date:** 2026-07-25
-**Output:** `data/creator-prospects-discovered.csv` — 60 verified creators
+**Output:** `data/creator-prospects-discovered.csv` — 61 verified creators
 **Method:** free web search + individual page fetches. No paid APIs, no credentials, $0 spent.
 
 ---
 
 ## Headline result
 
-**60 creators verified. 6 emailable, 8 with a published business contact method. 0 imported. 0 contacted.**
+**61 creators verified. 6 emailable, 8 with a published business contact method. 0 imported. 0 contacted.**
 
 Every row was confirmed by fetching the creator's own page and recording only what
 was literally displayed. Nothing is inferred, estimated, or taken from a
 search-result snippet.
 
-The list stops at 60 rather than 100 because that is how many met the verification
+The list stops at 61 rather than 100 because that is how many met the verification
 standard within the working limit. It is not padded.
 
 ---
@@ -46,7 +46,7 @@ their own site for enquiries:
 | Seme Cosplay | `info@semecosplay.com` | own site, commissions page |
 | Christian R. P. Kurtis | `Inklingdesignstattoo@gmail.com` | own site (studio address, not personal) |
 
-**The other 54 cannot be reached through the outreach flow yet.** Sourcing their
+**The other 55 cannot be reached through the outreach flow yet.** Sourcing their
 addresses means either per-creator manual research on their own domains, a paid
 enrichment service, or using the `dm` channel the system already supports.
 
@@ -66,7 +66,7 @@ contact — which is the standard you set.
 ## The second finding: follower counts are not verifiable
 
 Instagram and TikTok are login-walled, and scraping authenticated pages is out of
-bounds. So the `followers` column is **empty on all 60 rows by design** rather than
+bounds. So the `followers` column is **empty on all 61 rows by design** rather than
 filled with plausible guesses.
 
 Patreon **member** counts *were* often visible and are recorded — in the notes,
@@ -86,17 +86,17 @@ already paying.
 |---|---|
 | Cosplay | 20 |
 | Tattoo and body art | 12 |
-| Music (independent) | 13 |
+| Music (independent) | 14 |
 | Alternative fashion / modelling | 8 |
 | Fitness | 7 |
-| **Total** | **60** |
+| **Total** | **61** |
 
 ### By platform
 
 | Platform | Count |
 |---|---|
 | Patreon | 47 |
-| Own website or Bandcamp (`other`) | 13 |
+| Own website or Bandcamp (`other`) | 14 |
 
 Platform records what was actually fetched and verified. Instagram, TikTok, Twitch
 and YouTube handles appear in the notes where a page displayed them, but are **not**
@@ -134,7 +134,7 @@ as the `dm` channel — also manual.
 |---|---|---|
 | 80–100 | 7 | Strong — contactable, or multi-service monetisation |
 | 70–79 | 23 | Good — proven paid base, active |
-| 60–69 | 17 | Moderate — monetising, weaker signal or slower cadence |
+| 60–69 | 18 | Moderate — monetising, weaker signal or slower cadence |
 | 40–59 | 13 | Weak — early monetisation, flagged low priority |
 
 Scores are my assessment, not a fact found on a page. Rubric: monetisation depth
