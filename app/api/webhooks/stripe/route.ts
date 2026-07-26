@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notify";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
-import { sendAdminAlert } from "@/lib/email";
+import { sendAdminAlert, sendNotifyEmail } from "@/lib/email";
 import crypto from "node:crypto";
 
 export const runtime = "nodejs";
@@ -26,11 +26,7 @@ async function notifyCreator(supabase: any, creatorProfileId: string, subject: s
     if (!cp) return;
     const { data: au } = await supabase.auth.admin.getUserById(cp.user_id);
     if (!au?.user?.email) return;
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: au.user.email, subject, preview, body }),
-    }).catch(() => {});
+    sendNotifyEmail({ to: au.user.email, subject, preview, body }).catch(() => {});
   } catch { /* non-fatal */ }
 }
 
@@ -395,18 +391,14 @@ export async function POST(req: NextRequest) {
       if (gift) {
         const { data: profile } = await (supabase as any)
           .from("creator_profiles").select("handle").eq("id", meta.creator_profile_id).maybeSingle();
-        fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendNotifyEmail({
             to: meta.recipient_email,
             subject: `🎁 You've been gifted a ${meta.months}-month subscription to @${profile?.handle}`,
             preview: `Someone gifted you a subscription on Spotlightly.`,
             body: `You've received a <strong>${meta.months}-month subscription</strong> to <strong>@${profile?.handle}</strong> on Spotlightly.<br><br>
 Your redemption code: <strong style="font-family:monospace;font-size:18px;letter-spacing:0.1em;">${gift.redemption_code}</strong><br><br>
 <a href="https://spotlightly.app/redeem?code=${gift.redemption_code}" style="display:inline-block;background:#F0B429;color:#09090C;padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:700;">Redeem your gift →</a>`,
-          }),
-        }).catch(() => {});
+          }).catch(() => {});
       }
     }
 
@@ -446,10 +438,7 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
           .eq("id", meta.product_id)
           .maybeSingle();
 
-        fetch(`${appUrl}/api/email/notify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        sendNotifyEmail({
             to: s.customer_details.email,
             subject: `Your download is ready — ${product?.title}`,
             preview: "Your purchase is ready to download.",
@@ -460,8 +449,7 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
   Download now →
 </a><br><br>
 <span style="font-size:12px;color:rgba(242,242,240,0.3);">This link is unique to your purchase. Keep it safe — bookmark it for future downloads.</span>`,
-          }),
-        }).catch(() => {});
+          }).catch(() => {});
 
         // Notify creator of sale
         await notifyCreator(
@@ -644,16 +632,12 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
         } catch { /* non-fatal */ }
         const { data: au } = await supabase.auth.admin.getUserById(meta.user_id);
         if (au?.user?.email) {
-          fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          sendNotifyEmail({
               to: au.user.email,
               subject: "Your Spotlightly subscription has ended",
               preview: "Your creator account has been deactivated.",
               body: `Your Spotlightly subscription has ended and your creator features have been paused.<br><br>Your content and subscribers are safe — reactivate anytime at <a href="https://spotlightly.app/dashboard?pane=billing">spotlightly.app/dashboard</a>.`,
-            }),
-          }).catch(() => {});
+            }).catch(() => {});
         }
       }
     }
@@ -677,18 +661,14 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
           const trialEnd = new Date(sub.trial_end * 1000);
           const daysLeft = Math.ceil((trialEnd.getTime() - Date.now()) / 86400000);
 
-          fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          sendNotifyEmail({
               to: au.user.email,
               subject: `Your Spotlightly trial ends in ${daysLeft} days`,
               preview: "Add a payment method to keep your creator account active.",
               body: `Your 30-day free trial ends on <strong>${trialEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>.<br><br>
 Add a payment method before then to keep your creator account active. If you don't, your account will be paused — your content and subscribers will be saved, but you won't be able to accept payments.<br><br>
 <a href="https://spotlightly.app/dashboard?pane=billing" style="display:inline-block;background:#F0B429;color:#09090C;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Add payment method →</a>`,
-            }),
-          }).catch(() => {});
+            }).catch(() => {});
 
           // Mark warning as sent
           await (supabase as any)
@@ -794,17 +774,13 @@ Add a payment method before then to keep your creator account active. If you don
 
         const { data: au } = await supabase.auth.admin.getUserById(billing.user_id);
         if (au?.user?.email) {
-          fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app"}/api/email/notify`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          sendNotifyEmail({
               to: au.user.email,
               subject: "Payment failed — action required",
               preview: "We couldn't process your Spotlightly subscription payment.",
               body: `We couldn't process your Spotlightly subscription payment. Please update your payment method to keep your creator account active.<br><br>
 <a href="https://spotlightly.app/dashboard?pane=billing" style="display:inline-block;background:#F0B429;color:#09090C;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Update payment method →</a>`,
-            }),
-          }).catch(() => {});
+            }).catch(() => {});
         }
       }
     }

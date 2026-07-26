@@ -191,7 +191,8 @@ export default function SignupPage() {
       const { error: insertErr } = await supabase.from("creator_profiles").insert(rows);
       if (insertErr) throw insertErr;
 
-      fetch("/api/email/welcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: form.email }) }).catch(() => {});
+      // No body: the route derives the address and handle from the session.
+      fetch("/api/email/welcome", { method: "POST" }).catch(() => {});
       fetch("/api/admin/new-creator-alert", { method: "POST" }).catch(() => {});
       fetch("/api/track/presence", { method: "POST" }).catch(() => {});
       fetch("/api/referrals/me").catch(() => {});

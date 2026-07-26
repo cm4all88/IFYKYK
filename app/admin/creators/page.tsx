@@ -1,8 +1,10 @@
-import { createClient, createServiceClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 import ClaimLinkButton from "./ClaimLinkButton";
 import { isAdmin } from "@/lib/admin";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { claimExpiryFrom, generateClaimCode } from "@/lib/claim";
+import { createConciergeCreator } from "@/lib/concierge-create";
 
 async function toggleActive(formData: FormData) {
   "use server";
@@ -49,52 +51,26 @@ async function togglePublished(formData: FormData) {
 async function createCreator(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
-  let email = ((formData.get("email") as string) || "").trim().toLowerCase();
-  const handle = ((formData.get("handle") as string) || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const email = ((formData.get("email") as string) || "").trim().toLowerCase();
+  const handle = ((formData.get("handle") as string) || "").trim();
   const displayName = ((formData.get("display_name") as string) || "").trim();
-  if (!handle || !displayName) redirect("/admin/creators?err=missing");
-  if (!email) email = `concierge_${handle}@spotlightly.app`;
 
-  const admin = await createServiceClient();
-  const { data: existing } = await (admin as any)
-    .from("creator_profiles").select("id").eq("handle", handle).maybeSingle();
-  if (existing) redirect("/admin/creators?err=handle");
+  // Shared with the prospect pipeline (lib/concierge-create.ts) so both
+  // routes into a prepared page use one implementation and one rollback.
+  const result = await createConciergeCreator({ handle, displayName, email });
 
-  const tempPassword = "Sl" + Math.random().toString(36).slice(2, 9) + Math.floor(Math.random() * 90 + 10) + "!";
-  const claimCode = (globalThis.crypto as any).randomUUID().replace(/-/g, "");
-  const { data: created, error: cErr } = await (admin as any).auth.admin.createUser({
-    email, password: tempPassword, email_confirm: true,
-  });
-  if (cErr || !created?.user) {
-    const msg = (cErr as any)?.message || "auth returned no user";
-    const m = msg.toLowerCase();
-    const dup = m.includes("already") || m.includes("registered") || m.includes("exists");
-    redirect(`/admin/creators?err=${dup ? "email" : "auth"}&detail=${encodeURIComponent(String(msg).slice(0, 160))}`);
+  if (!result.ok) {
+    const map: Record<string, string> = {
+      missing_fields: "missing", handle_taken: "handle",
+      email_taken: "email", auth_failed: "auth", profile_failed: "profile",
+    };
+    const code = map[result.error ?? ""] ?? "auth";
+    const detail = result.detail ? `&detail=${encodeURIComponent(result.detail.slice(0, 160))}` : "";
+    redirect(`/admin/creators?err=${code}${detail}`);
   }
-
-  const { data: createdRow, error: pErr } = await (admin as any).from("creator_profiles").insert({
-    user_id: created.user.id, handle, display_name: displayName,
-    creator_type: "spotlight", kind: "spotlight", published: false,
-    claim_code: claimCode,
-  }).select("id").single();
-  if (pErr) {
-    try { await (admin as any).auth.admin.deleteUser(created.user.id); } catch {}
-    redirect(`/admin/creators?err=profile&detail=${encodeURIComponent(((pErr as any).message || "").slice(0, 140))}`);
-  }
-
-  // Trial billing row so the public page isn't billing-locked (free first year).
-  const trialEnds = new Date(Date.now() + 365 * 86400000).toISOString();
-  await (admin as any).from("creator_billing").upsert({
-    user_id: created.user.id,
-    status: "trial",
-    tier: "starter",
-    trial_ends_at: trialEnds,
-    current_period_end: trialEnds,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id" });
 
   revalidatePath("/admin/creators");
-  redirect(`/admin/creators?created=${encodeURIComponent(handle)}&id=${createdRow?.id ?? ""}`);
+  redirect(`/admin/creators?created=${encodeURIComponent(result.handle ?? "")}&id=${result.profileId ?? ""}`);
 }
 
 async function regenClaim(formData: FormData) {
@@ -103,8 +79,10 @@ async function regenClaim(formData: FormData) {
   const id = String(formData.get("id") || "");
   if (!id) return;
   const admin = await createServiceClient();
-  const code = (globalThis.crypto as any).randomUUID().replace(/-/g, "");
-  await (admin as any).from("creator_profiles").update({ claim_code: code, claimed_at: null }).eq("id", id);
+  const code = generateClaimCode();
+  await (admin as any).from("creator_profiles")
+    .update({ claim_code: code, claimed_at: null, claim_expires_at: claimExpiryFrom() })
+    .eq("id", id);
   revalidatePath("/admin/creators");
   redirect("/admin/creators?relink=1");
 }
@@ -139,10 +117,15 @@ export default async function CreatorsPage(props: {
   const errCode = (sp as any).err as string | undefined;
   const detail = (sp as any).detail as string | undefined;
 
-  const supabase = await createClient();
+  // Service client, not the cookie/anon client: this query selects claim_code,
+  // a live bearer secret. Reading it through the anon client would mean the
+  // rows are only protected by creator_profiles' RLS policy — which is not
+  // defined in any migration in this repo and therefore cannot be relied on.
+  // The isAdmin() gate above is what authorises this read.
+  const supabase = await createServiceClient();
   let query = (supabase as any)
     .from("creator_profiles")
-    .select("id, handle, display_name, kind, creator_type, is_active, veriff_verified, subscription_price, stripe_account_id, published, claim_code, claimed_at, created_at", { count: "exact" })
+    .select("id, handle, display_name, kind, creator_type, is_active, veriff_verified, subscription_price, stripe_account_id, published, claim_code, claimed_at, claim_expires_at, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range((page - 1) * perPage, page * perPage - 1);
 
