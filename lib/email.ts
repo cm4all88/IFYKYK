@@ -105,28 +105,53 @@ async function isOptedOut(email: string): Promise<boolean> {
 
 // ─── Transport ────────────────────────────────────────────────────
 
-async function send(
+/**
+ * The transport. Returns Resend's message id on success so a caller that
+ * needs to correlate delivery webhooks can store it; `null` means not sent.
+ *
+ * `text` is optional and, when given, is sent alongside the HTML so the
+ * message is genuinely multipart rather than HTML-only.
+ */
+async function sendRaw(
   to: string,
   subject: string,
   html: string,
-  opts: { category?: EmailCategory } = {}
-): Promise<boolean> {
+  opts: { category?: EmailCategory; text?: string } = {}
+): Promise<string | null> {
   const category = opts.category ?? "transactional";
-  if (!RESEND_KEY) { console.warn("RESEND_API_KEY not set"); return false; }
-  if (!to || !to.includes("@")) return false;
+  if (!RESEND_KEY) { console.warn("RESEND_API_KEY not set"); return null; }
+  if (!to || !to.includes("@")) return null;
 
   if (category === "marketing" && (await isOptedOut(to))) {
     console.warn("Suppressed marketing email to opted-out address");
-    return false;
+    return null;
   }
+
+  const payload: Record<string, unknown> = { from: FROM, to, subject, html };
+  if (opts.text) payload.text = opts.text;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) { console.error("Resend error:", await res.text()); return false; }
-  return true;
+  if (!res.ok) { console.error("Resend error:", await res.text()); return null; }
+
+  try {
+    const body = (await res.json()) as { id?: string };
+    return body?.id ?? "sent";
+  } catch {
+    return "sent";
+  }
+}
+
+async function send(
+  to: string,
+  subject: string,
+  html: string,
+  opts: { category?: EmailCategory; text?: string } = {}
+): Promise<boolean> {
+  return (await sendRaw(to, subject, html, opts)) !== null;
 }
 
 // ─── Shared shell ─────────────────────────────────────────────────
@@ -335,7 +360,43 @@ export async function sendProspectInvite(args: {
     unsubscribeUrl: unsubscribeUrl(to),
   });
 
-  return send(to, subject, html, { category: "marketing" });
+  return send(to, subject, html, { category: "marketing", text: body });
+}
+
+/**
+ * Same message as sendProspectInvite, but returns Resend's id so the caller
+ * can correlate delivery, bounce and complaint webhooks back to the outreach
+ * row. Used by the acquisition runner, which must stop a sequence the moment
+ * a bounce arrives.
+ */
+export async function sendProspectInviteTracked(args: {
+  to: string;
+  subject: string;
+  body: string;
+  claimUrl?: string | null;
+}): Promise<{ ok: boolean; providerId: string | null }> {
+  const { to, subject, body, claimUrl } = args;
+  if (!to || !subject || !body) return { ok: false, providerId: null };
+
+  const paragraphs = body
+    .split(/\n\s*\n/)
+    .map((p) => escapeHtml(p).replace(/\n/g, "<br/>"))
+    .filter(Boolean)
+    .map((p) => `<p style="font-size:15px;color:rgba(255,255,255,0.75);line-height:1.7;margin:0 0 18px;">${p}</p>`)
+    .join("");
+
+  const cta = claimUrl
+    ? `<a href="${claimUrl}" style="display:inline-block;background:#F0B429;color:#09090C;font-weight:bold;font-size:13px;padding:14px 28px;border-radius:4px;text-decoration:none;margin-top:8px;">See your page →</a>`
+    : "";
+
+  const html = base(`${paragraphs}${cta}`, {
+    relationship:
+      "You're receiving this one-off invitation because we came across your public work and thought Spotlightly would suit you. You do not have an account with us.",
+    unsubscribeUrl: unsubscribeUrl(to),
+  });
+
+  const id = await sendRaw(to, subject, html, { category: "marketing", text: body });
+  return { ok: id !== null, providerId: id };
 }
 
 /** Prospect copy is admin-authored plain text; never trust it as markup. */
