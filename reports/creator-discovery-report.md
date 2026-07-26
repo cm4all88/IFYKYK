@@ -8,7 +8,7 @@
 
 ## Headline result
 
-**100 creators verified. 25 emailable, 27 with a published business contact method. 0 imported. 0 contacted.**
+**100 creators verified. 33 emailable, 35 with a published business contact method. 0 imported. 0 contacted.**
 
 Every row was confirmed by fetching the creator's own page and recording only what
 was literally displayed. Nothing is inferred, estimated, or taken from a
@@ -125,12 +125,12 @@ claimed as the verified platform, because those profiles were never fetched.
 
 | Contact method | Count |
 |---|---|
-| Public business **email**, creator-published | **25** |
+| Public business **email**, creator-published | **33** |
 | Published business **contact form** (verified wording, business enquiries) | 2 |
-| **Any verified published business contact method** | **27** |
+| **Any verified published business contact method** | **35** |
 | Own website or link page identified | 11 |
 | Linked social handles recorded (DM route — manual) | ~30 |
-| **Sendable through the built outreach flow (needs an email)** | **25** |
+| **Sendable through the built outreach flow (needs an email)** | **33** |
 
 Two different questions sit behind "contactable", and they have different answers.
 
@@ -146,6 +146,62 @@ reachable by a human filling in a form, which is a manual step outside it.
 
 A further ~30 have public Instagram or TikTok handles, which the system supports
 as the `dm` channel — also manual.
+
+### Back-filling contact for Patreon-only prospects
+
+The single biggest gap in this list was that Patreon publishes no contact route —
+47 prospects sat on Patreon with no way to reach them. A late pass searched for
+each high-scoring prospect's **own** website and fetched it. Eight yielded a real
+address:
+
+| Creator | Address | Published on |
+|---|---|---|
+| JuTsukino | `jtstudio.atelier@gmail.com` | her own JT Studio contact page |
+| Carrie Welling | `carriewellingbooking@gmail.com` | her own site, a dedicated booking address |
+| Fitness with PJ | `pj@fitnesswithpj.com` | her own coaching contact page |
+| Wynter Phoenix | `wyntercosplay@gmail.com` | her own services page |
+| Mugiwara Cosplay | `mugiwarascreativecorner@gmail.com` | her own contact page |
+| Sam Buckingham | `hello@sambuckingham.com` | her own site |
+| Emma-Lee Moss | `emmythegreat@gmail.com` | her own about page, for management enquiries |
+| Lightning Cosplay | `info@lightning-cosplay.com` | the German legal imprint on their own site |
+
+That is a **57% hit rate on the eight creators whose own domains were found** — the
+same rate creator-owned domains showed earlier. The lesson is that the Patreon
+rows were never uncontactable; the contact simply lives one domain away.
+
+**Seven more were checked and yielded nothing, and that is recorded too**:
+The Closet Historian, Kamui Cosplay, NAVARO, Alicornia, UmbraWigs, LINE and
+Gunnar Deatherage publish contact forms or mailing-list signups only.
+
+#### Search snippets claimed five addresses that do not exist
+
+This pass produced the clearest evidence yet for fetching every page. Search
+result snippets confidently supplied these addresses; **none of them appears
+anywhere on the creator's actual page**, and none was recorded:
+
+| Claimed by a snippet | Reality on the fetched page |
+|---|---|
+| `wynter@ciberdime.com` | Her page publishes `wyntercosplay@gmail.com`. Different address entirely. |
+| `maddie@umbrawigs.co` / `Orders@umbrawigs.com` | Contact form only. No address. |
+| `Bro.NAVARO@gmail.com` | Contact page publishes no address. |
+| `alicorniacosplay@gmail.com` | Social links only. No address. |
+| `kamui@ins.gg` / `info@kamuicosplay.com` | Contact form only. `ins.gg` is a talent agency, so it would have been an agency address regardless. |
+
+Had these been taken on trust, five of the 33 emails in this file — 15% — would
+have been fabricated, and one would have sent mail to a stranger at an unrelated
+domain.
+
+A sixth was declined on principle: a **data broker** lists an address for Gunnar
+Deatherage. He does not publish it himself, so it fails your rule that an email
+be *published for business or creator inquiries*. Not recorded.
+
+#### Two agency-represented artists flagged
+
+Fetching also surfaced facts that count *against* prospects. Sam Buckingham is
+represented by The Harbour Agency; Emma-Lee Moss lists both a live booking agent
+and a literary agent. Both therefore fail preference 3 (manages their own brand),
+and both rows now say so. Gunnar Deatherage's own page states **over 6 million
+followers**, far above your 1k–250k band — also now flagged.
 
 ### By fit score
 
@@ -273,7 +329,7 @@ importer:
 ROWS: 60
 row errors: 0        unknown headers: 0        internal duplicates: 0
 follower_count populated: 0 (blank by design)
-email populated: 25 (all syntactically valid)
+email populated: 33 (all syntactically valid, all unique)
 by platform: patreon 47, other 47, substack 6
 ```
 
@@ -290,7 +346,7 @@ Every row will land at stage `identified`. Nothing is auto-qualified.
 | No authenticated scraping, no CAPTCHA/rate-limit evasion | Yes — Ko-fi 403s accepted, not worked around |
 | Nothing invented | Yes — unverifiable fields left blank |
 | Source URL recorded per row | Yes, in notes |
-| Emails only where published for business contact | Yes — 3, all creator-published; aggregator-sourced addresses declined |
+| Emails only where published for business contact | Yes — 33, every one creator-published; aggregator- and broker-sourced addresses declined |
 | Nobody contacted | Yes |
 | No profiles, auth users, billing rows or claim codes created | Yes |
 | All prospects left at `identified` | Yes |
@@ -300,7 +356,7 @@ Every row will land at stage `identified`. Nothing is auto-qualified.
 
 ## What needs your decision
 
-1. **Email sourcing is the bottleneck, but it is yielding.** 25 of 100 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
+1. **Email sourcing is the bottleneck, but it is yielding.** 33 of 100 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
    seam works and is barely tapped — a focused pass targeting creators with their own
    domains would raise that ratio substantially, and having a domain is itself a
    qualifying signal.
