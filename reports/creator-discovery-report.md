@@ -105,10 +105,27 @@ claimed as the verified platform, because those profiles were never fetched.
 
 | Contact method | Count |
 |---|---|
-| Public business email, creator-published | **3** |
+| Public business **email**, creator-published | **3** |
+| Published business **contact form** (verified wording, business enquiries) | 2 |
+| **Any verified published business contact method** | **5** |
 | Own website or link page identified | 11 |
-| Linked social handles recorded | ~30 |
-| **Reachable today through the built outreach flow** | **3** |
+| Linked social handles recorded (DM route — manual) | ~30 |
+| **Sendable through the built outreach flow (needs an email)** | **3** |
+
+Two different questions sit behind "contactable", and they have different answers.
+
+Your preference asks whether a creator *publishes a legitimate business contact
+method*. Five do: three by email, and two by a business enquiry form —
+DeLa Doll's states "Please use this form to contact me with requests, business
+inquiries, general questions", and Scott Laidler's is a "Request Consultation"
+form. Both are unambiguously business contact routes.
+
+But the outreach flow needs an **email address** to send anything, so only the
+three with addresses are actionable inside the system today. The other two are
+reachable by a human filling in a form, which is a manual step outside it.
+
+A further ~30 have public Instagram or TikTok handles, which the system supports
+as the `dm` channel — also manual.
 
 ### By fit score
 
