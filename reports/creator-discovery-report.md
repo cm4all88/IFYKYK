@@ -1,21 +1,28 @@
 # Creator discovery report
 
 **Run date:** 2026-07-25
-**Output:** `data/creator-prospects-discovered.csv` — 90 verified creators
+**Output:** `data/creator-prospects-discovered.csv` — 93 verified creators
 **Method:** free web search + individual page fetches. No paid APIs, no credentials, $0 spent.
 
 ---
 
 ## Headline result
 
-**90 creators verified. 23 emailable, 25 with a published business contact method. 0 imported. 0 contacted.**
+**93 creators verified. 23 emailable, 25 with a published business contact method. 0 imported. 0 contacted.**
 
 Every row was confirmed by fetching the creator's own page and recording only what
 was literally displayed. Nothing is inferred, estimated, or taken from a
 search-result snippet.
 
-The list stops at 90 rather than 100 because that is how many met the verification
-standard within the working limit. It is not padded.
+The list stops at 93 rather than 100 because that is how many met the verification
+standard. It is not padded — and the last gap was left open deliberately.
+
+Four fashion Substacks were fetched and **rejected as off-niche**, including
+Morgan Vogel's Gatekept, which publishes `morgan@gatekeptmag.com` and would
+otherwise have been a strong prospect. She writes mainstream fashion and
+culture, not alternative fashion or modelling. Taking those four would have
+put the count at 97 by quietly widening the brief, which is padding by
+another name.
 
 ---
 
@@ -75,7 +82,7 @@ contact — which is the standard you set.
 ## The second finding: follower counts are not verifiable
 
 Instagram and TikTok are login-walled, and scraping authenticated pages is out of
-bounds. So the `followers` column is **empty on all 90 rows by design** rather than
+bounds. So the `followers` column is **empty on all 93 rows by design** rather than
 filled with plausible guesses.
 
 Patreon **member** counts *were* often visible and are recorded — in the notes,
@@ -94,11 +101,11 @@ already paying.
 | Niche | Count |
 |---|---|
 | Cosplay | 30 |
-| Tattoo and body art | 20 |
+| Tattoo and body art | 23 |
 | Music (independent) | 14 |
 | Alternative fashion / modelling | 12 |
 | Fitness | 14 |
-| **Total** | **90** |
+| **Total** | **93** |
 
 ### By platform
 
@@ -106,7 +113,7 @@ already paying.
 |---|---|
 | Patreon | 47 |
 | Own website or Bandcamp (`other`) | 40 |
-| Substack | 3 |
+| Substack | 6 |
 
 Platform records what was actually fetched and verified. Instagram, TikTok, Twitch
 and YouTube handles appear in the notes where a page displayed them, but are **not**
@@ -143,8 +150,8 @@ as the `dm` channel — also manual.
 | Band | Count | Reading |
 |---|---|---|
 | 80–100 | 14 | Strong — contactable, or multi-service monetisation |
-| 70–79 | 36 | Good — proven paid base, active |
-| 60–69 | 26 | Moderate — monetising, weaker signal or slower cadence |
+| 70–79 | 37 | Good — proven paid base, active |
+| 60–69 | 28 | Moderate — monetising, weaker signal or slower cadence |
 | 40–59 | 14 | Weak — early monetisation, flagged low priority |
 
 Scores are my assessment, not a fact found on a page. Rubric: monetisation depth
@@ -171,7 +178,7 @@ contactability (0–10).
 
 ## Rejected candidates
 
-Thirty-one candidates evaluated and excluded.
+Thirty-six candidates evaluated and excluded.
 
 | Candidate | Reason |
 |---|---|
@@ -203,6 +210,11 @@ Thirty-one candidates evaluated and excluded.
 | Punished Props Academy | Punished Props LLC — a company, per the copyright notice on the page. |
 | HMD Cosplay | Describes a "dedicated team", not an individual maker. |
 | Sylph Cosplay (Gumroad) | Storefront returned no content to a fetcher — unverifiable. |
+| Gatekept (Morgan Vogel) | **Off-niche.** Independent fashion-and-culture writing, not alternative fashion or modelling — rejected despite publishing `morgan@gatekeptmag.com` and being an otherwise ideal prospect. |
+| Three Outfits (Cathy Karuga) | Off-niche — mainstream fashion styling newsletter. |
+| Costume Change (Kristin Yancy) | Off-niche — personal style journal, not alternative fashion. |
+| The Stylish Collection | Off-niche, and the page returned no usable detail. |
+| Lilpeggyhill Substack | Page returned no creator detail — unverifiable. |
 
 **The first two matter most.** Both were cases where the search-result title did not
 match the live page. Had snippets been trusted instead of fetching every URL, both
@@ -258,7 +270,7 @@ ROWS: 60
 row errors: 0        unknown headers: 0        internal duplicates: 0
 follower_count populated: 0 (blank by design)
 email populated: 23 (all syntactically valid)
-by platform: patreon 47, other 40, substack 3
+by platform: patreon 47, other 40, substack 6
 ```
 
 Every row will land at stage `identified`. Nothing is auto-qualified.
@@ -284,7 +296,7 @@ Every row will land at stage `identified`. Nothing is auto-qualified.
 
 ## What needs your decision
 
-1. **Email sourcing is the bottleneck, but it is yielding.** 23 of 90 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
+1. **Email sourcing is the bottleneck, but it is yielding.** 23 of 93 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
    seam works and is barely tapped — a focused pass targeting creators with their own
    domains would raise that ratio substantially, and having a domain is itself a
    qualifying signal.
