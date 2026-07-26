@@ -42,6 +42,14 @@ const VENDOR_DOMAIN =
 const HASH_LOCALPART = /^[0-9a-f]{16,}@/i;
 
 /**
+ * Template placeholders. Scanning 55 live sites harvested `user@domain.com`
+ * from two of them — theme boilerplate nobody replaced. It passes every
+ * syntactic check, so it has to be named.
+ */
+const PLACEHOLDER_ADDRESS =
+  /^(?:user|you|your-?e?mail|email|name|firstname|someone|username|info)@(?:domain|yourdomain|example|yoursite|website|email|mysite)\.[a-z]{2,}$/i;
+
+/**
  * Every plausible business address on the page, best first.
  *
  * Prefers an address on the site's own domain over a free-mail address,
@@ -65,6 +73,7 @@ export function extractEmails(html: string, pageUrl?: string): string[] {
     if (NOT_A_PERSON.test(e)) continue;
     if (VENDOR_DOMAIN.test(e)) continue;
     if (HASH_LOCALPART.test(e)) continue;
+    if (PLACEHOLDER_ADDRESS.test(e)) continue;
     found.add(e);
   }
 
@@ -155,10 +164,25 @@ export function extractUsLocation(html: string): string | null {
   );
   for (const m of Array.from(html.matchAll(postal))) {
     const city = m[1].trim();
+    const state = m[2].toUpperCase();
+
     // Reject sentence fragments that happen to fit the shape.
     if (/^(the|and|for|with|from|our|this|all|copyright|inc|llc)$/i.test(city)) continue;
     if (city.length < 3) continue;
-    return `${city}, ${m[2].toUpperCase()}, USA`;
+
+    // "DC" is the worst offender: scanning 55 live sites produced
+    // "Marvel, DC, USA" and "Former President, DC, USA" from comic-artist
+    // bios listing publishers. The District only ever follows "Washington".
+    if (state === "DC" && !/^washington$/i.test(city)) continue;
+
+    // Publisher, studio and title words that precede a state code in prose
+    // rather than an address.
+    if (/^(marvel|image|idw|dynamite|valiant|boom|oni|vertigo|president|former\s+president|comics?)$/i.test(city)) {
+      continue;
+    }
+    if (/\b(comics|entertainment|studios|publishing)$/i.test(city)) continue;
+
+    return `${city}, ${state}, USA`;
   }
 
   return null;

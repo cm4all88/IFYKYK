@@ -53,6 +53,13 @@ describe("extractEmails", () => {
     expect(extractEmails(real)).toEqual([]);
   });
 
+  /** Harvested verbatim from two of 55 live sites: unreplaced theme boilerplate. */
+  it("rejects template placeholder addresses", () => {
+    for (const e of ["user@domain.com", "you@example.com", "youremail@yourdomain.com", "email@website.com"]) {
+      expect(extractEmails(`contact ${e} today`), e).toEqual([]);
+    }
+  });
+
   it("rejects a hex-hash local part on any domain", () => {
     expect(extractEmails("deadbeefdeadbeefdeadbeef@studio.com")).toEqual([]);
     // ...but a normal address on the same domain still comes through.
@@ -136,6 +143,19 @@ describe("extractUsLocation", () => {
   it("rejects sentence fragments that fit the comma-state shape", () => {
     expect(extractUsLocation("Copyright, CA")).toBeNull();
     expect(extractUsLocation("and, OR")).toBeNull();
+  });
+
+  /**
+   * Regressions from scanning 55 live artist sites. Comic-artist bios list
+   * publishers, and "Marvel, DC" and "Former President, DC" both matched the
+   * City-comma-State shape. DC only ever follows Washington.
+   */
+  it("does not read publisher names as postal addresses", () => {
+    expect(extractUsLocation("<p>Worked for Marvel, DC, Image and IDW</p>")).toBeNull();
+    expect(extractUsLocation("<p>portraits of the Former President, DC</p>")).toBeNull();
+    expect(extractUsLocation("<p>Dark Horse Comics, WA</p>")).toBeNull();
+    // ...but the real district still resolves.
+    expect(extractUsLocation("<p>Washington, DC 20001</p>")).toBe("Washington, DC, USA");
   });
 
   it("returns null when no location is stated", () => {
