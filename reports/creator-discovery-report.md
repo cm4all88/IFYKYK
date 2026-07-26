@@ -1,21 +1,23 @@
 # Creator discovery report
 
 **Run date:** 2026-07-25
-**Output:** `data/creator-prospects-discovered.csv` — 99 verified creators
+**Output:** `data/creator-prospects-discovered.csv` — 100 verified creators
 **Method:** free web search + individual page fetches. No paid APIs, no credentials, $0 spent.
 
 ---
 
 ## Headline result
 
-**99 creators verified. 25 emailable, 27 with a published business contact method. 0 imported. 0 contacted.**
+**100 creators verified. 25 emailable, 27 with a published business contact method. 0 imported. 0 contacted.**
 
 Every row was confirmed by fetching the creator's own page and recording only what
 was literally displayed. Nothing is inferred, estimated, or taken from a
 search-result snippet.
 
-The list stops at 99 rather than 100 because that is how many met the verification
-standard. It is not padded — and the last gap was left open deliberately.
+The list reaches 100 — the ceiling your brief set — and every row cleared the
+same verification bar: fetched from the creator's own page, nothing inferred.
+
+It was not padded to get there.
 
 Four fashion Substacks were fetched and **rejected as off-niche**, including
 Morgan Vogel's Gatekept, which publishes `morgan@gatekeptmag.com` and would
@@ -82,7 +84,7 @@ contact — which is the standard you set.
 ## The second finding: follower counts are not verifiable
 
 Instagram and TikTok are login-walled, and scraping authenticated pages is out of
-bounds. So the `followers` column is **empty on all 99 rows by design** rather than
+bounds. So the `followers` column is **empty on all 100 rows by design** rather than
 filled with plausible guesses.
 
 Patreon **member** counts *were* often visible and are recorded — in the notes,
@@ -100,19 +102,19 @@ already paying.
 
 | Niche | Count |
 |---|---|
-| Cosplay | 33 |
+| Cosplay | 34 |
 | Tattoo and body art | 23 |
 | Music (independent) | 14 |
 | Alternative fashion / modelling | 15 |
 | Fitness | 14 |
-| **Total** | **99** |
+| **Total** | **100** |
 
 ### By platform
 
 | Platform | Count |
 |---|---|
 | Patreon | 47 |
-| Own website or Bandcamp (`other`) | 46 |
+| Own website or Bandcamp (`other`) | 47 |
 | Substack | 6 |
 
 Platform records what was actually fetched and verified. Instagram, TikTok, Twitch
@@ -150,7 +152,7 @@ as the `dm` channel — also manual.
 | Band | Count | Reading |
 |---|---|---|
 | 80–100 | 15 | Strong — contactable, or multi-service monetisation |
-| 70–79 | 39 | Good — proven paid base, active |
+| 70–79 | 40 | Good — proven paid base, active |
 | 60–69 | 30 | Moderate — monetising, weaker signal or slower cadence |
 | 40–59 | 15 | Weak — early monetisation, flagged low priority |
 
@@ -178,7 +180,7 @@ contactability (0–10).
 
 ## Rejected candidates
 
-Thirty-six candidates evaluated and excluded.
+Thirty-eight candidates evaluated and excluded.
 
 | Candidate | Reason |
 |---|---|
@@ -215,6 +217,8 @@ Thirty-six candidates evaluated and excluded.
 | Costume Change (Kristin Yancy) | Off-niche — personal style journal, not alternative fashion. |
 | The Stylish Collection | Off-niche, and the page returned no usable detail. |
 | Lilpeggyhill Substack | Page returned no creator detail — unverifiable. |
+| Dangerous Ladies | A Toronto team, and closed to full costume and sewing work for 2026. |
+| 3D-Cosplay, 3D Planet Props, Blasters4Masters | Prop manufacturing companies, not individual creators. |
 
 **The first two matter most.** Both were cases where the search-result title did not
 match the live page. Had snippets been trusted instead of fetching every URL, both
@@ -270,7 +274,7 @@ ROWS: 60
 row errors: 0        unknown headers: 0        internal duplicates: 0
 follower_count populated: 0 (blank by design)
 email populated: 25 (all syntactically valid)
-by platform: patreon 47, other 46, substack 6
+by platform: patreon 47, other 47, substack 6
 ```
 
 Every row will land at stage `identified`. Nothing is auto-qualified.
@@ -296,7 +300,7 @@ Every row will land at stage `identified`. Nothing is auto-qualified.
 
 ## What needs your decision
 
-1. **Email sourcing is the bottleneck, but it is yielding.** 25 of 99 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
+1. **Email sourcing is the bottleneck, but it is yielding.** 25 of 100 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
    seam works and is barely tapped — a focused pass targeting creators with their own
    domains would raise that ratio substantially, and having a domain is itself a
    qualifying signal.
