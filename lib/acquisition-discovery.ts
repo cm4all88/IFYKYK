@@ -22,8 +22,24 @@ const EMAIL_IN_TEXT =
 const NOT_A_PERSON =
   /^(no-?reply|do-?not-?reply|postmaster|abuse|webmaster|hostmaster|mailer-daemon|filler|sentry|wordpress|admin@localhost)/i;
 
+/**
+ * Vendor, telemetry and platform-system domains — matched on ANY subdomain.
+ *
+ * Anchoring on "@wixpress.com$" let real pages through with addresses like
+ * 605a…@sentry-next.wixpress.com and 7c33…@o363271.ingest.us.sentry.io.
+ * Those are Sentry DSN keys, not people. A scan of 41 live prospect pages
+ * produced seven of them and nothing else, so an unfixed version of this
+ * would have written telemetry keys into the prospect table as business
+ * addresses.
+ */
 const VENDOR_DOMAIN =
-  /@(example\.(com|org|net)|test\.com|godaddy\.com|sentry\.io|wixpress\.com|squarespace\.com|shopify\.com|localhost)$/i;
+  /@(?:[a-z0-9-]+\.)*(example\.(?:com|org|net)|test\.com|godaddy\.com|sentry\.io|wixpress\.com|squarespace\.com|shopify\.com|bandcamp\.com|myshopify\.com|wordpress\.com|localhost)$/i;
+
+/**
+ * A local part that is a long hex string is a machine key, not a mailbox.
+ * Sentry DSNs are the common case.
+ */
+const HASH_LOCALPART = /^[0-9a-f]{16,}@/i;
 
 /**
  * Every plausible business address on the page, best first.
@@ -48,6 +64,7 @@ export function extractEmails(html: string, pageUrl?: string): string[] {
     const e = raw.toLowerCase();
     if (NOT_A_PERSON.test(e)) continue;
     if (VENDOR_DOMAIN.test(e)) continue;
+    if (HASH_LOCALPART.test(e)) continue;
     found.add(e);
   }
 

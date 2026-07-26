@@ -37,6 +37,28 @@ describe("extractEmails", () => {
     expect(extractEmails(html)).toEqual(["real@studio.com"]);
   });
 
+  /**
+   * Regression from scanning 41 live prospect pages. Every "new email" the
+   * first version found was a machine key: Sentry DSNs on vendor subdomains
+   * and a Bandcamp system address. The filter anchored on "@wixpress.com$"
+   * and so never matched "@sentry-next.wixpress.com".
+   */
+  it("rejects telemetry keys and vendor subdomains", () => {
+    const real = [
+      "605a7baede844d278b89dc95ae0a9123@sentry-next.wixpress.com",
+      "7c33659f530ef43fb4532fc6e83354dd@o363271.ingest.us.sentry.io",
+      "support@deardarkness1.bandcamp.com",
+      "abc@shop.myshopify.com",
+    ].join(" ");
+    expect(extractEmails(real)).toEqual([]);
+  });
+
+  it("rejects a hex-hash local part on any domain", () => {
+    expect(extractEmails("deadbeefdeadbeefdeadbeef@studio.com")).toEqual([]);
+    // ...but a normal address on the same domain still comes through.
+    expect(extractEmails("hello@studio.com")).toEqual(["hello@studio.com"]);
+  });
+
   it("does not mistake asset filenames for addresses", () => {
     expect(extractEmails("<img src='sprite@2x.png'> logo@3x.jpg")).toEqual([]);
   });
