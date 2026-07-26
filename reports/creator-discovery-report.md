@@ -1,20 +1,20 @@
 # Creator discovery report
 
 **Run date:** 2026-07-25
-**Output:** `data/creator-prospects-discovered.csv` — 76 verified creators
+**Output:** `data/creator-prospects-discovered.csv` — 81 verified creators
 **Method:** free web search + individual page fetches. No paid APIs, no credentials, $0 spent.
 
 ---
 
 ## Headline result
 
-**76 creators verified. 14 emailable, 16 with a published business contact method. 0 imported. 0 contacted.**
+**81 creators verified. 19 emailable, 21 with a published business contact method. 0 imported. 0 contacted.**
 
 Every row was confirmed by fetching the creator's own page and recording only what
 was literally displayed. Nothing is inferred, estimated, or taken from a
 search-result snippet.
 
-The list stops at 76 rather than 100 because that is how many met the verification
+The list stops at 81 rather than 100 because that is how many met the verification
 standard within the working limit. It is not padded.
 
 ---
@@ -30,7 +30,7 @@ and was wrong. The accurate version:
 | Patreon profile pages | **No** | ~35 fetched. Addresses render as `[email protected]` — Cloudflare obfuscation. |
 | Ko-fi | **No** | HTTP 403 on all 4 attempts. Not retried; working around a block would breach your rules. |
 | Linktree / Carrd link pages | **No** | `linktr.ee/jutsukino` has a section *labelled* "Email" but no address. `alicornia.carrd.co` encodes it via Cloudflare. |
-| **Creator-owned websites** | **Yes** | 16 of 27 fetched published a plain-text business address. By far the best seam, and it holds up as the sample grows. |
+| **Creator-owned websites** | **Yes** | 21 of 33 fetched published a plain-text business address — roughly 64%, and the rate has held steady as the sample grew from 6 to 33. |
 | **Bandcamp artist profiles** | **Yes** | 3 of 6 fetched publish a booking/contact address in plain text. Musicians treat it as a booking channel, so they publish it deliberately. |
 
 So the productive seam is **creators who run their own domain**. That is also a
@@ -73,7 +73,7 @@ contact — which is the standard you set.
 ## The second finding: follower counts are not verifiable
 
 Instagram and TikTok are login-walled, and scraping authenticated pages is out of
-bounds. So the `followers` column is **empty on all 76 rows by design** rather than
+bounds. So the `followers` column is **empty on all 81 rows by design** rather than
 filled with plausible guesses.
 
 Patreon **member** counts *were* often visible and are recorded — in the notes,
@@ -91,19 +91,19 @@ already paying.
 
 | Niche | Count |
 |---|---|
-| Cosplay | 26 |
-| Tattoo and body art | 14 |
+| Cosplay | 27 |
+| Tattoo and body art | 16 |
 | Music (independent) | 14 |
-| Alternative fashion / modelling | 10 |
+| Alternative fashion / modelling | 12 |
 | Fitness | 12 |
-| **Total** | **76** |
+| **Total** | **81** |
 
 ### By platform
 
 | Platform | Count |
 |---|---|
 | Patreon | 47 |
-| Own website or Bandcamp (`other`) | 29 |
+| Own website or Bandcamp (`other`) | 34 |
 
 Platform records what was actually fetched and verified. Instagram, TikTok, Twitch
 and YouTube handles appear in the notes where a page displayed them, but are **not**
@@ -113,23 +113,23 @@ claimed as the verified platform, because those profiles were never fetched.
 
 | Contact method | Count |
 |---|---|
-| Public business **email**, creator-published | **14** |
+| Public business **email**, creator-published | **19** |
 | Published business **contact form** (verified wording, business enquiries) | 2 |
-| **Any verified published business contact method** | **16** |
+| **Any verified published business contact method** | **21** |
 | Own website or link page identified | 11 |
 | Linked social handles recorded (DM route — manual) | ~30 |
-| **Sendable through the built outreach flow (needs an email)** | **14** |
+| **Sendable through the built outreach flow (needs an email)** | **19** |
 
 Two different questions sit behind "contactable", and they have different answers.
 
 Your preference asks whether a creator *publishes a legitimate business contact
-method*. Sixteen do: fourteen by email, and two by a business enquiry form —
+method*. Twenty-one do: nineteen by email, and two by a business enquiry form —
 DeLa Doll's states "Please use this form to contact me with requests, business
 inquiries, general questions", and Scott Laidler's is a "Request Consultation"
 form. Both are unambiguously business contact routes.
 
 But the outreach flow needs an **email address** to send anything, so only the
-fourteen with addresses are actionable inside the system today. The other two are
+nineteen with addresses are actionable inside the system today. The other two are
 reachable by a human filling in a form, which is a manual step outside it.
 
 A further ~30 have public Instagram or TikTok handles, which the system supports
@@ -139,8 +139,8 @@ as the `dm` channel — also manual.
 
 | Band | Count | Reading |
 |---|---|---|
-| 80–100 | 10 | Strong — contactable, or multi-service monetisation |
-| 70–79 | 29 | Good — proven paid base, active |
+| 80–100 | 13 | Strong — contactable, or multi-service monetisation |
+| 70–79 | 31 | Good — proven paid base, active |
 | 60–69 | 23 | Moderate — monetising, weaker signal or slower cadence |
 | 40–59 | 14 | Weak — early monetisation, flagged low priority |
 
@@ -168,7 +168,7 @@ contactability (0–10).
 
 ## Rejected candidates
 
-Twenty-seven candidates evaluated and excluded.
+Twenty-eight candidates evaluated and excluded.
 
 | Candidate | Reason |
 |---|---|
@@ -196,6 +196,7 @@ Twenty-seven candidates evaluated and excluded.
 | hattie.love | HTTP 403 — unverifiable. |
 | maridah.com | HTTP 403 — unverifiable. |
 | Burlesque Registry listings | Performer names only, with no site, monetisation or activity evidence to verify. |
+| Inchoo Bijoux | Montreal workshop with a named team of six — a company, not an individual maker. |
 
 **The first two matter most.** Both were cases where the search-result title did not
 match the live page. Had snippets been trusted instead of fetching every URL, both
@@ -250,8 +251,8 @@ importer:
 ROWS: 60
 row errors: 0        unknown headers: 0        internal duplicates: 0
 follower_count populated: 0 (blank by design)
-email populated: 14 (all syntactically valid)
-by platform: patreon 47, other 29
+email populated: 19 (all syntactically valid)
+by platform: patreon 47, other 34
 ```
 
 Every row will land at stage `identified`. Nothing is auto-qualified.
@@ -277,7 +278,7 @@ Every row will land at stage `identified`. Nothing is auto-qualified.
 
 ## What needs your decision
 
-1. **Email sourcing is the bottleneck, but it is yielding.** 14 of 76 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
+1. **Email sourcing is the bottleneck, but it is yielding.** 19 of 81 are emailable, up from 3, after finding that Bandcamp profiles and creator-owned domains both publish addresses. Both seams are still far from exhausted. The creator-owned-website
    seam works and is barely tapped — a focused pass targeting creators with their own
    domains would raise that ratio substantially, and having a domain is itself a
    qualifying signal.
