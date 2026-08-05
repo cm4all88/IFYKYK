@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendNotifyEmail } from "@/lib/email";
+import { STARTER_CONVERSION_MIN_SUBS } from "@/lib/billing";
 
-// Runs daily. For creators whose card was declined (status 'past_due'):
+// Runs daily.
+//
+// Pass 1 — expired trials (status 'trial', trial_ends_at in the past):
+//  • under the Starter threshold → move to the free plan, stay live, no card needed
+//  • at or above the threshold   → move to 'past_due' with the normal 7 day grace
+//
+// Pass 2 — declined cards (status 'past_due'):
 //  • within the 7-day grace window → send one warning email per day
 //  • grace expired → lock the account (status 'cancelled') + stop future fan charges
 export async function GET(req: NextRequest) {
@@ -26,12 +33,19 @@ export async function GET(req: NextRequest) {
     stripeKey = r.STRIPE_SECRET_KEY;
   } catch { /* fan-pause will be skipped if unavailable */ }
 
+  // ── Pass 1: resolve expired trials ────────────────────────────────────────
+  const { data: expiredTrials } = await supabase
+    .from("creator_billing")
+    .select("user_id, trial_ends_at")
+    .eq("status", "trial")
+    .lt("trial_ends_at", new Date(now).toISOString());
+
   const { data: rows } = await supabase
     .from("creator_billing")
     .select("user_id, grace_ends_at, last_dunning_warned_at")
     .eq("status", "past_due");
 
-  let warned = 0, locked = 0;
+  let warned = 0, locked = 0, freed = 0, converted = 0;
 
   async function emailUser(userId: string, subject: string, body: string) {
     const { data: au } = await supabase.auth.admin.getUserById(userId);
@@ -39,6 +53,58 @@ export async function GET(req: NextRequest) {
     await sendNotifyEmail({ to: au.user.email, subject, preview: subject, body }).catch(() => false);
   }
 
+  // Active paying subscribers across every profile this user owns.
+  async function payingSubscriberCount(userId: string): Promise<number> {
+    const { data: profiles } = await supabase
+      .from("creator_profiles").select("id").eq("user_id", userId);
+    const ids = (profiles ?? []).map((p: any) => p.id);
+    if (ids.length === 0) return 0;
+    const { count } = await supabase
+      .from("subscriptions")
+      .select("id", { count: "exact", head: true })
+      .in("creator_profile_id", ids)
+      .eq("status", "active");
+    return count ?? 0;
+  }
+
+  for (const t of expiredTrials ?? []) {
+    const subs = await payingSubscriberCount(t.user_id);
+
+    if (subs < STARTER_CONVERSION_MIN_SUBS) {
+      // Not earning yet. Never take the page down over a clock we started.
+      await supabase.from("creator_billing")
+        .update({ status: "free", tier: "starter", updated_at: new Date().toISOString() })
+        .eq("user_id", t.user_id);
+      await emailUser(
+        t.user_id,
+        "Your Spotlightly trial ended, your page is still live",
+        `Your 30 day trial is up, so we moved you to the free plan. Nothing was charged and nothing came down.<br><br>` +
+        `Your page, your posts, and your supporters stay exactly where they are. We will ask you about Starter once you pass ${STARTER_CONVERSION_MIN_SUBS} paying supporters, which is the point where it clearly pays for itself.<br><br>` +
+        `<a href="${appUrl}/dashboard?pane=billing" style="display:inline-block;background:#F0B429;color:#09090C;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Open your dashboard →</a>`
+      );
+      freed++;
+      continue;
+    }
+
+    // Already earning. Ask for the card, with the same 7 day grace as a decline.
+    await supabase.from("creator_billing")
+      .update({
+        status: "past_due",
+        grace_ends_at: new Date(now + 7 * 86400000).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", t.user_id);
+    await emailUser(
+      t.user_id,
+      "Your Spotlightly trial ended, add a card to keep going",
+      `Your 30 day trial is up and you have <strong>${subs}</strong> paying supporters, so it is time to move to a plan.<br><br>` +
+      `You have 7 days to add a card. Your page stays live the whole time.<br><br>` +
+      `<a href="${appUrl}/dashboard?pane=billing" style="display:inline-block;background:#F0B429;color:#09090C;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:700;">Add a payment method →</a>`
+    );
+    converted++;
+  }
+
+  // ── Pass 2: declined cards ────────────────────────────────────────────────
   for (const r of rows ?? []) {
     const graceEnds = r.grace_ends_at ? new Date(r.grace_ends_at).getTime() : null;
 
@@ -82,5 +148,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, warned, locked });
+  return NextResponse.json({ ok: true, warned, locked, freed, converted });
 }

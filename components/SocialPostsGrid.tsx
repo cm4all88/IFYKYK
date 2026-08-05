@@ -13,8 +13,7 @@ export default function SocialPostsGrid({ posts, initial = 6 }: { posts: any[]; 
     <>
       <Lane
         items={visible}
-        cardWidth={320}
-        cardHeight={460}
+        cardWidth={360}
         getKey={(sp) => sp.id}
         ariaLabel="Social posts"
         renderItem={(sp) => <SocialPostCard post={sp} />}

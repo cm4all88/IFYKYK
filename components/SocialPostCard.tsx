@@ -1,5 +1,7 @@
 'use client'
 
+import { useCallback, useState } from 'react'
+import IgPostEmbed, { igShortcode } from '@/components/IgPostEmbed'
 
 const PLATFORM_LABELS: Record<string, string> = {
   instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube',
@@ -23,10 +25,9 @@ function xId(u: string) { const m = (u || '').match(/status(?:es)?\/(\d+)/); ret
 // clean link card — never a broken frame.
 function embedFor(platform: string, url: string): { src: string; aspect?: string; width?: number; height?: number; bg: string } | null {
   switch (platform) {
-    // Instagram's iframe embed frequently renders its own broken "this post may be
-    // unavailable, Visit Instagram" card (removed/private posts, or IG blocking the
-    // embed). That looks broken on a creator page, so we skip the iframe entirely and
-    // fall through to the thumbnail (if enriched) or a clean branded link card.
+    // Instagram is handled separately by IgPostEmbed, which measures the real post
+    // height from IG's own MEASURE message and only falls back when the post
+    // genuinely will not render.
     case 'instagram':
       return null;
     case 'tiktok': { const id = ttId(url); return id ? { src: `https://www.tiktok.com/embed/v2/${id}`, width: 325, height: 740, bg: '#000' } : null }
@@ -52,8 +53,12 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
   const label = PLATFORM_LABELS[post.platform] || post.platform
   const color = PLATFORM_COLORS[post.platform] || 'var(--accent, #F0B429)'
   const embed = embedFor(post.platform, post.url)
-  // A real Instagram post (not a profile link): render it live with embed.js unless a
-  // manual/enriched thumbnail is set (which always wins as a guaranteed image).
+
+  // A real Instagram post url (not a profile link) gets the live embed. If IG cannot
+  // serve it, IgPostEmbed tells us and we drop to the thumbnail or link card.
+  const [igFailed, setIgFailed] = useState(false)
+  const onIgFail = useCallback(() => setIgFailed(true), [])
+  const showIg = post.platform === 'instagram' && !igFailed && !!igShortcode(post.url)
 
   // Only show a date we actually trust: parseable, after 2010, not in the future.
   const ts = post.original_posted_at ? Date.parse(post.original_posted_at) : NaN
@@ -74,7 +79,9 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
         )}
       </div>
 
-      {embed ? (
+      {showIg ? (
+        <IgPostEmbed url={post.url} onFail={onIgFail} />
+      ) : embed ? (
         embed.aspect ? (
           <div style={{ position: 'relative', width: '100%', aspectRatio: embed.aspect, background: embed.bg }}>
             <iframe

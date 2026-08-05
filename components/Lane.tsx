@@ -116,6 +116,7 @@ export default function Lane<T>({
           onScroll={onScroll}
           style={{
             display: "flex",
+            alignItems: cardHeight ? "stretch" : "flex-start",
             gap,
             overflowX: "auto",
             scrollSnapType: "x mandatory",
