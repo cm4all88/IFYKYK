@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { token: string } }
 ) {
-  const supabase = await createClient();
+  // Same reason as /api/digital/download: the token is the credential.
+  const supabase = await createServiceClient();
   const { token } = params;
 
   if (!token) return NextResponse.redirect(new URL("/", req.url));
