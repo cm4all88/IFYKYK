@@ -2632,7 +2632,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
     const { data } = await (supabase as any)
       .from("digital_products").select("*")
       .eq("creator_profile_id", profile.id ?? "")
-      .neq("status", "deleted")
+      .neq("status", "archived")
       .order("created_at", { ascending: false });
     setProducts(data ?? []);
     setLoading(false);
@@ -2640,15 +2640,47 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
 
   React.useEffect(() => { if (profile.id) void load(); else setLoading(false); }, [load, profile.id]);
 
+  // Files go straight from the browser to Supabase Storage. That skips the Vercel
+  // function entirely, so the 4.5 MB serverless request body cap does not apply.
+  // Bunny stays on live streaming and public media.
   async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
+    e.target.value = "";
+    setErr(null);
     setUploading(true);
-    const fd = new FormData(); fd.append("file", file);
-    const res = await fetch("/api/digital/upload", { method: "POST", body: fd });
-    const data = await res.json();
-    if (!res.ok) { setErr(data.error); setUploading(false); return; }
-    setFileUrl(data.url); setFileName(file.name); setFileSizeBytes(file.size); setFileType(data.fileType);
-    setUploading(false); e.target.value = "";
+
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) { setErr("Your session expired. Sign in again and retry."); return; }
+
+      // The first path segment must be the owner's user id: the bucket policies
+      // are a prefix match on it.
+      const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+      const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+
+      const { error } = await (supabase as any).storage
+        .from("digital-products")
+        .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+
+      if (error) {
+        setErr(
+          /bucket/i.test(error.message)
+            ? "Storage bucket missing. Run migration 062_digital_storage.sql in Supabase."
+            : `Upload failed: ${error.message}`
+        );
+        return;
+      }
+
+      setFileUrl(path);
+      setFileName(file.name);
+      setFileSizeBytes(file.size);
+      setFileType(ext);
+    } catch (e: any) {
+      setErr(`Upload failed: ${e?.message ?? "network error"}`);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function uploadPreview(e: React.ChangeEvent<HTMLInputElement>) {
@@ -2661,31 +2693,49 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
     setUploading(false); e.target.value = "";
   }
 
-  async function createProduct(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title.trim() || !fileUrl || !price) { setErr("Title, file, and price are required"); return; }
+  async function saveProduct(status: "active" | "draft") {
+    if (!title.trim() || !price) { setErr("A title and a price are required, even for a draft."); return; }
+    if (status === "active" && !fileUrl) { setErr("A published product needs its file. Save it as a draft and add the file later."); return; }
     setSaving(true);
-    await (supabase as any).from("digital_products").insert({
+    setErr(null);
+
+    // status is explicit. The column defaults to 'draft', so an insert that omitted
+    // it produced a product that looked published and was invisible to every buyer.
+    const { error } = await (supabase as any).from("digital_products").insert({
       creator_profile_id: profile.id,
       title: title.trim(), description: description.trim() || null,
-      price: parseFloat(price), file_url: fileUrl, file_name: fileName,
-      file_size_bytes: fileSizeBytes, file_type: fileType, category,
+      price: parseFloat(price), file_url: fileUrl || null, file_name: fileName || null,
+      file_size_bytes: fileSizeBytes || null, file_type: fileType || null, category,
       thumbnail_url: previewImageUrl || null,
+      storage_provider: "supabase",
+      status,
     });
+    setSaving(false);
+    if (error) { setErr(error.message); return; }
+
     setCreating(false); setTitle(""); setDescription(""); setPrice("");
-    setFileUrl(""); setFileName(""); setCategory("other"); setPreviewImageUrl("");
-    setSaving(false); void load();
+    setFileUrl(""); setFileName(""); setFileSizeBytes(0); setCategory("other"); setPreviewImageUrl("");
+    void load();
+  }
+
+  async function createProduct(e: React.FormEvent) {
+    e.preventDefault();
+    await saveProduct("active");
   }
 
   async function toggleStatus(id: string, current: string) {
-    const next = current === "active" ? "paused" : "active";
-    await (supabase as any).from("digital_products").update({ status: next }).eq("id", id);
+    // Allowed values are active, draft, archived. 'paused' was not one of them, so
+    // every pause silently violated the check constraint and changed nothing.
+    const next = current === "active" ? "draft" : "active";
+    const { error } = await (supabase as any).from("digital_products").update({ status: next }).eq("id", id);
+    if (error) { setErr(error.message); return; }
     setProducts(prev => prev.map(p => p.id === id ? { ...p, status: next } : p));
   }
 
   async function deleteProduct(id: string) {
     if (!confirm("Remove this product? Existing buyers keep their downloads.")) return;
-    await (supabase as any).from("digital_products").update({ status: "deleted" }).eq("id", id);
+    const { error } = await (supabase as any).from("digital_products").update({ status: "archived" }).eq("id", id);
+    if (error) { setErr(error.message); return; }
     setProducts(prev => prev.filter(p => p.id !== id));
   }
 
@@ -2764,15 +2814,28 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
           )}
           {(() => {
             const missing = [!title.trim() && "a title", !price && "a price", !fileUrl && "the file itself"].filter(Boolean) as string[];
+            const canDraft = !!title.trim() && !!price;
             return (
               <>
-                <button type="submit" className="btn btn--primary" disabled={saving || missing.length > 0}>
-                  {saving ? "Publishing…" : "Publish product"}
-                </button>
+                <div style={{ display:"flex", gap:"var(--s-3)", alignItems:"center", flexWrap:"wrap" }}>
+                  <button type="submit" className="btn btn--primary" disabled={saving || missing.length > 0}>
+                    {saving ? "Saving…" : "Publish product"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--secondary"
+                    style={{ borderRadius:"var(--r-pill)" }}
+                    disabled={saving || !canDraft}
+                    onClick={() => void saveProduct("draft")}
+                  >
+                    Save as draft
+                  </button>
+                </div>
                 {missing.length > 0 && (
                   <p style={{ fontSize:12, color:"var(--muted)", marginTop:"var(--s-3)" }}>
-                    Still needs {missing.length === 1 ? missing[0] : missing.slice(0, -1).join(", ") + " and " + missing[missing.length - 1]}.
-                    {!fileUrl && " Selling a photo set? Zip the images together and upload the zip."}
+                    {canDraft
+                      ? "Save as a draft to keep this, then add the file and publish when the upload works."
+                      : `Still needs ${missing.length === 1 ? missing[0] : missing.slice(0, -1).join(", ") + " and " + missing[missing.length - 1]}.`}
                   </p>
                 )}
               </>
@@ -2795,7 +2858,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
           {products.map((p: any) => {
             const cat = DIGITAL_CATEGORIES.find(c => c.id === p.category);
             return (
-              <div key={p.id} style={{ display:"flex", alignItems:"center", gap:"var(--s-4)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", opacity: p.status === "paused" ? 0.6 : 1 }}>
+              <div key={p.id} style={{ display:"flex", alignItems:"center", gap:"var(--s-4)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", opacity: p.status === "active" ? 1 : 0.6 }}>
                 <div style={{ width:52, height:40, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
                   {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:20 }}>{cat?.emoji ?? "📦"}</span>}
                 </div>
@@ -2810,7 +2873,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
                 </div>
                 <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
                   <button className="btn btn--secondary" style={{ fontSize:11, padding:"5px 12px", borderRadius:"var(--r-pill)" }} onClick={() => toggleStatus(p.id, p.status)}>
-                    {p.status === "active" ? "Pause" : "Activate"}
+                    {p.status === "active" ? "Unpublish" : "Publish"}
                   </button>
                   <button onClick={() => deleteProduct(p.id)} style={{ background:"none", border:"none", color:"rgba(248,113,113,0.5)", cursor:"pointer", fontSize:11, padding:"5px 8px" }}>Remove</button>
                 </div>
