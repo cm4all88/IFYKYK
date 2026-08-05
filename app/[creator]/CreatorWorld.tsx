@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
+import { PUBLIC_CREATOR_SELECT } from "@/lib/creator-public";
 import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
@@ -74,16 +75,20 @@ function SectionLabel({ children, center }: { children: ReactNode; center?: bool
 async function loadWorld(handle: string) {
   const supabase = await createClient();
 
-  const { data: spotlight } = await supabase
-    .from("creator_profiles").select("*").eq("kind", "spotlight").eq("handle", handle).maybeSingle();
-  if (!spotlight || (spotlight as any).deleted_at) return null;
+  // `creator_public` is the safe projection of creator_profiles (see
+  // lib/creator-public.ts). It excludes claim_code, IP/user-agent tracking,
+  // date_of_birth, shipping fields and Stripe identifiers, and filters
+  // soft-deleted rows itself — so the old `deleted_at` guard now lives in SQL.
+  const { data: spotlight } = await (supabase as any)
+    .from("creator_public").select(PUBLIC_CREATOR_SELECT).eq("kind", "spotlight").eq("handle", handle).maybeSingle();
+  if (!spotlight) return null;
   const sp: any = spotlight;
 
   const { data: { user } } = await supabase.auth.getUser();
 
   // Founding creator: among the first 100 spotlight creators by signup.
   const { count: earlier } = await (supabase as any)
-    .from("creator_profiles").select("id", { count: "exact", head: true })
+    .from("creator_public").select("id", { count: "exact", head: true })
     .eq("kind", "spotlight").lt("created_at", sp.created_at);
   const isFounder = (earlier ?? 0) < 100;
 

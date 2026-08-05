@@ -6,7 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
 
   const { data: creators } = await (supabase as any)
-    .from("creator_profiles")
+    .from("creator_public")
     .select("handle, updated_at")
     .eq("kind", "spotlight")
     .not("onboarding_completed_at", "is", null)

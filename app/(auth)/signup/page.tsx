@@ -53,7 +53,7 @@ export default function SignupPage() {
 
     // Look up their display name + avatar
     (supabase as any)
-      .from("creator_profiles")
+      .from("creator_public")
       .select("display_name, avatar_url")
       .eq("handle", ref)
       .eq("kind", "spotlight")
@@ -201,12 +201,17 @@ export default function SignupPage() {
         ? new URLSearchParams(window.location.search).get("ref") ?? localStorage.getItem("spotlightly_creator_ref")
         : null;
       if (refHandle) {
+        // /api/referrals/creator now requires a session and treats the CALLER as
+        // the referred party — the body can no longer name who gets credited.
+        // If no session exists yet (email confirmation pending) the call 401s, so
+        // keep the stored handle and let a later authenticated load retry it.
         fetch("/api/referrals/creator", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ referrerHandle: refHandle, referredUserId: userId, referredHandle: form.spotlightHandle }),
-        }).catch(() => {});
-        localStorage.removeItem("spotlightly_creator_ref");
+          body: JSON.stringify({ referrerHandle: refHandle, referredHandle: form.spotlightHandle }),
+        })
+          .then((r) => { if (r.ok) localStorage.removeItem("spotlightly_creator_ref"); })
+          .catch(() => {});
       }
 
       // Card required: send them to Stripe to add a card (starts the 30-day free trial).

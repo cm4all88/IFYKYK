@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCreatorSession, isGuardFailure } from "@/lib/ai-guard";
 import { getSecrets } from "@/lib/settings";
 import { TIER_NICHES, tierNicheById } from "@/lib/tier-templates";
 import { categoryById, CAMPAIGN_CATEGORIES } from "@/lib/campaign-templates";
@@ -86,6 +87,10 @@ function fallback(niche: string | null) {
 }
 
 export async function POST(req: NextRequest) {
+  // Anthropic spend is billed to the platform. Builds page content. Reached from the creator dashboard and the admin page builder.
+  const guard = await requireCreatorSession({ requireProfile: true });
+  if (isGuardFailure(guard)) return guard.response;
+
   try {
     const body = await req.json();
     const { niche, makes, fans, workingToward, displayName, handle,

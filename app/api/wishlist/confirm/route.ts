@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
@@ -15,15 +16,25 @@ export async function POST(req: NextRequest) {
   // Verify creator owns this purchase
   const { data: purchase } = await (supabase as any)
     .from("wishlist_purchases")
-    .select("*, creator:creator_profile_id(id, user_id, stripe_account_id, stripe_onboarded)")
+    .select("*")
     .eq("id", purchaseId)
     .eq("status", "paid_pending_purchase")
     .maybeSingle();
 
   if (!purchase) return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
-  if (purchase.creator.user_id !== user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-  if (!purchase.creator.stripe_account_id || !purchase.creator.stripe_onboarded) {
+  // The payee's Connect account, read with the service role (lib/payee.ts).
+  // Migration 064 removes anon read on creator_profiles, so the embed that
+  // used to supply this returns nothing. The parent row above is still read
+  // through the RLS-enforcing client — that is what authorises the purchase;
+  // this only answers where the money goes.
+  const payee = await getPayeeCreator((purchase as any).creator_profile_id);
+  if (!canReceivePayments(payee)) {
+    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
+  }
+  if (payee.user_id !== user.id) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  if (!payee.stripe_account_id || !payee.stripe_onboarded) {
     return NextResponse.json({ error: "Connect your Stripe account first to receive reimbursement" }, { status: 400 });
   }
 
@@ -36,7 +47,7 @@ export async function POST(req: NextRequest) {
   const transferParams = new URLSearchParams({
     amount: String(transferAmount),
     currency: "usd",
-    destination: purchase.creator.stripe_account_id,
+    destination: payee.stripe_account_id,
     "metadata[wishlist_purchase_id]": purchaseId,
     "metadata[type]": "wishlist_reimbursement",
   });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCreatorSession, isGuardFailure } from "@/lib/ai-guard";
 
+export const runtime = "nodejs";
 const COMMON_TAGS = [
   "fitness","music","art","photography","fashion","food","travel",
   "education","comedy","gaming","beauty","lifestyle","business",
@@ -7,6 +9,10 @@ const COMMON_TAGS = [
 ];
 
 export async function POST(req: NextRequest) {
+  // Anthropic spend is billed to the platform. Reached from the creator dashboard composer.
+  const guard = await requireCreatorSession({ requireProfile: true });
+  if (isGuardFailure(guard)) return guard.response;
+
   const { caption, mediaType } = await req.json();
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

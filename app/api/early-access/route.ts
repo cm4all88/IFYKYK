@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
 
   const { data: profile } = await (supabase as any)
-    .from("creator_profiles")
+    .from("creator_public")
     .select("handle")
     .eq("id", creatorProfileId)
     .maybeSingle();

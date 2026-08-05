@@ -3,22 +3,16 @@ import { createNotification } from "@/lib/notify";
 import { createServiceClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { sendAdminAlert, sendNotifyEmail } from "@/lib/email";
-import crypto from "node:crypto";
+import { verifyWebhook } from "@/lib/stripe";
+import { buildTipLedgerRow, tipWebhookOutcome } from "@/lib/tips";
 
 export const runtime = "nodejs";
 
-function verifyStripeSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
-  const parts = signatureHeader.split(",").reduce<Record<string, string>>((acc, p) => {
-    const [k, v] = p.split("=");
-    if (k && v) acc[k] = v;
-    return acc;
-  }, {});
-  const t = parts["t"];
-  const v1 = parts["v1"];
-  if (!t || !v1) return false;
-  const expected = crypto.createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
-}
+// The hand-rolled HMAC that used to live here fed the `t` timestamp into the
+// signature but never compared it against the clock, so a captured request
+// stayed valid forever. It also threw a RangeError instead of returning false
+// when `v1` had an unexpected length. `verifyWebhook` (lib/stripe.ts) wraps the
+// official SDK, which enforces signature, timestamp tolerance and raw body.
 
 async function notifyCreator(supabase: any, creatorProfileId: string, subject: string, preview: string, body: string) {
   try {
@@ -34,13 +28,26 @@ export async function POST(req: NextRequest) {
   const { STRIPE_WEBHOOK_SECRET } = await getSecrets(["STRIPE_WEBHOOK_SECRET"]);
   if (!STRIPE_WEBHOOK_SECRET) return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
 
+  // Raw text, never re-serialised JSON — the signature is over these exact bytes.
   const rawBody = await req.text();
   const sig = req.headers.get("stripe-signature");
-  if (!sig || !verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRET)) {
+  if (!sig) return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+
+  let event: any;
+  try {
+    event = verifyWebhook(rawBody, sig, STRIPE_WEBHOOK_SECRET);
+  } catch (e: any) {
+    // Covers a forged signature AND a replayed one outside the 300s tolerance.
+    // Never fall through to JSON.parse: an unverified body is not an event.
+    console.error(
+      JSON.stringify({
+        at: "webhooks/stripe",
+        event: "signature_rejected",
+        reason: e?.type ?? e?.name ?? "unknown",
+      })
+    );
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
-
-  const event = JSON.parse(rawBody);
 
   // Service role, not the anon client. Stripe posts with no cookies, so there is
   // no session and auth.uid() is null. Under RLS that made every insert with a
@@ -99,19 +106,68 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Tip ─────────────────────────────────────────────────────────
+    // The ledger write is the point of this branch. It used to omit two NOT NULL
+    // columns, never inspect the result, and return 200 — so Stripe recorded the
+    // event as delivered and every tip was lost. `tips` held 0 rows.
+    //
+    // The Connect transfer is created by Stripe at payment time via
+    // payment_intent_data[transfer_data] on the checkout session. It is NOT
+    // created here, so a retry of this handler cannot produce a second transfer.
+    // Retrying is therefore safe, and the unique index on stripe_session_id
+    // (migration 065) makes it non-duplicating.
     if (type === "tip") {
-      const amount = parseFloat(meta.amount_usd ?? "0") || (s.amount_total ?? 0) / 100;
-      await (supabase as any).from("tips").insert({
-        fan_user_id: meta.fan_user_id || null,
-        creator_profile_id: meta.creator_profile_id,
-        amount,
-        stripe_session_id: s.id,
-      });
-      await notifyCreator(supabase, meta.creator_profile_id,
-        `💛 New tip: $${amount.toFixed(2)}`,
-        `A fan just tipped you $${amount.toFixed(2)}.`,
-        `A fan sent you a <strong>$${amount.toFixed(2)} tip</strong>. The full amount goes directly to your Stripe account.`
-      );
+      const built = buildTipLedgerRow({ session: s, eventId: event.id });
+
+      // Only attempt the write when the event is well formed.
+      const { error: tipErr } = built.ok
+        ? await (supabase as any).from("tips").insert(built.row)
+        : { error: null };
+
+      // The whole decision lives in one pure, unit-tested function
+      // (lib/tips.ts). It is what the old handler was missing: it ignored the
+      // insert result and returned 200, so Stripe marked the event delivered
+      // and never retried — which is how every tip was lost silently.
+      const decision = tipWebhookOutcome(built, tipErr);
+
+      if (decision.outcome !== "recorded") {
+        // Structured, greppable, and carrying no customer data or secret —
+        // only ids and the Postgres error code.
+        console.error(
+          JSON.stringify({
+            at: "webhooks/stripe",
+            event: `tip_${decision.outcome}`,
+            reason: built.ok ? null : built.reason,
+            code: tipErr?.code ?? null,
+            retryable: decision.retryable,
+            stripe_event_id: event.id,
+            stripe_session_id: built.ok ? built.row.stripe_session_id : (s.id ?? null),
+            creator_profile_id: built.ok ? built.row.creator_profile_id : null,
+          })
+        );
+      }
+
+      if (decision.outcome === "unprocessable") {
+        return NextResponse.json({ error: "Tip could not be recorded", reason: built.ok ? null : built.reason }, { status: decision.status });
+      }
+      if (decision.outcome === "duplicate") {
+        // Already recorded by an earlier delivery. Acknowledge and stop — a
+        // second notification would tell the creator about one tip twice.
+        return NextResponse.json({ received: true, deduplicated: true }, { status: decision.status });
+      }
+      if (decision.outcome === "write_failed") {
+        // The fan has been charged and the creator has already been transferred
+        // to by Stripe. Fail loudly so the retry can recover the record.
+        return NextResponse.json({ error: "Could not record tip" }, { status: decision.status });
+      }
+
+      if (decision.notify && built.ok) {
+        const amount = built.row.amount;
+        await notifyCreator(supabase, built.row.creator_profile_id,
+          `💛 New tip: $${amount.toFixed(2)}`,
+          `A fan just tipped you $${amount.toFixed(2)}.`,
+          `A fan sent you a <strong>$${amount.toFixed(2)} tip</strong>. The full amount goes directly to your Stripe account.`
+        );
+      }
     }
 
     // ── Super Tip ────────────────────────────────────────────────────

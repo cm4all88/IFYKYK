@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCreatorSession, isGuardFailure } from "@/lib/ai-guard";
 import { getSecrets } from "@/lib/settings";
 
 export const runtime = "nodejs";
@@ -18,6 +19,10 @@ Return ONLY a JSON object, no preamble or backticks, exactly:
 {"options": ["bio one", "bio two", "bio three"]}`;
 
 export async function POST(req: NextRequest) {
+  // Anthropic spend is billed to the platform. Generates a creator bio. No current caller in the codebase; gated rather than deleted in case it is reached dynamically.
+  const guard = await requireCreatorSession({ requireProfile: false });
+  if (isGuardFailure(guard)) return guard.response;
+
   try {
     const { displayName, handle, currentBio, tags, kind } = await req.json();
 

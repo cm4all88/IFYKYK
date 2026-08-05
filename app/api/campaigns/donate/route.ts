@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { grossUpForStripe } from "@/lib/fees";
@@ -20,13 +21,23 @@ export async function POST(req: NextRequest) {
 
   const { data: campaign } = await (supabase as any)
     .from("campaigns")
-    .select("*, creator:creator_profile_id(handle, stripe_account_id, stripe_onboarded)")
+    .select("*")
     .eq("id", campaignId)
     .eq("status", "active")
     .maybeSingle();
 
   if (!campaign) return NextResponse.json({ error: "Campaign not found or no longer active" }, { status: 404 });
-  if (!campaign.creator?.stripe_account_id) return NextResponse.json({ error: "Creator hasn't connected payments yet" }, { status: 503 });
+
+  // The payee's Connect account, read with the service role (lib/payee.ts).
+  // Migration 064 removes anon read on creator_profiles, so the embed that
+  // used to supply this returns nothing. The parent row above is still read
+  // through the RLS-enforcing client — that is what authorises the purchase;
+  // this only answers where the money goes.
+  const payee = await getPayeeCreator((campaign as any).creator_profile_id);
+  if (!canReceivePayments(payee)) {
+    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
+  }
+  if (!payee.stripe_account_id) return NextResponse.json({ error: "Creator hasn't connected payments yet" }, { status: 503 });
 
   // ── Resolve the charge amount ────────────────────────────────────
   // If a tier is chosen, the price is the tier's amount (server-trusted —
@@ -74,7 +85,7 @@ export async function POST(req: NextRequest) {
     ? (tier.description || "Campaign backing tier")
     : (campaign.reward_description ?? "Exclusive access for campaign supporters");
 
-  const successUrl = `${origin}/${campaign.creator.handle}?campaign_donated=1${backerCode ? `&backer_code=${backerCode}` : ""}`;
+  const successUrl = `${origin}/${payee.handle}?campaign_donated=1${backerCode ? `&backer_code=${backerCode}` : ""}`;
 
   const params = new URLSearchParams({
     mode: "payment",
@@ -83,10 +94,10 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][product_data][description]": productDesc,
     "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][quantity]": "1",
-    "payment_intent_data[transfer_data][destination]": campaign.creator.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": payee.stripe_account_id,
     "payment_intent_data[transfer_data][amount]": String(donationCents),
     "success_url": successUrl,
-    "cancel_url": `${origin}/${campaign.creator.handle}`,
+    "cancel_url": `${origin}/${payee.handle}`,
     "metadata[campaign_id]": campaignId,
     "metadata[amount_usd]": String(amount),
     "metadata[message]": message ?? "",

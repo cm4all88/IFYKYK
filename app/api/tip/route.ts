@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { createNotification } from "@/lib/notify";
@@ -24,11 +25,10 @@ export async function POST(req: NextRequest) {
   // Auth is optional — guests can tip without an account
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: profile } = await (supabase as any)
-    .from("creator_profiles")
-    .select("handle, stripe_account_id, stripe_onboarded")
-    .eq("id", creatorProfileId)
-    .maybeSingle();
+  // Connect routing data. Read with the service role via lib/payee.ts:
+  // migration 064 removes anon read on creator_profiles, and guests can pay,
+  // so this cannot come from the cookie client any more.
+  const profile = await getPayeeCreator(creatorProfileId);
 
   if (!profile) return NextResponse.json({ error: "Creator not found" }, { status: 404 });
 
@@ -85,13 +85,24 @@ export async function POST(req: NextRequest) {
   }
 
   const session = await stripeRes.json();
-  // Notify creator
-  const { data: cp } = await (supabase as any)
-    .from("creator_profiles").select("user_id").eq("id", creatorProfileId).maybeSingle();
-  if (cp?.user_id) {
-    await createNotification({ userId: cp.user_id, type: "tip", title: `New tip — $${amountUsd.toFixed(0)}`, link: "/dashboard" });
-    // Get creator email and send notification
-    const { data: { user: creatorUser } } = await (supabase as any).auth.admin.getUserById(cp.user_id).catch(() => ({ data: { user: null } }));
+
+  // NOTE (SL-022, not fixed in this batch): this notifies the creator at
+  // checkout-session creation, BEFORE any payment. The webhook's tip branch
+  // notifies again on the real event, so a genuine tip notifies twice and an
+  // abandoned checkout notifies once for money that never arrived. Moving this
+  // into the webhook is a behavioural change to a payment path and is out of
+  // scope for the emergency batch. Recorded in BATCH_0_CHANGES.md.
+  //
+  // The owner comes from the payee lookup we already did — no second read of
+  // creator_profiles, which anon can no longer perform after migration 064.
+  if (profile.user_id) {
+    await createNotification({ userId: profile.user_id, type: "tip", title: `New tip — $${amountUsd.toFixed(0)}`, link: "/dashboard" });
+    // Creator email. `auth.admin` needs the service role — on the cookie client
+    // this call always failed and the .catch swallowed it, so this email has
+    // never been sent (SL-046).
+    const { createServiceClient } = await import("@/lib/supabase-server");
+    const admin = await createServiceClient();
+    const { data: { user: creatorUser } } = await (admin as any).auth.admin.getUserById(profile.user_id).catch(() => ({ data: { user: null } }));
     if (creatorUser?.email) {
       await sendTipEmail(creatorUser.email, "A fan", `$${amountUsd.toFixed(2)}`).catch(() => {});
     }

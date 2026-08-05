@@ -40,11 +40,32 @@ export async function createOnboardingLink(accountId: string) {
 
 /**
  * Verify a Stripe webhook signature.
+ *
+ * This is the trusted verifier. `constructEvent` checks three things the
+ * previous hand-rolled HMAC in the webhook route did not all cover:
+ *   1. the v1 signature, in constant time;
+ *   2. the `t` timestamp against a tolerance (default 300s) — without which a
+ *      captured request stays replayable forever;
+ *   3. that `body` is the RAW request text, not re-serialised JSON.
+ *
+ * `secret` is optional so callers using `getSecrets()` (which reads
+ * `platform_settings` before falling back to env) can pass what they resolved.
+ * Omitting it preserves the original behaviour for existing callers.
+ *
+ * Throws `Stripe.errors.StripeSignatureVerificationError` on a bad or stale
+ * signature. Callers must map that to 400 and must NOT fall back to parsing the
+ * body themselves.
  */
-export function verifyWebhook(body: string, signature: string) {
+export function verifyWebhook(
+  body: string,
+  signature: string,
+  secret?: string,
+  toleranceSeconds = 300
+) {
   return stripe.webhooks.constructEvent(
     body,
     signature,
-    process.env.STRIPE_WEBHOOK_SECRET!
+    secret ?? process.env.STRIPE_WEBHOOK_SECRET!,
+    toleranceSeconds
   );
 }

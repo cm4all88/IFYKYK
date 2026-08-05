@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
 import { can } from "@/lib/entitlements";
@@ -20,17 +21,27 @@ export async function POST(req: NextRequest) {
   // Fetch tier + creator
   const { data: tier } = await (supabase as any)
     .from("subscription_tiers")
-    .select("*, creator:creator_profile_id(id, handle, display_name, stripe_account_id, user_id, first_month_offer_pct)")
+    .select("*")
     .eq("id", tierId)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!tier) return NextResponse.json({ error: "Tier not found" }, { status: 404 });
-  if (!tier.creator?.stripe_account_id) {
+
+  // The payee's Connect account, read with the service role (lib/payee.ts).
+  // Migration 064 removes anon read on creator_profiles, so the embed that
+  // used to supply this returns nothing. The parent row above is still read
+  // through the RLS-enforcing client — that is what authorises the purchase;
+  // this only answers where the money goes.
+  const payee = await getPayeeCreator((tier as any).creator_profile_id);
+  if (!canReceivePayments(payee)) {
+    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
+  }
+  if (!payee.stripe_account_id) {
     return NextResponse.json({ error: "Creator has not connected Stripe yet" }, { status: 400 });
   }
 
-  if (await isCreatorProfileLocked(supabase, tier.creator.id)) {
+  if (await isCreatorProfileLocked(supabase, payee.id)) {
     return NextResponse.json({ error: "This creator is currently unavailable." }, { status: 403 });
   }
 
@@ -59,11 +70,11 @@ export async function POST(req: NextRequest) {
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][price_data][recurring][interval]": interval,
-    "line_items[0][price_data][product_data][name]": `${tierLabel} — ${tier.creator.display_name ?? tier.creator.handle}`,
+    "line_items[0][price_data][product_data][name]": `${tierLabel} — ${payee.display_name ?? payee.handle}`,
     "line_items[0][price_data][product_data][description]": tier.description ?? tier.perks?.join(" · ") ?? "",
     "line_items[0][quantity]": "1",
-    success_url: successUrl ?? `${appUrl}/${tier.creator.handle}?subscribed=1`,
-    cancel_url: cancelUrl ?? `${appUrl}/${tier.creator.handle}`,
+    success_url: successUrl ?? `${appUrl}/${payee.handle}?subscribed=1`,
+    cancel_url: cancelUrl ?? `${appUrl}/${payee.handle}`,
     "metadata[type]": "subscription",
     "metadata[tier_id]": tierId,
     "metadata[creator_profile_id]": tier.creator_profile_id,
@@ -78,12 +89,12 @@ export async function POST(req: NextRequest) {
   // price; Spotlightly stays 0%. Applied only if the creator is currently
   // entitled (handles downgrade). Direct charge here runs on the creator's
   // connected account, so the coupon lives on that account.
-  const offerPct = Number(tier.creator.first_month_offer_pct) || 0;
+  const offerPct = Number(payee.first_month_offer_pct) || 0;
   if (offerPct > 0) {
     const { data: cb } = await (supabase as any)
-      .from("creator_billing").select("status, tier").eq("user_id", tier.creator.user_id).maybeSingle();
+      .from("creator_billing").select("status, tier").eq("user_id", payee.user_id).maybeSingle();
     if (can(cb, "firstMonthOffer")) {
-      const coupon = await ensureFirstMonthCoupon(STRIPE_SECRET_KEY, offerPct, tier.creator.stripe_account_id);
+      const coupon = await ensureFirstMonthCoupon(STRIPE_SECRET_KEY, offerPct, payee.stripe_account_id);
       if (coupon) params.set("discounts[0][coupon]", coupon);
     }
   }
@@ -94,7 +105,7 @@ export async function POST(req: NextRequest) {
     headers: {
       Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
       "Content-Type": "application/x-www-form-urlencoded",
-      "Stripe-Account": tier.creator.stripe_account_id,
+      "Stripe-Account": payee.stripe_account_id,
     },
     body: params.toString(),
   });

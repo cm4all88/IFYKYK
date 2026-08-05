@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { grossUpForStripe } from "@/lib/fees";
@@ -19,11 +20,10 @@ export async function POST(req: NextRequest) {
   const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
 
-  const { data: profile } = await (supabase as any)
-    .from("creator_profiles")
-    .select("handle, stripe_account_id, stripe_onboarded, subscription_price")
-    .eq("id", creatorProfileId)
-    .maybeSingle();
+  // Connect routing data. Read with the service role via lib/payee.ts:
+  // migration 064 removes anon read on creator_profiles, and guests can pay,
+  // so this cannot come from the cookie client any more.
+  const profile = await getPayeeCreator(creatorProfileId);
 
   if (!profile?.stripe_account_id || !profile.stripe_onboarded) {
     return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { calcMerchPricing } from "@/lib/loudcap";
@@ -25,13 +26,23 @@ export async function POST(req: NextRequest) {
 
   const { data: product } = await (supabase as any)
     .from("merch_products")
-    .select("*, creator:creator_profile_id(id, handle, display_name, user_id, stripe_account_id, stripe_onboarded)")
+    .select("*")
     .eq("id", productId)
     .eq("status", "active")
     .maybeSingle();
 
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  if (!product.creator?.stripe_onboarded || !product.creator?.stripe_account_id) {
+
+  // The payee's Connect account, read with the service role (lib/payee.ts).
+  // Migration 064 removes anon read on creator_profiles, so the embed that
+  // used to supply this returns nothing. The parent row above is still read
+  // through the RLS-enforcing client — that is what authorises the purchase;
+  // this only answers where the money goes.
+  const payee = await getPayeeCreator((product as any).creator_profile_id);
+  if (!canReceivePayments(payee)) {
+    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
+  }
+  if (!payee.stripe_onboarded || !payee.stripe_account_id) {
     return NextResponse.json({ error: "This creator hasn't finished setting up payouts yet." }, { status: 503 });
   }
 
@@ -88,11 +99,11 @@ export async function POST(req: NextRequest) {
     mode: "payment",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": product.name,
-    "line_items[0][price_data][product_data][description]": `From @${product.creator.handle}${size ? ` · ${size}` : ""}`,
+    "line_items[0][price_data][product_data][description]": `From @${payee.handle}${size ? ` · ${size}` : ""}`,
     "line_items[0][price_data][unit_amount]": String(retailCents),
     "line_items[0][quantity]": "1",
     "payment_intent_data[application_fee_amount]": String(feeCents),
-    "payment_intent_data[transfer_data][destination]": product.creator.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": payee.stripe_account_id,
     "shipping_options[0][shipping_rate_data][type]": "fixed_amount",
     "shipping_options[0][shipping_rate_data][fixed_amount][amount]": String(shippingCents),
     "shipping_options[0][shipping_rate_data][fixed_amount][currency]": "usd",
@@ -100,12 +111,12 @@ export async function POST(req: NextRequest) {
     // US only — see SHIPPING_ESTIMATE note above. Do NOT add CA/GB/AU here
     // without live rates, or every international order loses money.
     "shipping_address_collection[allowed_countries][0]": "US",
-    success_url: `${appUrl}/${product.creator.handle}?purchase=success`,
-    cancel_url: `${appUrl}/${product.creator.handle}`,
+    success_url: `${appUrl}/${payee.handle}?purchase=success`,
+    cancel_url: `${appUrl}/${payee.handle}`,
     "metadata[type]": "merch",
     "metadata[product_id]": product.id,
-    "metadata[creator_profile_id]": product.creator.id,
-    "metadata[creator_user_id]": product.creator.user_id,
+    "metadata[creator_profile_id]": payee.id,
+    "metadata[creator_user_id]": payee.user_id,
     "metadata[buyer_user_id]": user.id,
     "metadata[size]": size ?? "",
     "metadata[base_cost]": String(baseCost),

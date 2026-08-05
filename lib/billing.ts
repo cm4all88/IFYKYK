@@ -154,12 +154,29 @@ export function isBillingLocked(b: BillingLockRow): boolean {
   return true; // cancelled, incomplete, anything else
 }
 
-/** Lock state for the owner of a given creator profile. */
-export async function isCreatorProfileLocked(supabase: any, creatorProfileId: string): Promise<boolean> {
-  const { data: prof } = await supabase
+/**
+ * Lock state for the owner of a given creator profile.
+ *
+ * Both callers (`/api/subscribe`, `/api/subscribe/tier`) pass the cookie client,
+ * and a fan is asking about somebody ELSE's billing state. Migration 064 removed
+ * the blanket public read on `creator_profiles` and the anon-writable
+ * `creator_billing_service_all` policy, so neither lookup can run as the fan any
+ * more. Both are read with the service role instead.
+ *
+ * The `supabase` parameter is retained for call-site compatibility and is no
+ * longer used for these two reads — this function answers a question about a
+ * creator the caller is not, which is precisely why it needs elevated access.
+ * It returns a boolean and leaks nothing about the creator's billing beyond
+ * "can this fan subscribe right now", which the fan is about to find out anyway.
+ */
+export async function isCreatorProfileLocked(_supabase: any, creatorProfileId: string): Promise<boolean> {
+  const { createServiceClient } = await import("@/lib/supabase-server");
+  const admin = await createServiceClient();
+
+  const { data: prof } = await (admin as any)
     .from("creator_profiles").select("user_id").eq("id", creatorProfileId).maybeSingle();
   if (!prof?.user_id) return false; // unknown owner — don't block
-  const { data: billing } = await supabase
+  const { data: billing } = await (admin as any)
     .from("creator_billing").select("status, trial_ends_at, grace_ends_at, conversion_due_at").eq("user_id", prof.user_id).maybeSingle();
   return isBillingLocked(billing);
 }

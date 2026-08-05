@@ -1,49 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase-server";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { token: string } }
-) {
-  // Same reason as /api/digital/download: the token is the credential.
-  const supabase = await createServiceClient();
-  const { token } = params;
+// ──────────────────────────────────────────────────────────────────────────────
+// GONE. This route is permanently retired.
+//
+// It was an unauthenticated, service-role download endpoint whose three access
+// guards were all silently inert, because each compared against a column that
+// does not exist on `digital_purchases` (verified against production
+// 2026-08-05):
+//
+//   new Date(purchase.token_expires_at) < new Date()
+//        -> token_expires_at ABSENT. new Date(undefined) is Invalid Date, and
+//           every comparison with NaN is false, so nothing ever expired.
+//
+//   purchase.download_count >= purchase.max_downloads
+//        -> max_downloads ABSENT. `0 >= undefined` is false, so the download
+//           limit never triggered.
+//
+//   purchase.product?.status === "deleted"
+//        -> digital_products.status is CHECK-constrained to
+//           ('active','draft','archived'); 'deleted' is unreachable.
+//
+// The result was unauthenticated, unlimited, never-expiring downloads of every
+// purchased product, and — for Supabase-hosted products — a redirect to a raw
+// object path rather than a signed URL.
+//
+// The supported path is GET /api/digital/download?token=…, which verifies the
+// purchase server-side, enforces `digital_products.download_limit`, and mints a
+// short-lived signed URL. There is deliberately NO fallback or redirect from
+// here: a compatibility shim would reinstate the bypass this removes.
+//
+// 410 rather than 404 so any old link in a previously-sent email reports
+// "permanently gone" instead of looking like a transient error.
+// ──────────────────────────────────────────────────────────────────────────────
 
-  if (!token) return NextResponse.redirect(new URL("/", req.url));
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-  // Look up the purchase by token
-  const { data: purchase } = await (supabase as any)
-    .from("digital_purchases")
-    .select("*, product:digital_product_id(file_url, file_name, title, status)")
-    .eq("download_token", token)
-    .maybeSingle();
+const MESSAGE =
+  "This download link has been retired for security reasons. " +
+  "Please use the download link from your purchase receipt email, " +
+  "or contact support and we will re-send it.";
 
-  if (!purchase) {
-    return new NextResponse("Download link not found or expired.", { status: 404 });
-  }
+export async function GET(_req: NextRequest) {
+  return NextResponse.json({ error: MESSAGE }, { status: 410 });
+}
 
-  if (purchase.product?.status === "deleted") {
-    return new NextResponse("This product is no longer available.", { status: 410 });
-  }
-
-  if (new Date(purchase.token_expires_at) < new Date()) {
-    return new NextResponse("This download link has expired. Contact the creator for a new one.", { status: 410 });
-  }
-
-  if (purchase.download_count >= purchase.max_downloads) {
-    return new NextResponse(
-      `Download limit reached (${purchase.max_downloads} downloads). Contact the creator if you need more downloads.`,
-      { status: 429 }
-    );
-  }
-
-  // Increment download count
-  await (supabase as any)
-    .from("digital_purchases")
-    .update({ download_count: purchase.download_count + 1 })
-    .eq("id", purchase.id);
-
-  // Redirect to the actual file
-  // In production this would use a signed CDN URL for extra security
-  return NextResponse.redirect(purchase.product.file_url);
+export async function POST(_req: NextRequest) {
+  return NextResponse.json({ error: MESSAGE }, { status: 410 });
 }

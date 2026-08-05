@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
+import { PUBLIC_CREATOR_SELECT } from "@/lib/creator-public";
 import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
@@ -52,9 +53,10 @@ function SpineLabel({ children }: { children: ReactNode }) {
 async function loadCampaignFirst(handle: string) {
   const supabase = await createClient();
 
-  const { data: spotlight } = await supabase
-    .from("creator_profiles").select("*").eq("kind", "spotlight").eq("handle", handle).maybeSingle();
-  if (!spotlight || (spotlight as any).deleted_at) return null;
+  const { data: spotlight } = await (supabase as any)
+    .from("creator_public").select(PUBLIC_CREATOR_SELECT).eq("kind", "spotlight").eq("handle", handle).maybeSingle();
+  // The view filters soft-deleted rows, so the old deleted_at guard is in SQL now.
+  if (!spotlight) return null;
   const sp: any = spotlight;
 
   const { data: { user } } = await supabase.auth.getUser();

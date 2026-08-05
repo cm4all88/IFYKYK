@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { isCreatorProfileLocked } from "@/lib/billing";
 import { can } from "@/lib/entitlements";
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
 
   if (await isCreatorProfileLocked(supabase, creatorProfileId)) {
-    const { data: cp } = await (supabase as any).from("creator_profiles").select("handle").eq("id", creatorProfileId).maybeSingle();
+    const { data: cp } = await (supabase as any).from("creator_public").select("handle").eq("id", creatorProfileId).maybeSingle();
     return NextResponse.redirect(new URL(`/${cp?.handle ?? ""}?unavailable=1`, req.url));
   }
 
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   if (!user) {
     const { data: p } = await (supabase as any)
-      .from("creator_profiles").select("handle").eq("id", creatorProfileId).maybeSingle();
+      .from("creator_public").select("handle").eq("id", creatorProfileId).maybeSingle();
     return NextResponse.redirect(new URL(`/login?return=/${p?.handle ?? ""}`, req.url));
   }
 
@@ -56,22 +57,21 @@ export async function POST(req: NextRequest) {
   if (blocked) {
     // Silently redirect back to creator page — no error message
     const { data: p } = await (supabase as any)
-      .from("creator_profiles").select("handle").eq("id", creatorProfileId).maybeSingle();
+      .from("creator_public").select("handle").eq("id", creatorProfileId).maybeSingle();
     return NextResponse.redirect(new URL(`/${p?.handle ?? ""}`, req.url));
   }
   // ─────────────────────────────────────────────────────────────────
 
-  const { data: profile } = await (supabase as any)
-    .from("creator_profiles")
-    .select("handle, kind, user_id, stripe_account_id, stripe_onboarded, subscription_price, first_month_offer_pct")
-    .eq("id", creatorProfileId)
-    .maybeSingle();
+  // Connect routing data, read with the service role (lib/payee.ts). Migration
+  // 064 removes anon read on creator_profiles; the three handle-only lookups
+  // above now use the safe  view instead.
+  const profile = await getPayeeCreator(creatorProfileId);
 
   if (!profile) {
     return NextResponse.json({ error: "Creator not found" }, { status: 404 });
   }
 
-  if (!profile.stripe_account_id || !profile.stripe_onboarded) {
+  if (!canReceivePayments(profile)) {
     return NextResponse.json({ error: "Creator has not connected Stripe yet." }, { status: 503 });
   }
 

@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import type { Metadata } from "next";
 import CreatorWorld from "./CreatorWorld";
-import { isUnclaimedPreview } from "@/lib/claim";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +10,15 @@ export const dynamic = "force-dynamic";
 
 async function lightProfile(handle: string) {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("creator_profiles")
-    .select("display_name, handle, bio, cover_url, deleted_at, published, claimed_at")
+  // `creator_public` is the safe projection (lib/creator-public.ts). It excludes
+  // claim_code, claim state, date_of_birth, IP tracking, shipping fields and
+  // Stripe identifiers, and filters soft-deleted rows itself — so the old
+  // `deleted_at` guard now lives in SQL.
+  const { data } = await (supabase as any)
+    .from("creator_public")
+    .select("display_name, handle, bio, cover_url, published")
     .eq("kind", "spotlight").eq("handle", handle).maybeSingle();
-  if (!data || (data as any).deleted_at) return null;
-  return data as any;
+  return (data as any) ?? null;
 }
 
 
@@ -27,7 +29,12 @@ export async function generateMetadata(props: {
   const p = await lightProfile(creator);
   if (!p) return { title: "Not found · Spotlightly" };
   const name = p.display_name ?? p.handle;
-  const preview = isUnclaimedPreview(p);
+  // Previously `isUnclaimedPreview({ published, claimed_at })`, which needed
+  // claim state — deliberately not public any more. `published !== true` is a
+  // strict superset: unclaimed pages are never published, so everything the old
+  // check noindexed is still noindexed, plus claimed-but-unpublished pages,
+  // which should not be indexed either. No page loses indexing it used to have.
+  const preview = p.published !== true;
   return {
     title: `${name} · Spotlightly`,
     description: p.bio ?? `Follow ${name} on Spotlightly`,

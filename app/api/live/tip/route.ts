@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
 import { grossUpForStripe } from "@/lib/fees";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,24 +16,28 @@ export async function POST(req: NextRequest) {
 
   const { data: stream } = await (supabase as any)
     .from("live_streams")
-    .select("id, creator_profile_id, creator_profiles(kind, stripe_account_id)")
+    .select("id, creator_profile_id")
     .eq("id", streamId)
     .eq("status", "live")
     .maybeSingle();
 
   if (!stream) return NextResponse.json({ error: "Stream not found" }, { status: 404 });
 
-  const isBackstage = stream.creator_profiles?.kind === "backstage";
+  // The payee's Connect account, read with the service role (lib/payee.ts).
+  // Migration 064 removes anon read on creator_profiles, so the embedded
+  // `creator_profiles(...)` above returns nothing. The stream row is still read
+  // through the RLS-enforcing client, which is what proves the stream is live.
+  const payee = await getPayeeCreator((stream as any).creator_profile_id);
 
-  if (isBackstage) {
+  if (payee?.kind === "backstage") {
     // CCBill tips handled separately — return a CCBill redirect URL
     return NextResponse.json({ error: "CCBill tips coming soon" }, { status: 501 });
   }
 
-  const stripeAccount = stream.creator_profiles?.stripe_account_id;
-  if (!stripeAccount) {
+  if (!canReceivePayments(payee)) {
     return NextResponse.json({ error: "Creator hasn't connected Stripe yet" }, { status: 400 });
   }
+  const stripeAccount = payee.stripe_account_id;
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 

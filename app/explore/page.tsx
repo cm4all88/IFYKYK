@@ -20,7 +20,7 @@ export default async function ExplorePage() {
 
   // Load initial creators — newest first
   const { data: creators } = await (supabase as any)
-    .from("creator_profiles")
+    .from("creator_public")
     .select("id, handle, display_name, bio, avatar_url, subscription_price, tags, location_city, location_country")
     .eq("kind", "spotlight")
     .eq("published", true)

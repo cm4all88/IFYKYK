@@ -1,0 +1,679 @@
+TABLE admin_messages  (created:005_admin_tables.sql) rls=true
+  cols: body, created_at, created_by, id, kind, sent_at, status, subject, target
+  pk: id
+  fk: created_by -> auth.users(id)
+  check: kind (kind in ('banner', 'email_blast', 'push'))
+  check: target (target in ('all', 'spotlight', 'backstage', 'subscribers'))
+  check: status (status in ('draft', 'scheduled', 'sent', 'canceled'))
+  policy[all] Admin manages messages :: using=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid) check=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid)
+
+TABLE affiliate_picks  (created:039_affiliate_picks.sql) rls=true
+  cols: asin, created_at, creator_profile_id, id, image_url, label, note, sort, url
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  policy[select] Affiliate picks are public :: using=(true) check=
+
+TABLE billing_credits  (created:019_referrals.sql) rls=true
+  cols: amount_usd, applied, applied_at, created_at, creator_profile_id, id, reason
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  policy[select] billing_credits_own :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+  policy[all] billing_credits_service :: using=(true) check=(true)
+
+TABLE campaign_donations  (created:007_launch_columns.sql) rls=true
+  cols: amount, backer_code, campaign_id, created_at, donor_user_id, id, message, stripe_session_id, tier_id
+  pk: id
+  fk: campaign_id -> campaigns(id)
+  fk: donor_user_id -> auth.users(id)
+  fk: tier_id -> campaign_tiers(id)
+  policy[select] Donors see own donations :: using=(donor_user_id = auth.uid()) check=
+  policy[select] Creators see campaign donations :: using=( campaign_id in ( select id from public.campaigns where creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) ) check=
+  policy[insert] Authenticated users can donate :: using= check=(donor_user_id = auth.uid())
+
+TABLE campaign_tiers  (created:048_campaign_tiers.sql) rls=true
+  cols: amount, backer_limit, campaign_id, created_at, description, id, rewards, sort_order, title
+  pk: id
+  fk: campaign_id -> campaigns(id)
+  policy[select] Campaign tiers are public :: using=( campaign_id in (select id from public.campaigns where status in ('active','funded')) ) check=
+  policy[all] Creators manage own campaign tiers :: using=( campaign_id in ( select c.id from public.campaigns c join public.creator_profiles p on p.id = c.creator_profile_id where p.user_id = auth.uid() ) ) check=
+
+TABLE campaigns  (created:007_launch_columns.sql) rls=true
+  cols: category, cover_image_url, created_at, creator_profile_id, deadline, description, goal_amount, id, raised_amount, reward_description, status, title, updated_at
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  check: status (status in ('active','funded','closed','cancelled'))
+  policy[select] Campaigns are public :: using=(status in ('active','funded')) check=
+  policy[all] Creators manage own campaigns :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+
+TABLE ccbill_subscriptions  (created:002_channels.sql) rls=false
+  cols: ccbill_subscription_id, created_at, creator_id, event_type, fan_email, id, last_renewal, status
+  pk: id
+  unique: (ccbill_subscription_id) [002_channels.sql]
+  fk: creator_id -> creators(id)
+  check: status (status in ('active','canceled','suspended'))
+
+TABLE channels  (created:001_initial.sql) rls=true
+  cols: content_rating, created_at, creator_id, description, id, is_visible, name, slug, sort_order, subscription_price
+  pk: id
+  unique: (creator_id,slug) [001_initial.sql]
+  fk: creator_id -> creators(id)
+  check: content_rating (content_rating in ('G','PG','M','R','X'))
+  policy[select] Channels are publicly readable if visible :: using=(is_visible = true) check=
+  policy[all] Creators can manage their channels :: using=( creator_id in (select id from public.creators where user_id = auth.uid()) ) check=
+  policy[select] Channels publicly readable :: using=(is_visible is not false) check=
+  policy[all] Creators manage own channels :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) )
+
+TABLE comments  (created:010_monetization_features.sql) rls=true
+  cols: author_user_id, boost_amount_usd, boost_stripe_session, boosted_until, content, created_at, creator_profile_id, id, is_boosted, post_id
+  pk: id
+  fk: post_id -> posts(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: author_user_id -> auth.users(id)
+  check: content (char_length(content) <= 500)
+  policy[select] comments_select :: using=(true) check=
+  policy[insert] comments_insert :: using= check=(author_user_id = auth.uid())
+  policy[delete] comments_delete :: using=( author_user_id = auth.uid() or creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE coupons  (created:005_admin_tables.sql) rls=true
+  cols: applies_to, code, created_at, created_by, description, discount_type, discount_value, expires_at, id, is_active, max_uses, min_amount, uses_count
+  pk: id
+  unique: (code) [005_admin_tables.sql]
+  fk: created_by -> auth.users(id)
+  check: discount_type (discount_type in ('percent', 'flat'))
+  check: discount_value (discount_value > 0)
+  check: applies_to (applies_to in ('all', 'spotlight', 'backstage'))
+  policy[all] Admin manages coupons :: using=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid) check=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid)
+  policy[select] Active coupons publicly readable :: using=(is_active = true and (expires_at is null or expires_at > now())) check=
+
+TABLE creator_billing  (created:012_creator_billing.sql) rls=true
+  cols: cancel_at_period_end, conversion_due_at, created_at, current_period_end, grace_ends_at, id, last_dunning_warned_at, status, stripe_customer_id, stripe_subscription_id, tier, trial_ends_at, trial_warning_sent, updated_at, user_id
+  pk: id
+  unique: (user_id) [012_creator_billing.sql]
+  fk: user_id -> auth.users(id)
+  check: status (status in ('trial', 'active', 'past_due', 'cancelled', 'incomplete'))
+  check: tier (tier in ('starter', 'growth', 'pro', 'scale', 'legend'))
+  check: (status in ('free', 'trial', 'active', 'past_due', 'cancelled', 'incomplete'))
+  check: (status in ('free', 'trial', 'active', 'past_due', 'cancelled', 'incomplete'))
+  policy[select] creator_billing_own_select :: using=(user_id = auth.uid()) check=
+  policy[all] creator_billing_service_all :: using=(true) check=(true)
+
+TABLE creator_contact_blocks  (created:008_contact_blocks.sql) rls=true
+  cols: contact_hash, contact_type, created_at, creator_profile_id, display_hint, id, note
+  pk: id
+  unique: (creator_profile_id,contact_hash) [008_contact_blocks.sql]
+  fk: creator_profile_id -> creator_profiles(id)
+  check: contact_type (contact_type in ('email', 'phone'))
+  policy[select] creator_contact_blocks_select :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+  policy[insert] creator_contact_blocks_insert :: using= check=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) )
+  policy[delete] creator_contact_blocks_delete :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+
+TABLE creator_media_analysis  (created:056_creator_media_analysis.sql) rls=true
+  cols: analysis_json, created_at, creator_profile_id, id, media_url, source_id, source_type, updated_at
+  pk: id
+  unique: (media_url) [056_creator_media_analysis.sql]
+  fk: creator_profile_id -> creator_profiles(id)
+
+TABLE creator_plans  (created:050_creator_plans.sql) rls=true
+  cols: created_at, creator_profile_id, live_at, live_title, marketplace_idea, merch_idea, updated_at, wants_campaigns, wants_digital, wants_gifts, wants_live, wants_marketplace, wants_merch, wants_messages, wants_podcast, wants_subscriptions, wants_tips
+  pk: creator_profile_id
+  fk: creator_profile_id -> creator_profiles(id)
+  policy[all] creator_plans_owner :: using=(creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid())) check=(creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()))
+
+TABLE creator_profiles  (created:004_remove_opening_act.sql) rls=false
+  cols: bg_url, blocked_regions, booking_label, booking_url, ccbill_account_number, ccbill_sub_account, claim_code, claim_expires_at, claimed_at, deleted_at, first_city, first_country, first_ip, first_month_offer_pct, first_region, first_seen_at, first_user_agent, free_tier_blurb, free_tier_name, free_tier_perks, last_city, last_country, last_ip, last_region, last_seen_at, last_user_agent, location_city, location_country, medal_count_total, medal_points_total, niche, offers_services, onboarding_completed_at, published, search_vector, shipping_address, shipping_city, shipping_country, shipping_name, shipping_state, shipping_zip, social_links, stripe_account_id, stripe_onboarded, subscription_price, tags, wishlist_url
+  unique: (claim_code) WHERE claim_code is not null [038_creator_claim.sql]
+  check: (creator_type in ('spotlight', 'backstage'))
+  check: first_month_offer_pct (first_month_offer_pct >= 0 and first_month_offer_pct <= 100)
+
+TABLE creator_prospects  (created:060_creator_prospects.sql) rls=true
+  cols: created_at, creator_profile_id, discovered_by, display_name, disqualified_reason, do_not_contact, email, follow_up_at, follower_count, handle_wanted, id, location, niche, notes, opted_out_at, platform, platform_handle, profile_url, purge_after, score, source, source_detail, stage, updated_at, utm
+  pk: id
+  unique: (creator_profile_id) [060_creator_prospects.sql]
+  unique: (lower(email) WHERE email is not null [060_creator_prospects.sql]
+  unique: (platform,lower(platform_handle) WHERE platform is not null and platform_handle is not null [060_creator_prospects.sql]
+  fk: discovered_by -> auth.users(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  check: platform (platform is null or platform in ('youtube','tiktok','instagram','twitch','substack','x','patreon','other'))
+  check: follower_count (follower_count is null or follower_count >= 0)
+  check: source (source in ('manual','csv','referral','inbound','event','partner','other'))
+  check: stage (stage in ('identified','qualified','contacted','replied', 'page_built','invited','joined','disqualified'))
+  check: score (score is null or (score >= 0 and score <= 100))
+
+TABLE creator_referrals  (created:019_referrals.sql) rls=true
+  cols: created_at, credited, id, referred_handle, referred_user_id, referrer_profile_id
+  pk: id
+  fk: referrer_profile_id -> creator_profiles(id)
+  fk: referred_user_id -> auth.users(id)
+  policy[select] creator_referrals_own :: using=( referrer_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+  policy[insert] creator_referrals_insert :: using= check=(true)
+  policy[update] creator_referrals_update :: using=(true) check=
+
+TABLE creators  (created:001_initial.sql) rls=true
+  cols: avatar_url, bio, ccbill_account_number, cover_url, created_at, creator_type, display_name, founded, handle, id, is_active, location, stripe_account_id, subscription_price, updated_at, user_id, veriff_verified
+  pk: id
+  unique: (user_id) [001_initial.sql]
+  unique: (handle) [001_initial.sql]
+  fk: user_id -> auth.users(id)
+  check: creator_type (creator_type in ('sfw', 'adult', 'young'))
+  policy[select] Creators are publicly readable :: using=(true) check=
+  policy[update] Creators can update their own profile :: using=(auth.uid() = user_id) check=
+
+TABLE digital_products  (created:017_digital_products.sql) rls=true
+  cols: category, created_at, creator_profile_id, description, download_limit, file_name, file_size_bytes, file_url, id, preview_description, price, status, storage_provider, thumbnail_url, title, total_revenue, total_sales, updated_at
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  check: price (price >= 0.99)
+  check: category (category in ('guide','course','preset','template','sample_pack','artwork','workout','spreadsheet','bundle','other'))
+  check: status (status in ('active', 'draft', 'archived'))
+  check: storage_provider (storage_provider in ('bunny', 'supabase'))
+  policy[select] digital_products_public_active :: using=(status = 'active') check=
+  policy[all] digital_products_creator_all :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE digital_purchases  (created:017_digital_products.sql) rls=true
+  cols: amount_paid, created_at, creator_profile_id, creator_receives, digital_product_id, download_count, download_token, fan_email, fan_user_id, id, platform_fee, stripe_session_id
+  pk: id
+  unique: (stripe_session_id) [017_digital_products.sql]
+  unique: (download_token) [017_digital_products.sql]
+  fk: digital_product_id -> digital_products(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[select] digital_purchases_own :: using=( fan_user_id = auth.uid() or creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+  policy[insert] digital_purchases_service_insert :: using= check=(true)
+  policy[update] digital_purchases_service_update :: using=(true) check=
+
+TABLE early_access_passes  (created:010_monetization_features.sql) rls=true
+  cols: created_at, creator_profile_id, fan_user_id, id, status, stripe_subscription_id
+  pk: id
+  unique: (fan_user_id,creator_profile_id) [010_monetization_features.sql]
+  fk: fan_user_id -> auth.users(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  check: status (status in ('active', 'cancelled', 'past_due'))
+  policy[select] early_access_fan_select :: using=(fan_user_id = auth.uid()) check=
+  policy[insert] early_access_insert :: using= check=(true)
+  policy[update] early_access_update :: using=(true) check=
+
+TABLE email_opt_outs  (created:059_claim_hardening.sql) rls=true
+  cols: created_at, email, reason
+  pk: email
+
+TABLE fan_activity  (created:014_discovery.sql) rls=true
+  cols: activity_type, created_at, creator_profile_id, fan_user_id, id
+  pk: id
+  fk: fan_user_id -> auth.users(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  check: activity_type (activity_type in ('view', 'tip', 'subscribe', 'super_tip', 'unlock'))
+  policy[insert] fan_activity_own_insert :: using= check=(fan_user_id = auth.uid())
+  policy[select] fan_activity_service_select :: using=(true) check=
+
+TABLE fan_blocks  (created:007_launch_columns.sql) rls=true
+  cols: created_at, creator_profile_id, fan_email, fan_user_id, id, reason
+  pk: id
+  unique: (creator_profile_id,fan_email) [007_launch_columns.sql]
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[all] Creators manage own blocks :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+
+TABLE fan_interests  (created:014_discovery.sql) rls=true
+  cols: category, created_at, fan_user_id, id
+  pk: id
+  unique: (fan_user_id,category) [014_discovery.sql]
+  fk: fan_user_id -> auth.users(id)
+  policy[all] fan_interests_own :: using=(fan_user_id = auth.uid()) check=(fan_user_id = auth.uid())
+
+TABLE featured_slots  (created:005_admin_tables.sql) rls=true
+  cols: created_at, creator_profile_id, cta_label, ends_at, headline, id, is_active, is_paid, payment_amount, priority, slot_type, starts_at, subtext
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  check: slot_type (slot_type in ('homepage_hero', 'homepage_grid', 'browse_top', 'sidebar'))
+  policy[all] Admin manages featured slots :: using=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid) check=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid)
+  policy[select] Active featured slots publicly readable :: using=(is_active = true and starts_at <= now() and ends_at > now()) check=
+
+TABLE gift_subscriptions  (created:010_monetization_features.sql) rls=true
+  cols: amount_paid, created_at, creator_profile_id, gifter_user_id, id, months, recipient_email, recipient_user_id, redeemed_at, redemption_code, stripe_session_id
+  pk: id
+  unique: (redemption_code) [010_monetization_features.sql]
+  fk: gifter_user_id -> auth.users(id)
+  fk: recipient_user_id -> auth.users(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  check: months (months between 1 and 12)
+  policy[select] gift_sub_gifter_select :: using=(gifter_user_id = auth.uid() or recipient_user_id = auth.uid()) check=
+  policy[insert] gift_sub_insert :: using= check=(true)
+  policy[update] gift_sub_update :: using=(true) check=
+
+TABLE import_runs  (created:051_marketplace_imports.sql) rls=true
+  cols: completed_at, created_at, creator_profile_id, errors, id, listings_found, listings_imported, listings_skipped, photos_failed, photos_saved, source, source_username, status
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  check: status (status in ('running','complete','failed'))
+  policy[all] Creators manage own import runs :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE live_chat_messages  (created:022_live_chat.sql) rls=true
+  cols: created_at, display_name, id, is_tip, message, moderated, stream_id, tip_amount_usd, user_id
+  pk: id
+  fk: stream_id -> live_streams(id)
+  fk: user_id -> auth.users(id)
+  policy[select] Public can read live chat :: using=(true) check=
+  policy[insert] Logged in users can post chat :: using= check=(user_id = auth.uid())
+
+TABLE live_offer_claims  (created:002_channels.sql) rls=false
+  cols: created_at, fan_contact, fan_name, id, offer_id, status
+  pk: id
+  fk: offer_id -> live_offers(id)
+  check: status (status in ('pending','confirmed','canceled'))
+
+TABLE live_offers  (created:002_channels.sql) rls=false
+  cols: created_at, creator_id, expires_at, id, is_active, offer_price, regular_price, service_name, spots_claimed, spots_total
+  pk: id
+  fk: creator_id -> creators(id)
+
+TABLE live_stream_tips  (created:022_live_chat.sql) rls=true
+  cols: amount_usd, created_at, display_name, id, message, payment_method, stream_id, user_id
+  pk: id
+  fk: stream_id -> live_streams(id)
+  fk: user_id -> auth.users(id)
+  check: payment_method (payment_method in ('stripe', 'ccbill'))
+  policy[select] Public can view stream tips :: using=(true) check=
+  policy[insert] Logged in users can tip :: using= check=(user_id = auth.uid())
+
+TABLE live_streams  (created:010_monetization_features.sql) rls=true
+  cols: bunny_stream_id, created_at, creator_profile_id, ended_at, id, playback_url, rtmp_url, started_at, status, stream_key, title
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  check: status (status in ('live', 'ended'))
+  policy[select] live_streams_select :: using=(true) check=
+  policy[all] live_streams_creator_manage :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+  policy[insert] live_streams_insert :: using= check=(true)
+
+TABLE live_usage_charges  (created:036_live_billing.sql) rls=false
+  cols: amount_cents, billed, created_at, creator_profile_id, id, sampled_at, stream_id, stripe_invoice_item_id, viewer_count
+  pk: id
+  fk: stream_id -> live_streams(id)
+  fk: creator_profile_id -> creator_profiles(id)
+
+TABLE live_viewer_pings  (created:036_live_billing.sql) rls=false
+  cols: last_seen, stream_id, viewer_key
+  pk: stream_id,viewer_key
+  fk: stream_id -> live_streams(id)
+
+TABLE marketplace_listings  (created:026_marketplace.sql) rls=true
+  cols: autograph, brand, category, condition, created_at, creator_profile_id, description, id, images, import_run_id, imported_at, needs_photos, needs_review, personal_note, price_usd, quantity, size, sold, source_platform, source_url, source_username, status, stripe_price_id, subscriber_only, title, updated_at, video_url
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: import_run_id -> import_runs(id)
+  check: price_usd (price_usd >= 1)
+  check: condition (condition in ('new','like_new','good','fair'))
+  check: category (category in ('clothing','accessories','prints','gear','signed','personal','other'))
+  check: quantity (quantity >= 0)
+  check: status (status in ('active','sold','archived'))
+  check: (status in ('draft','active','sold','archived'))
+  policy[select] Public can view active listings :: using=(status = 'active') check=
+  policy[all] Creators manage own listings :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE marketplace_orders  (created:026_marketplace.sql) rls=true
+  cols: amount_usd, buyer_email, buyer_name, buyer_user_id, created_at, id, listing_id, platform_fee_usd, shipping_address, status, stripe_session_id, tracking_number
+  pk: id
+  fk: listing_id -> marketplace_listings(id)
+  fk: buyer_user_id -> auth.users(id)
+  check: status (status in ('pending','paid','shipped','delivered','refunded'))
+  policy[insert] Anyone can create order :: using= check=(true)
+  policy[select] Buyers see own orders :: using=(buyer_user_id = auth.uid()) check=
+  policy[select] Creators see orders for their listings :: using=( listing_id in ( select id from public.marketplace_listings where creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+  policy[update] Creators update order status :: using=( listing_id in ( select id from public.marketplace_listings where creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+
+TABLE medal_awards  (created:032_medals.sql) rls=true
+  cols: amount_usd, created_at, creator_profile_id, fan_user_id, id, medal_type, points, post_id, stripe_session
+  pk: id
+  fk: post_id -> posts(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[select] medal_awards readable :: using=(true) check=
+
+TABLE medal_balances  (created:033_medal_balance.sql) rls=true
+  cols: balance, fan_user_id, lifetime_purchased, updated_at
+  pk: fan_user_id
+  fk: fan_user_id -> auth.users(id)
+  policy[select] own balance :: using=(auth.uid() = fan_user_id) check=
+
+TABLE medal_purchases  (created:033_medal_balance.sql) rls=true
+  cols: amount_usd, created_at, fan_user_id, id, medals, pack_id, stripe_session
+  pk: id
+  fk: fan_user_id -> auth.users(id)
+  policy[select] own purchases :: using=(auth.uid() = fan_user_id) check=
+
+TABLE merch_orders  (created:015_merch.sql) rls=true
+  cols: created_at, creator_earnings, creator_profile_id, fan_user_id, id, loudcap_order_id, merch_product_id, platform_earnings, quantity, retail_price, shipping_city, shipping_country, shipping_line1, shipping_name, shipping_state, shipping_zip, status, stripe_payment_id, tracking_number, tracking_url, updated_at, variant_id
+  pk: id
+  unique: (loudcap_order_id) [015_merch.sql]
+  fk: merch_product_id -> merch_products(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  check: status (status in ('pending', 'in_production', 'shipped', 'delivered', 'cancelled', 'refunded'))
+  policy[select] merch_orders_creator_select :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) or fan_user_id = auth.uid() ) check=
+  policy[all] merch_orders_service_all :: using=(true) check=(true)
+
+TABLE merch_products  (created:015_merch.sql) rls=true
+  cols: base_cost, category, created_at, creator_earns, creator_profile_id, description, design_url, id, loudcap_product_id, mockup_urls, name, platform_cut, printful_synced, retail_price, status, sync_error, variant_map
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  check: status (status in ('active', 'paused', 'sold_out'))
+  policy[select] merch_products_public_select :: using=(status = 'active') check=
+  policy[all] merch_products_creator_manage :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE message_threads  (created:006_messages.sql) rls=true
+  cols: created_at, creator_profile_id, creator_unread, fan_unread, fan_user_id, id, last_message_at
+  pk: id
+  unique: (creator_profile_id,fan_user_id) [006_messages.sql]
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[select] Creator sees own threads :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) or fan_user_id = auth.uid() ) check=
+
+TABLE messages  (created:006_messages.sql) rls=true
+  cols: content, created_at, creator_profile_id, front_row_amount, id, is_front_row, read_at, sender_user_id, thread_id
+  pk: id
+  fk: thread_id -> message_threads(id)
+  fk: sender_user_id -> auth.users(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  policy[select] Creator sees own messages :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) or sender_user_id = auth.uid() ) check=
+  policy[insert] Authenticated users can send messages :: using= check=(sender_user_id = auth.uid())
+
+TABLE moderation_events  (created:003_ratings.sql) rls=false
+  cols: action_taken, content_id, content_type, created_at, creator_id, fan_user_id, flag_reason, flagged_text, id, reviewed_by, severity
+  pk: id
+  fk: creator_id -> creators(id)
+  fk: fan_user_id -> auth.users(id)
+  check: content_type (content_type in ('post','chat','dm','live'))
+  check: action_taken (action_taken in ('blocked','flagged','warned','stream_ended','account_suspended'))
+  check: severity (severity in ('low','medium','high','critical'))
+
+TABLE notifications  (created:024_notifications.sql) rls=true
+  cols: body, created_at, id, link, read, title, type, user_id
+  pk: id
+  fk: user_id -> auth.users(id)
+  check: type (type in ('new_subscriber','tip','super_tip','new_comment','campaign_donation','gift_sub','message','live_viewer'))
+  check: (type in ( 'new_subscriber','tip','super_tip','new_comment','campaign_donation', 'gift_sub','message','live_viewer', 'merch_order','merch_shipped','merch_delivered' ))
+  check: (type in ( 'new_subscriber','tip','super_tip','new_comment','campaign_donation', 'gift_sub','message','live_viewer', 'merch_order','merch_shipped','merch_delivered', 'new_post','live_started','new_medal' ))
+  policy[select] Users see own notifications :: using=(user_id = auth.uid()) check=
+  policy[update] Users can mark own as read :: using=(user_id = auth.uid()) check=
+
+TABLE parental_tokens  (created:01-migrations.sql) rls=true
+  cols: child_user_id, created_at, parent_email, revoked_at, token
+  pk: token
+  fk: child_user_id -> auth.users(id)
+  policy[select] Token holders can read :: using=(revoked_at is null) check=
+  policy[insert] Child creates own parental token :: using= check=(auth.uid() = child_user_id)
+
+TABLE pii_blocks  (created:003_ratings.sql) rls=false
+  cols: created_at, creator_id, direction, id, pii_type, user_id
+  pk: id
+  fk: user_id -> auth.users(id)
+  fk: creator_id -> creators(id)
+  check: direction (direction in ('inbound','outbound'))
+
+TABLE platform_settings  (created:01-migrations.sql) rls=true
+  cols: key, updated_at, updated_by, value
+  pk: key
+  fk: updated_by -> auth.users(id)
+  policy[select] Admin can read settings :: using=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid) check=
+  policy[all] Admin can write settings :: using=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid) check=(auth.uid() = '9b5ac2dc-ea4f-4bac-b2ef-70608562568a'::uuid)
+
+TABLE post_likes  (created:031_post_likes.sql) rls=true
+  cols: created_at, id, post_id, user_id
+  pk: id
+  unique: (post_id,user_id) [031_post_likes.sql]
+  fk: post_id -> posts(id)
+  fk: user_id -> auth.users(id)
+  policy[select] post_likes readable :: using=(true) check=
+  policy[insert] post_likes insert own :: using= check=(auth.uid() = user_id)
+  policy[delete] post_likes delete own :: using=(auth.uid() = user_id) check=
+
+TABLE post_unlocks  (created:009_post_unlocks.sql) rls=true
+  cols: amount_paid, created_at, fan_user_id, id, post_id, stripe_session_id
+  pk: id
+  unique: (post_id,fan_user_id) [009_post_unlocks.sql]
+  fk: post_id -> posts(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[select] post_unlocks_fan_select :: using=(fan_user_id = auth.uid()) check=
+  policy[select] post_unlocks_creator_select :: using=( post_id in ( select p.id from public.posts p join public.creator_profiles cp on cp.id = p.creator_profile_id where cp.user_id = auth.uid() ) ) check=
+  policy[insert] post_unlocks_service_insert :: using= check=(true)
+
+TABLE posts  (created:001_initial.sql) rls=true
+  cols: archive_reason, archived_at, campaign_id, caption, channel_id, collab_approved, collab_creator_id, content_rating, created_at, creator_id, early_access_at, expires_at, id, is_pinned, likes_count, lock_type, medal_count, media_type, media_url, media_urls, moderation_note, moderation_status, post_type, required_tier_id, scheduled_at, status, tags, tier, unlock_price, updated_at, views_count, vod_stream_id
+  pk: id
+  fk: creator_id -> creators(id)
+  fk: channel_id -> channels(id)
+  fk: collab_creator_id -> creators(id)
+  fk: campaign_id -> campaigns(id)
+  fk: vod_stream_id -> live_streams(id)
+  fk: required_tier_id -> subscription_tiers(id)
+  check: media_type (media_type in ('image', 'video', 'gallery'))
+  check: tier (tier in ('free', 'premium'))
+  check: status (status in ('live', 'archive', 'deleted', 'scheduled'))
+  check: moderation_status (moderation_status in ('pending','approved','flagged','blocked'))
+  check: lock_type (lock_type in ('free', 'subscription', 'purchase'))
+  check: post_type (post_type in ('post', 'campaign_update', 'vod'))
+  policy[select] Free posts are publicly readable :: using=(tier = 'free' and status = 'live') check=
+  policy[all] Creators can manage their posts :: using=( creator_id in (select id from public.creators where user_id = auth.uid()) ) check=
+  policy[select] Posts publicly readable :: using=(status = 'live') check=
+  policy[insert] Creators insert their own posts :: using= check=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) )
+  policy[update] Creators update their own posts :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) )
+  policy[delete] Creators delete their own posts :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+
+TABLE prospect_outreach  (created:061_prospect_outreach.sql) rls=true
+  cols: approved_at, approved_by, body, channel, claim_url_sent, created_at, created_by, error, id, prospect_id, provider_id, sent_at, sent_by, status, subject
+  pk: id
+  fk: prospect_id -> creator_prospects(id)
+  fk: approved_by -> auth.users(id)
+  fk: sent_by -> auth.users(id)
+  fk: created_by -> auth.users(id)
+  check: channel (channel in ('email','dm','manual'))
+  check: status (status in ('pending','approved','sent','failed','rejected'))
+  check: (sent_at is null or (approved_at is not null and approved_by is not null))
+  check: ((status = 'sent') = (sent_at is not null))
+  check: ((approved_at is null) = (approved_by is null))
+
+TABLE records_2257  (created:003_ratings.sql) rls=true
+  cols: created_at, creator_id, date_of_birth, id, id_document_type, id_verified_at, id_verified_by, legal_name, veriff_session_id
+  pk: id
+  fk: creator_id -> creators(id)
+
+TABLE referral_codes  (created:034_referral_rewards.sql) rls=true
+  cols: code, created_at, owner_user_id
+  pk: owner_user_id
+  unique: (code) [034_referral_rewards.sql]
+  fk: owner_user_id -> auth.users(id)
+  policy[select] own code :: using=(auth.uid() = owner_user_id) check=
+
+TABLE referral_invite_sends  (created:035_referral_invite_sends.sql) rls=true
+  cols: sent_at, user_id
+  pk: user_id
+  fk: user_id -> auth.users(id)
+
+TABLE referral_rewards_claimed  (created:034_referral_rewards.sql) rls=true
+  cols: created_at, fulfilled, id, milestone, referrer_user_id, reward
+  pk: id
+  unique: (referrer_user_id,milestone) [034_referral_rewards.sql]
+  fk: referrer_user_id -> auth.users(id)
+  policy[select] own rewards :: using=(auth.uid() = referrer_user_id) check=
+
+TABLE referral_signups  (created:034_referral_rewards.sql) rls=true
+  cols: code, created_at, id, referred_account_type, referred_user_id, verified, verified_at
+  pk: id
+  unique: (referred_user_id) [034_referral_rewards.sql]
+  fk: code -> referral_codes(code)
+  fk: referred_user_id -> auth.users(id)
+  policy[select] own referrals :: using=( auth.uid() = referred_user_id or exists (select 1 from public.referral_codes c where c.code = referral_signups.code and c.owner_user_id = auth.uid()) ) check=
+
+TABLE referrals  (created:002_channels.sql) rls=false
+  cols: active_months, commission_rate, created_at, id, is_active, max_months, referred_id, referrer_id, total_earned
+  pk: id
+  unique: (referred_id) [002_channels.sql]
+  fk: referrer_id -> creators(id)
+  fk: referred_id -> creators(id)
+
+TABLE social_addback_orders  (created:025_social_addbacks.sql) rls=true
+  cols: addback_id, amount_usd, created_at, fan_email, fan_handle, fan_user_id, id, message, status, stripe_session_id
+  pk: id
+  fk: addback_id -> social_addbacks(id)
+  fk: fan_user_id -> auth.users(id)
+  fk: addback_id -> social_addbacks(id)
+  fk: fan_user_id -> auth.users(id)
+  check: status (status in ('pending','paid','delivered','refunded'))
+  check: status (status in ('pending','paid','delivered','refunded'))
+  policy[insert] Anyone can create an order :: using= check=(true)
+  policy[select] Creators see orders for their addbacks :: using=( addback_id in ( select id from public.social_addbacks where creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) ) check=
+  policy[select] Fans see own orders :: using=(fan_user_id = auth.uid()) check=
+
+TABLE social_addback_purchases  (created:020_social_addbacks.sql) rls=true
+  cols: addback_id, amount_usd, buyer_handle, buyer_user_id, created_at, fulfilled, fulfilled_at, id, stripe_payment_id
+  pk: id
+  fk: addback_id -> social_addbacks(id)
+  fk: buyer_user_id -> auth.users(id)
+  policy[select] social_addback_purchases_creator :: using=( addback_id in ( select id from public.social_addbacks where creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) ) check=
+  policy[select] social_addback_purchases_buyer :: using=(buyer_user_id = auth.uid()) check=
+  policy[insert] social_addback_purchases_insert :: using= check=(true)
+  policy[update] social_addback_purchases_update :: using=(true) check=
+
+TABLE social_addbacks  (created:020_social_addbacks.sql) rls=true
+  cols: created_at, creator_profile_id, delivery_days, description, id, is_active, label, platform, price_usd
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  check: platform (platform in ('instagram','tiktok','youtube','x','twitch','discord'))
+  check: platform (platform in ('instagram','tiktok','youtube','twitter','twitch','discord','spotify'))
+  check: price_usd (price_usd >= 1)
+  check: (platform in ('instagram','tiktok','youtube','twitter','x','twitch','discord','spotify'))
+  policy[all] social_addbacks_own :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+  policy[select] social_addbacks_public_read :: using=(is_active = true) check=
+  policy[select] Public can view active addbacks :: using=(is_active = true) check=
+  policy[all] Creators manage own addbacks :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE social_posts  (created:021_social_posts.sql) rls=true
+  cols: caption, created_at, creator_id, id, oembed_html, original_posted_at, pinned, platform, thumbnail_url, url
+  pk: id
+  fk: creator_id -> creator_profiles(id)
+  check: platform (platform in ('instagram','tiktok','youtube','x','facebook'))
+  policy[all] Creators manage own social posts :: using=( creator_id in ( select id from creator_profiles where user_id = auth.uid() ) ) check=
+  policy[select] Public can view social posts :: using=(true) check=
+
+TABLE stream_moderation_prefs  (created:022_live_chat.sql) rls=true
+  cols: allow_links, banned_words, created_at, creator_profile_id, id, moderation_level, slow_mode_seconds, updated_at
+  pk: id
+  unique: (creator_profile_id) [022_live_chat.sql]
+  fk: creator_profile_id -> creator_profiles(id)
+  check: moderation_level (moderation_level in ('strict', 'moderate', 'open'))
+  policy[all] Creators manage own moderation prefs :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+  policy[select] Public can read moderation prefs :: using=(true) check=
+
+TABLE subscriber_referrals  (created:019_referrals.sql) rls=true
+  cols: created_at, discount_applied, fan_email, fan_user_id, id, referrer_profile_id, subscribed, subscribed_at
+  pk: id
+  fk: referrer_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[select] subscriber_referrals_own :: using=( referrer_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+  policy[insert] subscriber_referrals_insert :: using= check=(true)
+  policy[update] subscriber_referrals_update :: using=(true) check=
+
+TABLE subscription_payments  (created:063_subscription_payments.sql) rls=true
+  cols: created_at, creator_profile_id, creator_receives, fan_user_id, gross_usd, id, platform_fee_usd, status, stripe_invoice_id, stripe_subscription_id, subscription_id
+  pk: id
+  unique: (stripe_invoice_id) [063_subscription_payments.sql]
+  fk: subscription_id -> subscriptions(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  check: status (status in ('paid', 'refunded'))
+  policy[select] subscription_payments_select :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) or fan_user_id = auth.uid() ) check=
+
+TABLE subscription_tiers  (created:018_subscription_tiers.sql) rls=true
+  cols: color, created_at, creator_profile_id, description, id, is_active, name, perks, price_monthly, price_yearly, sort_order, subscriber_count
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  policy[select] tiers_public_select :: using=(is_active = true) check=
+  policy[all] tiers_creator_manage :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) ) check=
+
+TABLE subscriptions  (created:001_initial.sql) rls=true
+  cols: billing_period, channel_id, created_at, creator_id, current_period_end, current_period_start, expires_at, fan_user_id, gift_subscription_id, id, price, status, stripe_customer_id, stripe_subscription_id, tier, tier_id, trial_end
+  pk: id
+  unique: (stripe_subscription_id) [001_initial.sql]
+  unique: (fan_user_id,creator_id) [001_initial.sql]
+  fk: fan_user_id -> auth.users(id)
+  fk: creator_id -> creators(id)
+  fk: channel_id -> channels(id)
+  fk: gift_subscription_id -> gift_subscriptions(id)
+  fk: tier_id -> subscription_tiers(id)
+  check: status (status in ('trialing','active','past_due','canceled','incomplete'))
+  check: billing_period (billing_period in ('monthly', 'yearly'))
+  policy[select] Users can view their own subscriptions :: using=(fan_user_id = auth.uid()) check=
+  policy[select] Creators can view subscriptions to their page :: using=( creator_id in (select id from public.creators where user_id = auth.uid()) ) check=
+
+TABLE super_tips  (created:010_monetization_features.sql) rls=true
+  cols: amount_usd, badge_expires_at, created_at, creator_profile_id, creator_receives, fan_display_name, fan_user_id, id, message, notified, platform_receives, stripe_session_id
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: fan_user_id -> auth.users(id)
+  policy[select] super_tips_creator_select :: using=( creator_profile_id in (select id from public.creator_profiles where user_id = auth.uid()) or fan_user_id = auth.uid() ) check=
+  policy[insert] super_tips_insert :: using= check=(true)
+
+TABLE tips  (created:001_initial.sql) rls=true
+  cols: amount, created_at, creator_id, creator_receives, fan_user_id, id, is_live_tip, message, platform_receives, post_id, stripe_payment_intent_id
+  pk: id
+  fk: fan_user_id -> auth.users(id)
+  fk: creator_id -> creators(id)
+  fk: post_id -> posts(id)
+  policy[select] Creators can view tips they received :: using=( creator_id in (select id from public.creators where user_id = auth.uid()) ) check=
+  policy[select] Tips publicly readable :: using=(true) check=
+
+TABLE wallets  (created:001_initial.sql) rls=true
+  cols: balance, created_at, id, is_young_account, monthly_budget, parent_user_id, per_tip_limit, updated_at, user_id
+  pk: id
+  unique: (user_id) [001_initial.sql]
+  fk: user_id -> auth.users(id)
+  fk: parent_user_id -> auth.users(id)
+  policy[select] Users can view their own wallet :: using=(user_id = auth.uid() or parent_user_id = auth.uid()) check=
+  policy[update] Users can update their own wallet :: using=(user_id = auth.uid() or parent_user_id = auth.uid()) check=
+
+TABLE wishlist_items  (created:007_launch_columns.sql) rls=true
+  cols: created_at, creator_profile_id, description, id, image_url, is_purchased, name, price, priority, purchased_at, purchased_by_id, reserved_until, store_name, store_url
+  pk: id
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: purchased_by_id -> auth.users(id)
+  policy[select] Wishlist items are public :: using=(true) check=
+  policy[all] Creators manage own wishlist :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+
+TABLE wishlist_purchases  (created:007_launch_columns.sql) rls=true
+  cols: buyer_message, buyer_user_id, created_at, creator_profile_id, fulfillment_notes, id, item_price, receipt_url, service_fee, status, stripe_session_id, stripe_transfer_id, total_charged, tracking_number, updated_at, wishlist_item_id
+  pk: id
+  fk: wishlist_item_id -> wishlist_items(id)
+  fk: creator_profile_id -> creator_profiles(id)
+  fk: buyer_user_id -> auth.users(id)
+  check: status (status in ('paid_pending_purchase','creator_purchased','refunded'))
+  policy[select] Buyers see own purchases :: using=(buyer_user_id = auth.uid()) check=
+  policy[select] Creators see own wishlist purchases :: using=( creator_profile_id in ( select id from public.creator_profiles where user_id = auth.uid() ) ) check=
+  policy[insert] Authenticated users can create purchases :: using= check=(buyer_user_id = auth.uid())
+
+=== BUCKETS ===
+  digital-products public=false [062_digital_storage.sql]
+=== STORAGE POLICIES ===
+  digital owner insert for=insert [062_digital_storage.sql] :: for insert to authenticated with check ( bucket_id = 'digital-products' and (storage.foldername(name))[1] = auth.uid()::text )
+  digital owner read for=select [062_digital_storage.sql] :: for select to authenticated using ( bucket_id = 'digital-products' and (storage.foldername(name))[1] = auth.uid()::text )
+  digital owner update for=update [062_digital_storage.sql] :: for update to authenticated using ( bucket_id = 'digital-products' and (storage.foldername(name))[1] = auth.uid()::text )
+  digital owner delete for=delete [062_digital_storage.sql] :: for delete to authenticated using ( bucket_id = 'digital-products' and (storage.foldername(name))[1] = auth.uid()::text )
+=== FUNCTIONS ===
+  public.billing_tier_for_count(subscriber_count integer) secdef=false [012_creator_billing.sql]
+  public.recommended_creators( p_fan_user_id uuid, p_limit integer default 12 ) secdef=false [014_discovery.sql]
+  public.sync_post_likes_count() secdef=true [031_post_likes.sql]
+  public.apply_medal_award() secdef=true [032_medals.sql]
+  public.award_medal(p_post_id uuid) secdef=true [033_medal_balance.sql]
+  public.ensure_referral_code(p_user uuid) secdef=true [034_referral_rewards.sql]
+  public.record_referral(p_code text, p_referred uuid, p_type text) secdef=true [034_referral_rewards.sql]
+  public.grant_referral_rewards(p_referrer uuid) secdef=true [034_referral_rewards.sql]
+  public.verify_referral(p_referred uuid) secdef=true [034_referral_rewards.sql]
+  public.referral_status(p_user uuid) secdef=true [034_referral_rewards.sql]
+  public.provision_free_billing() secdef=true [045_free_billing_status.sql]
+  public.provision_free_billing() secdef=true [057_billing_backfill_safety.sql]
+=== TRIGGERS ===
+  trg_sync_post_likes on post_likes [031_post_likes.sql]
+  trg_apply_medal_award on medal_awards [032_medals.sql]
+  trg_provision_free_billing on creator_profiles [045_free_billing_status.sql]
+  trg_provision_free_billing on creator_profiles [057_billing_backfill_safety.sql]
+=== VIEWS ===
+  creator_medal_month [032_medals.sql]

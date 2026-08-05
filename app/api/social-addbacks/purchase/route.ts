@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { grossUpForStripe } from "@/lib/fees";
@@ -18,13 +19,23 @@ export async function POST(req: NextRequest) {
 
   const { data: addback } = await (supabase as any)
     .from("social_addbacks")
-    .select("*, creator:creator_profile_id(handle, display_name, stripe_account_id, stripe_onboarded, user_id)")
+    .select("*")
     .eq("id", addbackId)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!addback) return NextResponse.json({ error: "Add-back not found" }, { status: 404 });
-  if (!addback.creator?.stripe_onboarded) return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });
+
+  // The payee's Connect account, read with the service role (lib/payee.ts).
+  // Migration 064 removes anon read on creator_profiles, so the embed that
+  // used to supply this returns nothing. The parent row above is still read
+  // through the RLS-enforcing client — that is what authorises the purchase;
+  // this only answers where the money goes.
+  const payee = await getPayeeCreator((addback as any).creator_profile_id);
+  if (!canReceivePayments(payee)) {
+    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
+  }
+  if (!payee.stripe_onboarded) return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });
 
   const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
@@ -37,21 +48,21 @@ export async function POST(req: NextRequest) {
   // Creator keeps 100% — platform takes 0% on add-backs
   const params = new URLSearchParams({
     "line_items[0][price_data][currency]": "usd",
-    "line_items[0][price_data][product_data][name]": `${platformLabel} follow-back from @${addback.creator.display_name ?? addback.creator.handle}`,
+    "line_items[0][price_data][product_data][name]": `${platformLabel} follow-back from @${payee.display_name ?? payee.handle}`,
     "line_items[0][price_data][product_data][description]": addback.description || `${platformLabel} follow-back. Delivered within ${addback.delivery_days} days.`,
     "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][quantity]": "1",
     mode: "payment",
-    success_url: `${appUrl}/${addback.creator.handle}?addback=success`,
-    cancel_url: `${appUrl}/${addback.creator.handle}`,
-    "payment_intent_data[transfer_data][destination]": addback.creator.stripe_account_id,
+    success_url: `${appUrl}/${payee.handle}?addback=success`,
+    cancel_url: `${appUrl}/${payee.handle}`,
+    "payment_intent_data[transfer_data][destination]": payee.stripe_account_id,
     "payment_intent_data[transfer_data][amount]": String(amountCents),
     "metadata[type]": "social_addback",
     "metadata[addback_id]": addbackId,
     "metadata[fan_handle]": fanHandle.trim(),
     "metadata[fan_user_id]": user.id,
     "metadata[message]": message?.trim() ?? "",
-    "metadata[creator_user_id]": addback.creator.user_id,
+    "metadata[creator_user_id]": payee.user_id,
   });
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {

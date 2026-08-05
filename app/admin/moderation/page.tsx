@@ -1,7 +1,11 @@
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 import { isAdmin } from "@/lib/admin";
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
+
+// Never prerender an admin surface: it is authorised per request via isAdmin()
+// and reads privileged rows with the service role.
+export const dynamic = "force-dynamic";
 
 async function takeAction(formData: FormData) {
   "use server";
@@ -10,7 +14,10 @@ async function takeAction(formData: FormData) {
   const action = formData.get("action") as string;
   const creatorId = formData.get("creator_id") as string;
 
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
 
   // Mark event as reviewed
   await (supabase as any)
@@ -33,7 +40,10 @@ async function dismissFlag(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
   const eventId = formData.get("event_id") as string;
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
   await (supabase as any)
     .from("moderation_events")
     .update({ action_taken: "dismissed", reviewed_by: "admin" })
@@ -49,7 +59,10 @@ export default async function ModerationPage(props: {
   const severity = sp.severity ?? "";
   const reviewed = sp.reviewed === "1";
 
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
 
   // Stats
   const [{ count: critical }, { count: high }, { count: medium }, { count: pending }] = await Promise.all([

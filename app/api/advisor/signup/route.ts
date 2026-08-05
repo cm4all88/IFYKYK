@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, clientKey } from "@/lib/ai-guard";
 import { getSecrets } from "@/lib/settings";
+
+export const runtime = "nodejs";
 
 const SYSTEM = `You are the Spotlightly signup advisor. Your job is to have a short, warm conversation that collects exactly three things: what they create, their display name, and their desired handle. Then give them a quick personalized breakdown.
 
@@ -27,6 +30,20 @@ Example when you know both:
 [[EXTRACTED:{"displayName":"Chris Martin","suggestedHandle":"chrisart"}]]`;
 
 export async function POST(req: NextRequest) {
+  // This route powers the signup conversation and runs BEFORE an account
+  // exists, so it cannot require a session without breaking signup. It is the
+  // one Anthropic-backed route that stays open, and it is rate limited instead.
+  //
+  // The limiter is per warm serverless instance, not global — a speed bump, not
+  // a quota. It converts unbounded spend into bounded-per-instance spend. A
+  // durable limiter (Upstash via the Vercel Marketplace, or BotID on this route)
+  // is the real fix; see BATCH_0_CHANGES.md.
+  const limited = rateLimit(`advisor-signup:${clientKey(req)}`, {
+    limit: 20,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (limited) return limited.response;
+
   try {
     const { messages, backstageChoice, niche } = await req.json();
 

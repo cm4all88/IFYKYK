@@ -212,7 +212,7 @@ export async function POST(req: NextRequest) {
   if (post?.id && !scheduledAt) {
     try {
       const { data: cp } = await (supabase as any)
-        .from("creator_profiles").select("handle, display_name").eq("id", creatorProfileId).maybeSingle();
+        .from("creator_public").select("handle, display_name").eq("id", creatorProfileId).maybeSingle();
       const who = cp?.display_name || (cp?.handle ? `@${cp.handle}` : "A creator");
       await notifySubscribers({
         creatorProfileId,

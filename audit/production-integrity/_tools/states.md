@@ -1,0 +1,174 @@
+# State / status value reconciliation
+
+## A. Values used in code that violate a DB CHECK constraint
+
+- **subscriptions.status = `cancelling`** — NOT in CHECK (`trialing`, `active`, `past_due`, `canceled`, `incomplete`) [constraint from 001_initial.sql]
+    - app/api/subscription/cancel/route.ts:34 [update]
+    - app/api/subscription/route.ts:37 [update]
+    - lib/billing.ts:186 [update]
+    - lib/billing.ts:196 [eq]
+- **wishlist_purchases.status = `pending`** — NOT in CHECK (`paid_pending_purchase`, `creator_purchased`, `refunded`) [constraint from 007_launch_columns.sql]
+    - app/api/webhooks/stripe/route.ts:235 [insert]
+
+## B. Enumerated CHECK constraints and their code coverage
+
+- `admin_messages.kind` allowed: `banner`, `email_blast`, `push`
+  - used in code: `email_blast`
+  - never written/read by code: `banner`, `push`
+- `admin_messages.status` allowed: `draft`, `scheduled`, `sent`, `canceled`
+  - used in code: _none_
+  - never written/read by code: `draft`, `scheduled`, `sent`, `canceled`
+- `admin_messages.target` allowed: `all`, `spotlight`, `backstage`, `subscribers`
+  - used in code: _none_
+  - never written/read by code: `all`, `spotlight`, `backstage`, `subscribers`
+- `campaigns.status` allowed: `active`, `funded`, `closed`, `cancelled`
+  - used in code: `active`, `closed`
+  - never written/read by code: `funded`, `cancelled`
+- `ccbill_subscriptions.status` allowed: `active`, `canceled`, `suspended`
+  - used in code: _none_
+  - never written/read by code: `active`, `canceled`, `suspended`
+- `channels.content_rating` allowed: `G`, `PG`, `M`, `R`, `X`
+  - used in code: _none_
+  - never written/read by code: `G`, `PG`, `M`, `R`, `X`
+- `coupons.applies_to` allowed: `all`, `spotlight`, `backstage`
+  - used in code: _none_
+  - never written/read by code: `all`, `spotlight`, `backstage`
+- `coupons.discount_type` allowed: `percent`, `flat`
+  - used in code: _none_
+  - never written/read by code: `percent`, `flat`
+- `creator_billing.status` allowed: `trial`, `active`, `past_due`, `cancelled`, `incomplete`, `free`
+  - used in code: `trial`, `past_due`, `cancelled`, `active`
+  - never written/read by code: `incomplete`, `free`
+- `creator_billing.tier` allowed: `starter`, `growth`, `pro`, `scale`, `legend`
+  - used in code: `starter`
+  - never written/read by code: `growth`, `pro`, `scale`, `legend`
+- `creator_contact_blocks.contact_type` allowed: `email`, `phone`
+  - used in code: _none_
+  - never written/read by code: `email`, `phone`
+- `creator_profiles.creator_type` allowed: `spotlight`, `backstage`
+  - used in code: `backstage`, `spotlight`
+- `creator_prospects.platform` allowed: `youtube`, `tiktok`, `instagram`, `twitch`, `substack`, `x`, `patreon`, `other`
+  - used in code: _none_
+  - never written/read by code: `youtube`, `tiktok`, `instagram`, `twitch`, `substack`, `x`, `patreon`, `other`
+- `creator_prospects.source` allowed: `manual`, `csv`, `referral`, `inbound`, `event`, `partner`, `other`
+  - used in code: _none_
+  - never written/read by code: `manual`, `csv`, `referral`, `inbound`, `event`, `partner`, `other`
+- `creator_prospects.stage` allowed: `identified`, `qualified`, `contacted`, `replied`, `page_built`, `invited`, `joined`, `disqualified`
+  - used in code: _none_
+  - never written/read by code: `identified`, `qualified`, `contacted`, `replied`, `page_built`, `invited`, `joined`, `disqualified`
+- `creators.creator_type` allowed: `sfw`, `adult`, `young`
+  - used in code: _none_
+  - never written/read by code: `sfw`, `adult`, `young`
+- `digital_products.category` allowed: `guide`, `course`, `preset`, `template`, `sample_pack`, `artwork`, `workout`, `spreadsheet`, `bundle`, `other`
+  - used in code: _none_
+  - never written/read by code: `guide`, `course`, `preset`, `template`, `sample_pack`, `artwork`, `workout`, `spreadsheet`, `bundle`, `other`
+- `digital_products.status` allowed: `active`, `draft`, `archived`
+  - used in code: `archived`, `active`
+  - never written/read by code: `draft`
+- `digital_products.storage_provider` allowed: `bunny`, `supabase`
+  - used in code: _none_
+  - never written/read by code: `bunny`, `supabase`
+- `early_access_passes.status` allowed: `active`, `cancelled`, `past_due`
+  - used in code: `active`
+  - never written/read by code: `cancelled`, `past_due`
+- `fan_activity.activity_type` allowed: `view`, `tip`, `subscribe`, `super_tip`, `unlock`
+  - used in code: _none_
+  - never written/read by code: `view`, `tip`, `subscribe`, `super_tip`, `unlock`
+- `featured_slots.slot_type` allowed: `homepage_hero`, `homepage_grid`, `browse_top`, `sidebar`
+  - used in code: _none_
+  - never written/read by code: `homepage_hero`, `homepage_grid`, `browse_top`, `sidebar`
+- `import_runs.status` allowed: `running`, `complete`, `failed`
+  - used in code: `running`, `complete`
+  - never written/read by code: `failed`
+- `live_offer_claims.status` allowed: `pending`, `confirmed`, `canceled`
+  - used in code: _none_
+  - never written/read by code: `pending`, `confirmed`, `canceled`
+- `live_stream_tips.payment_method` allowed: `stripe`, `ccbill`
+  - used in code: _none_
+  - never written/read by code: `stripe`, `ccbill`
+- `live_streams.status` allowed: `live`, `ended`
+  - used in code: `live`, `ended`
+- `marketplace_listings.category` allowed: `clothing`, `accessories`, `prints`, `gear`, `signed`, `personal`, `other`
+  - used in code: _none_
+  - never written/read by code: `clothing`, `accessories`, `prints`, `gear`, `signed`, `personal`, `other`
+- `marketplace_listings.condition` allowed: `new`, `like_new`, `good`, `fair`
+  - used in code: _none_
+  - never written/read by code: `new`, `like_new`, `good`, `fair`
+- `marketplace_listings.status` allowed: `active`, `sold`, `archived`, `draft`
+  - used in code: `active`, `draft`, `archived`, `sold`
+- `marketplace_orders.status` allowed: `pending`, `paid`, `shipped`, `delivered`, `refunded`
+  - used in code: _none_
+  - never written/read by code: `pending`, `paid`, `shipped`, `delivered`, `refunded`
+- `merch_orders.status` allowed: `pending`, `in_production`, `shipped`, `delivered`, `cancelled`, `refunded`
+  - used in code: _none_
+  - never written/read by code: `pending`, `in_production`, `shipped`, `delivered`, `cancelled`, `refunded`
+- `merch_products.status` allowed: `active`, `paused`, `sold_out`
+  - used in code: `active`
+  - never written/read by code: `paused`, `sold_out`
+- `moderation_events.action_taken` allowed: `blocked`, `flagged`, `warned`, `stream_ended`, `account_suspended`
+  - used in code: _none_
+  - never written/read by code: `blocked`, `flagged`, `warned`, `stream_ended`, `account_suspended`
+- `moderation_events.content_type` allowed: `post`, `chat`, `dm`, `live`
+  - used in code: _none_
+  - never written/read by code: `post`, `chat`, `dm`, `live`
+- `moderation_events.severity` allowed: `low`, `medium`, `high`, `critical`
+  - used in code: _none_
+  - never written/read by code: `low`, `medium`, `high`, `critical`
+- `notifications.type` allowed: `new_subscriber`, `tip`, `super_tip`, `new_comment`, `campaign_donation`, `gift_sub`, `message`, `live_viewer`, `merch_order`, `merch_shipped`, `merch_delivered`, `new_post`, `live_started`, `new_medal`
+  - used in code: `merch_shipped`
+  - never written/read by code: `new_subscriber`, `tip`, `super_tip`, `new_comment`, `campaign_donation`, `gift_sub`, `message`, `live_viewer`, `merch_order`, `merch_delivered`, `new_post`, `live_started`, `new_medal`
+- `pii_blocks.direction` allowed: `inbound`, `outbound`
+  - used in code: _none_
+  - never written/read by code: `inbound`, `outbound`
+- `posts.lock_type` allowed: `free`, `subscription`, `purchase`
+  - used in code: `purchase`
+  - never written/read by code: `free`, `subscription`
+- `posts.media_type` allowed: `image`, `video`, `gallery`
+  - used in code: `video`
+  - never written/read by code: `image`, `gallery`
+- `posts.moderation_status` allowed: `pending`, `approved`, `flagged`, `blocked`
+  - used in code: `approved`
+  - never written/read by code: `pending`, `flagged`, `blocked`
+- `posts.post_type` allowed: `post`, `campaign_update`, `vod`
+  - used in code: `post`, `vod`
+  - never written/read by code: `campaign_update`
+- `posts.status` allowed: `live`, `archive`, `deleted`, `scheduled`
+  - used in code: `live`, `scheduled`
+  - never written/read by code: `archive`, `deleted`
+- `posts.tier` allowed: `free`, `premium`
+  - used in code: _none_
+  - never written/read by code: `free`, `premium`
+- `prospect_outreach.channel` allowed: `email`, `dm`, `manual`
+  - used in code: _none_
+  - never written/read by code: `email`, `dm`, `manual`
+- `prospect_outreach.status` allowed: `pending`, `approved`, `sent`, `failed`, `rejected`
+  - used in code: `pending`, `failed`, `sent`
+  - never written/read by code: `approved`, `rejected`
+- `social_addback_orders.status` allowed: `pending`, `paid`, `delivered`, `refunded`
+  - used in code: `paid`, `delivered`
+  - never written/read by code: `pending`, `refunded`
+- `social_addbacks.platform` allowed: `instagram`, `tiktok`, `youtube`, `x`, `twitch`, `discord`, `twitter`, `spotify`
+  - used in code: _none_
+  - never written/read by code: `instagram`, `tiktok`, `youtube`, `x`, `twitch`, `discord`, `twitter`, `spotify`
+- `social_posts.platform` allowed: `instagram`, `tiktok`, `youtube`, `x`, `facebook`
+  - used in code: `instagram`, `tiktok`
+  - never written/read by code: `youtube`, `x`, `facebook`
+- `stream_moderation_prefs.moderation_level` allowed: `strict`, `moderate`, `open`
+  - used in code: _none_
+  - never written/read by code: `strict`, `moderate`, `open`
+- `subscription_payments.status` allowed: `paid`, `refunded`
+  - used in code: `paid`
+  - never written/read by code: `refunded`
+- `subscriptions.billing_period` allowed: `monthly`, `yearly`
+  - used in code: _none_
+  - never written/read by code: `monthly`, `yearly`
+- `subscriptions.status` allowed: `trialing`, `active`, `past_due`, `canceled`, `incomplete`
+  - used in code: `active`, `canceled`, `past_due`, `cancelling`
+  - never written/read by code: `trialing`, `incomplete`
+- `wishlist_purchases.status` allowed: `paid_pending_purchase`, `creator_purchased`, `refunded`
+  - used in code: `pending`, `paid_pending_purchase`, `creator_purchased`
+  - never written/read by code: `refunded`
+
+## C. Status columns written by code with NO CHECK constraint in migrations
+
+- `subscriptions.tier` — free-form, values seen: `premium`

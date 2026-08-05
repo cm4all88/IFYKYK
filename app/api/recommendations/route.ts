@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   if (recommendedIds.length > 0) {
     const { data } = await (supabase as any)
-      .from("creator_profiles")
+      .from("creator_public")
       .select("id, handle, display_name, bio, avatar_url, subscription_price, tags, location_city, location_country")
       .in("id", recommendedIds.slice(0, limit))
       .eq("kind", "spotlight")
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   if (creators.length < limit && interestTags.length > 0) {
     const existingIds = creators.map(c => c.id);
     const { data: interestMatched } = await (supabase as any)
-      .from("creator_profiles")
+      .from("creator_public")
       .select("id, handle, display_name, bio, avatar_url, subscription_price, tags")
       .eq("kind", "spotlight")
       .not("onboarding_completed_at", "is", null)
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
   if (creators.length < limit) {
     const existingIds = creators.map(c => c.id);
     const { data: newest } = await (supabase as any)
-      .from("creator_profiles")
+      .from("creator_public")
       .select("id, handle, display_name, bio, avatar_url, subscription_price, tags")
       .eq("kind", "spotlight")
       .not("onboarding_completed_at", "is", null)

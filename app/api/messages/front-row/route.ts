@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPayeeCreator } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
@@ -12,11 +13,10 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Must be signed in" }, { status: 401 });
 
-  const { data: creator } = await (supabase as any)
-    .from("creator_profiles")
-    .select("id, handle, stripe_account_id, stripe_onboarded")
-    .eq("id", creatorProfileId)
-    .maybeSingle();
+  // Connect routing data. Read with the service role via lib/payee.ts:
+  // migration 064 removes anon read on creator_profiles, and guests can pay,
+  // so this cannot come from the cookie client any more.
+  const creator = await getPayeeCreator(creatorProfileId);
 
   if (!creator) return NextResponse.json({ error: "Creator not found" }, { status: 404 });
 

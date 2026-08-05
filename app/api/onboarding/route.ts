@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCreatorSession, isGuardFailure } from "@/lib/ai-guard";
 import { getSecrets } from "@/lib/settings";
 
+export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
+  // Anthropic spend is billed to the platform. Reached from /onboarding, after signup. A profile may not exist yet, so only a session is required.
+  const guard = await requireCreatorSession({ requireProfile: false });
+  if (isGuardFailure(guard)) return guard.response;
+
   const { description, followUp, previousResponse } = await req.json();
   if (!description?.trim()) {
     return NextResponse.json({ error: "Description required" }, { status: 400 });

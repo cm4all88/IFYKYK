@@ -1,7 +1,14 @@
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
+
+// Never prerender an admin surface: it is authorised per request via isAdmin()
+// and reads privileged rows with the service role.
+export const dynamic = "force-dynamic";
 
 export default async function AdminOverviewPage() {
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
 
   // Fetch counts in parallel
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();

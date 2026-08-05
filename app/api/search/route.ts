@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient();
 
   let query = (supabase as any)
-    .from("creator_profiles")
+    .from("creator_public")
     .select("id, handle, display_name, bio, avatar_url, subscription_price, tags, location_city, location_country")
     .eq("kind", "spotlight")
     .not("onboarding_completed_at", "is", null);

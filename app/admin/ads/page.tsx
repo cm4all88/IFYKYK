@@ -1,7 +1,11 @@
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 import { isAdmin } from "@/lib/admin";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+
+// Never prerender an admin surface: it is authorised per request via isAdmin()
+// and reads privileged rows with the service role.
+export const dynamic = "force-dynamic";
 
 async function createSlot(formData: FormData) {
   "use server";
@@ -18,7 +22,10 @@ async function createSlot(formData: FormData) {
   const paymentAmount = isPaid ? parseFloat(formData.get("payment_amount") as string) : null;
   const priority = parseInt(formData.get("priority") as string) || 0;
 
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
 
   // Look up creator profile id from handle
   const { data: profile } = await (supabase as any)
@@ -54,7 +61,10 @@ async function deactivateSlot(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
   const id = formData.get("id") as string;
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
   await (supabase as any).from("featured_slots").update({ is_active: false }).eq("id", id);
   revalidatePath("/admin/ads");
 }
@@ -63,7 +73,10 @@ async function deleteSlot(formData: FormData) {
   "use server";
   if (!(await isAdmin())) throw new Error("Not authorized");
   const id = formData.get("id") as string;
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
   await (supabase as any).from("featured_slots").delete().eq("id", id);
   revalidatePath("/admin/ads");
 }
@@ -81,7 +94,10 @@ export default async function AdsPage(props: {
   if (!(await isAdmin())) notFound();
   const sp = await props.searchParams;
 
-  const supabase = await createClient();
+  // Service role: this page is gated by isAdmin() in app/admin/layout.tsx, but RLS
+  // cannot see that gate. Migration 064 removes the blanket public read on
+  // creator_profiles, so admin surfaces read privileged rows explicitly.
+  const supabase = await createServiceClient();
   const { data: slots } = await (supabase as any)
     .from("featured_slots")
     .select(`*, creator_profiles(handle, display_name, kind)`)

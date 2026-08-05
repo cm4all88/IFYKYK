@@ -1,0 +1,1057 @@
+[
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/(platform)/backstage-setup/page.tsx",
+    "line": 127,
+    "table": "creator_profiles",
+    "column": "backstage_legal_name",
+    "evidence": "{ user_id: user?.id, kind: \"backstage\", handle: form.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, \"-\"), display_name: form.display_name.trim() || form.handle.trim(), bio: form.bio.trim() || null",
+    "confidence": "unverified-base-ddl"
+  },
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/(platform)/backstage-setup/page.tsx",
+    "line": 127,
+    "table": "creator_profiles",
+    "column": "backstage_dob",
+    "evidence": "{ user_id: user?.id, kind: \"backstage\", handle: form.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, \"-\"), display_name: form.display_name.trim() || form.handle.trim(), bio: form.bio.trim() || null",
+    "confidence": "unverified-base-ddl"
+  },
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/(platform)/backstage-setup/page.tsx",
+    "line": 127,
+    "table": "creator_profiles",
+    "column": "backstage_id_type",
+    "evidence": "{ user_id: user?.id, kind: \"backstage\", handle: form.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, \"-\"), display_name: form.display_name.trim() || form.handle.trim(), bio: form.bio.trim() || null",
+    "confidence": "unverified-base-ddl"
+  },
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/(platform)/backstage-setup/page.tsx",
+    "line": 127,
+    "table": "creator_profiles",
+    "column": "backstage_verified",
+    "evidence": "{ user_id: user?.id, kind: \"backstage\", handle: form.handle.trim().toLowerCase().replace(/[^a-z0-9-]/g, \"-\"), display_name: form.display_name.trim() || form.handle.trim(), bio: form.bio.trim() || null",
+    "confidence": "unverified-base-ddl"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/MarketplaceImport.tsx",
+    "line": 333,
+    "detail": "e.target.files ?? []"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/MarketplaceImport.tsx",
+    "line": 345,
+    "detail": "e.target.files ?? []"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/MarketplaceImport.tsx",
+    "line": 488,
+    "detail": "e.target.files ?? []"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 83,
+    "detail": "prev"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 576,
+    "table": "subscription_tiers",
+    "missing": [
+      "creator_profile_id",
+      "name",
+      "price_monthly"
+    ],
+    "evidence": "tierRows"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 582,
+    "table": "campaign_tiers",
+    "missing": [
+      "campaign_id",
+      "title",
+      "amount"
+    ],
+    "evidence": "rows"
+  },
+  {
+    "type": "upsert",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 586,
+    "table": "creator_plans",
+    "onConflict": "creator_profile_id",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "creator_profile_id"
+  },
+  {
+    "type": "unknown-table",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 619,
+    "table": "creator_medal_month"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 1455,
+    "table": "campaign_tiers",
+    "missing": [
+      "campaign_id",
+      "title",
+      "amount"
+    ],
+    "evidence": "rows"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 2365,
+    "table": "subscription_tiers",
+    "missing": [
+      "creator_profile_id",
+      "name",
+      "price_monthly"
+    ],
+    "evidence": "rows"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 2542,
+    "table": "subscription_tiers",
+    "missing": [
+      "name",
+      "price_monthly"
+    ],
+    "evidence": "{ ...payload, creator_profile_id: profile.id, sort_order: tiers.length, }"
+  },
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 2843,
+    "table": "digital_products",
+    "column": "file_type",
+    "evidence": "{ creator_profile_id: profile.id, title: title.trim(), description: description.trim() || null, price: parseFloat(price), file_url: fileUrl || null, file_name: fileName || null, file_size_bytes: fileS",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 4121,
+    "table": "channels",
+    "column": "is_free",
+    "evidence": "{ creator_profile_id: profile.id, name: form.name.trim(), description: form.description.trim() || null, subscription_price: form.is_free ? 0 : parseFloat(form.subscription_price) || 9.99, is_free: for",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 4121,
+    "table": "channels",
+    "missing": [
+      "creator_id"
+    ],
+    "evidence": "{ creator_profile_id: profile.id, name: form.name.trim(), description: form.description.trim() || null, subscription_price: form.is_free ? 0 : parseFloat(form.subscription_price) || 9.99, is_free: for"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 4416,
+    "detail": "new Set([...prev, ...data.tags])"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 4527,
+    "detail": "e.target.files || []"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/dashboard/page.tsx",
+    "line": 4866,
+    "detail": "files"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/(platform)/media/page.tsx",
+    "line": 33,
+    "detail": "files"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/admin/comms/page.tsx",
+    "line": 30,
+    "table": "admin_messages",
+    "missing": [
+      "body"
+    ],
+    "evidence": "{ kind: \"email_blast\", target: target || \"all\", subject: subject || \"A message from Spotlightly\", body, status: sendNow ? \"sent\" : \"draft\", sent_at: sendNow ? new Date().toISOString() : null, created_"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/admin/coupons/page.tsx",
+    "line": 23,
+    "table": "coupons",
+    "missing": [
+      "code"
+    ],
+    "evidence": "{ code, description, discount_type: discountType, discount_value: discountValue, max_uses: maxUses, min_amount: minAmount, expires_at: expiresAt, applies_to: appliesTo || \"all\", is_active: true, creat"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/admin/moderation/page.tsx",
+    "line": 63,
+    "table": "moderation_events",
+    "rel": "creator_profiles",
+    "inner": "handle, display_name"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/admin/page.tsx",
+    "line": 49,
+    "detail": "new Set((recentSubs ?? []).map((s: any) => s.creator_profile_id).filter(Boolean))"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/admin/prospects/funnel/page.tsx",
+    "line": 69,
+    "detail": "sources.entries()"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/admin/subscriptions/page.tsx",
+    "line": 59,
+    "table": "subscriptions",
+    "rel": "creator_profiles!inner",
+    "inner": "handle, display_name, kind"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/campaigns/create/route.ts",
+    "line": 42,
+    "table": "campaign_tiers",
+    "missing": [
+      "campaign_id",
+      "title",
+      "amount"
+    ],
+    "evidence": "rows"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/creators/pick/route.ts",
+    "line": 24,
+    "table": "affiliate_picks",
+    "missing": [
+      "url",
+      "label"
+    ],
+    "evidence": "{ creator_profile_id: creatorProfileId, asin, url, label, image_url: imageUrl, note, }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/creators/post/route.ts",
+    "line": 19,
+    "table": "posts",
+    "missing": [
+      "creator_id"
+    ],
+    "evidence": "{ creator_profile_id: creatorProfileId, caption: caption || null, media_url: mediaUrl, media_type: mediaType, tier: locked ? \"premium\" : \"free\", lock_type: locked ? \"subscription\" : \"free\", status: \"l"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/creators/social-post/route.ts",
+    "line": 54,
+    "table": "social_posts",
+    "missing": [
+      "url",
+      "platform"
+    ],
+    "evidence": "{ creator_id: creatorId, url, platform, original_posted_at: postedAt, caption, thumbnail_url, }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/creators/tier/route.ts",
+    "line": 30,
+    "table": "subscription_tiers",
+    "missing": [
+      "name"
+    ],
+    "evidence": "{ creator_profile_id: creatorId, name, description, price_monthly: monthly, price_yearly: yearly && !Number.isNaN(yearly) ? yearly : null, perks, sort_order: count ?? 0, is_active: true, }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/prospects/import/route.ts",
+    "line": 57,
+    "table": "creator_prospects",
+    "missing": [
+      "display_name"
+    ],
+    "evidence": "{ ...row, discovered_by: user?.id ?? null }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/prospects/route.ts",
+    "line": 34,
+    "table": "creator_prospects",
+    "missing": [
+      "display_name"
+    ],
+    "evidence": "{ ...result.value, discovered_by: user?.id ?? null }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/studio/commit/route.ts",
+    "line": 43,
+    "table": "subscription_tiers",
+    "missing": [
+      "creator_profile_id",
+      "name",
+      "price_monthly"
+    ],
+    "evidence": "tierRows"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/admin/studio/commit/route.ts",
+    "line": 64,
+    "table": "campaign_tiers",
+    "missing": [
+      "campaign_id",
+      "title",
+      "amount"
+    ],
+    "evidence": "rows"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/admin/studio/commit/route.ts",
+    "line": 69,
+    "table": "creator_plans",
+    "onConflict": "creator_profile_id",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "creator_profile_id"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/admin/video-studio/analyze/route.ts",
+    "line": 130,
+    "table": "creator_media_analysis",
+    "onConflict": "media_url",
+    "matchesUnique": true,
+    "availableUniques": [
+      "media_url"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "unknown-column",
+    "op": "select",
+    "file": "app/api/analytics/route.ts",
+    "line": 39,
+    "table": "tips",
+    "column": "amount_usd",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/billing/route.ts",
+    "line": 94,
+    "table": "creator_billing",
+    "onConflict": "user_id",
+    "matchesUnique": true,
+    "availableUniques": [
+      "user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/billing/route.ts",
+    "line": 122,
+    "table": "creator_billing",
+    "onConflict": "user_id",
+    "matchesUnique": true,
+    "availableUniques": [
+      "user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/blocks/route.ts",
+    "line": 84,
+    "table": "creator_contact_blocks",
+    "onConflict": "creator_profile_id,contact_hash",
+    "matchesUnique": true,
+    "availableUniques": [
+      "contact_hash,creator_profile_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/cron/publish-scheduled/route.ts",
+    "line": 37,
+    "detail": "new Set(due.map((p: any) => p.creator_profile_id).filter(Boolean))"
+  },
+  {
+    "type": "unknown-column",
+    "op": "select",
+    "file": "app/api/fan/me/route.ts",
+    "line": 15,
+    "table": "subscriptions",
+    "column": "canceled_at",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/fan/me/route.ts",
+    "line": 15,
+    "table": "subscriptions",
+    "rel": "creator:creator_profiles!creator_id",
+    "inner": "id, handle, display_name, avatar_url"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/fan/me/route.ts",
+    "line": 22,
+    "table": "tips",
+    "rel": "creator:creator_profiles!creator_profile_id",
+    "inner": "handle, display_name, avatar_url"
+  },
+  {
+    "type": "unknown-column",
+    "op": "select",
+    "file": "app/api/fan/me/route.ts",
+    "line": 30,
+    "table": "super_tips",
+    "column": "amount",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/fan/me/route.ts",
+    "line": 30,
+    "table": "super_tips",
+    "rel": "creator:creator_profiles!creator_profile_id",
+    "inner": "handle, display_name, avatar_url"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/fan/me/route.ts",
+    "line": 38,
+    "table": "digital_purchases",
+    "rel": "product:digital_products",
+    "inner": "title, creator:creator_profiles!creator_profile_id(handle, display_name)"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/fan/me/route.ts",
+    "line": 46,
+    "table": "post_unlocks",
+    "rel": "post:posts",
+    "inner": "title, caption, creator:creator_profiles!creator_profile_id(handle, display_name)"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/feed/discover/route.ts",
+    "line": 85,
+    "detail": "excludeIds"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/feed/route.ts",
+    "line": 16,
+    "table": "subscriptions",
+    "rel": "creator_profile:creator_profiles!creator_id",
+    "inner": "id, handle, display_name, avatar_url, kind"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/feed/route.ts",
+    "line": 115,
+    "table": "live_streams",
+    "rel": "creator_profile:creator_profiles!creator_profile_id",
+    "inner": "id, handle, display_name, avatar_url"
+  },
+  {
+    "type": "unknown-column",
+    "op": "upsert",
+    "file": "app/api/gift-subscription/redeem/route.ts",
+    "line": 25,
+    "table": "subscriptions",
+    "column": "updated_at",
+    "evidence": "{ fan_user_id: user.id, creator_profile_id: gift.creator_profile_id, status: \"active\", tier: \"premium\", gift_subscription_id: gift.id, expires_at: expiresAt.toISOString(), updated_at: new Date().toISO",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/gift-subscription/redeem/route.ts",
+    "line": 25,
+    "table": "subscriptions",
+    "onConflict": "fan_user_id,creator_profile_id",
+    "matchesUnique": false,
+    "availableUniques": [
+      "stripe_subscription_id",
+      "creator_id,fan_user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/live/chat/route.ts",
+    "line": 59,
+    "table": "live_streams",
+    "rel": "creator_profiles",
+    "inner": "kind"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/live/heartbeat/route.ts",
+    "line": 15,
+    "table": "live_viewer_pings",
+    "onConflict": "stream_id,viewer_key",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "stream_id,viewer_key"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/live/tip/route.ts",
+    "line": 17,
+    "table": "live_streams",
+    "rel": "creator_profiles",
+    "inner": "kind, stripe_account_id"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/marketplace/import/capture/route.ts",
+    "line": 34,
+    "table": "import_runs",
+    "missing": [
+      "source"
+    ],
+    "evidence": "{ creator_profile_id: profile.id, source, source_username: sourceUsername, status: \"running\", listings_found: usable.length }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/marketplace/import/csv/route.ts",
+    "line": 46,
+    "table": "import_runs",
+    "missing": [
+      "source"
+    ],
+    "evidence": "{ creator_profile_id: profile.id, source, source_username: sourceUsername, status: \"running\", listings_found: listings.length }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/medals/confirm/route.ts",
+    "line": 37,
+    "table": "medal_purchases",
+    "missing": [
+      "medals"
+    ],
+    "evidence": "{ fan_user_id: user.id, pack_id: meta.pack_id, medals, amount_usd: parseFloat(meta.amount_usd ?? \"0\"), stripe_session: pi.id, }"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/medals/confirm/route.ts",
+    "line": 46,
+    "table": "medal_balances",
+    "onConflict": "fan_user_id",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "fan_user_id"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/merch/catalog/route.ts",
+    "line": 76,
+    "detail": "colorMap.values()"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/merch/catalog/route.ts",
+    "line": 77,
+    "detail": "sizeSet"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/merch/create-product/route.ts",
+    "line": 140,
+    "table": "merch_products",
+    "missing": [
+      "name"
+    ],
+    "evidence": "{ creator_profile_id: profile.id, loudcap_product_id: loudcapProductId, variant_map: variantMap, printful_synced: printfulSynced, sync_error: syncError, name, design_url: designUrl, retail_price: pric"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/posts/publish/route.ts",
+    "line": 173,
+    "table": "posts",
+    "missing": [
+      "creator_id"
+    ],
+    "evidence": "{ creator_profile_id: creatorProfileId, caption: caption?.trim() || null, media_url: coverUrl, media_type: normalizeMediaType(coverType), tier: resolvedTier, lock_type: resolvedLockType, unlock_price:"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/posts/vod/route.ts",
+    "line": 29,
+    "table": "posts",
+    "missing": [
+      "creator_id"
+    ],
+    "evidence": "{ creator_profile_id: profile.id, caption: caption?.trim() || stream.title || \"Live replay\", media_url: stream.playback_url, media_type: \"video\", post_type: \"vod\", tier: resolvedTier, lock_type: resol"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/recommendations/route.ts",
+    "line": 92,
+    "table": "subscriptions",
+    "rel": "creator:creator_profile_id",
+    "inner": "display_name, tags, bio"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/referrals/creator/route.ts",
+    "line": 80,
+    "detail": "{ length: creditsToIssue }, () => ({ creator_profile_id: referrer.id, amount_usd: CREDIT_AMOUNT_USD, reason: `${REFERRAL"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/referrals/creator/route.ts",
+    "line": 87,
+    "table": "billing_credits",
+    "missing": [
+      "creator_profile_id",
+      "reason"
+    ],
+    "evidence": "credits"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/social-addbacks/orders/route.ts",
+    "line": 67,
+    "table": "social_addback_orders",
+    "rel": "addback:addback_id",
+    "inner": "creator_profile_id"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/social-addbacks/route.ts",
+    "line": 34,
+    "table": "social_addbacks",
+    "missing": [
+      "platform",
+      "label"
+    ],
+    "evidence": "{ creator_profile_id: profileId, platform, price_usd: priceUsd, description: description?.trim() || null, delivery_days: deliveryDays ?? 3 }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/social-posts/route.ts",
+    "line": 82,
+    "table": "social_posts",
+    "missing": [
+      "url",
+      "platform"
+    ],
+    "evidence": "{ creator_id: profile.id, url, platform, oembed_html, caption, thumbnail_url, original_posted_at: original_posted_at || null, }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/tiers/route.ts",
+    "line": 81,
+    "table": "subscription_tiers",
+    "missing": [
+      "name"
+    ],
+    "evidence": "{ creator_profile_id: creatorProfileId, name, description, price_monthly: priceMonthly, price_yearly: priceYearly && !Number.isNaN(priceYearly) ? priceYearly : null, perks, color, sort_order: count ??"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/tiers/route.ts",
+    "line": 110,
+    "table": "subscription_tiers",
+    "rel": "creator:creator_profile_id",
+    "inner": "user_id"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/tiers/route.ts",
+    "line": 143,
+    "table": "subscription_tiers",
+    "rel": "creator:creator_profile_id",
+    "inner": "user_id"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/unsubscribe/route.ts",
+    "line": 31,
+    "table": "email_opt_outs",
+    "onConflict": "email",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "email"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/webhooks/ccbill/route.ts",
+    "line": 33,
+    "table": "subscriptions",
+    "missing": [
+      "creator_id"
+    ],
+    "evidence": "{ creator_profile_id: creatorId, fan_user_id: fanUserId, stripe_subscription_id: sub.id, stripe_customer_id: sub.customer as string, status: sub.status, current_period_start: new Date(sub.current_peri"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/webhooks/printful/route.ts",
+    "line": 78,
+    "table": "merch_products",
+    "rel": "creator:creator_profile_id",
+    "inner": "handle"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 20,
+    "detail": "expected"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 20,
+    "detail": "v1"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 88,
+    "table": "creator_billing",
+    "onConflict": "user_id",
+    "matchesUnique": true,
+    "availableUniques": [
+      "user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "unknown-column",
+    "op": "insert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 104,
+    "table": "tips",
+    "column": "stripe_session_id",
+    "evidence": "{ fan_user_id: meta.fan_user_id || null, creator_profile_id: meta.creator_profile_id, amount, stripe_session_id: s.id, }",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 104,
+    "table": "tips",
+    "missing": [
+      "creator_id",
+      "amount",
+      "creator_receives",
+      "platform_receives"
+    ],
+    "evidence": "{ fan_user_id: meta.fan_user_id || null, creator_profile_id: meta.creator_profile_id, amount, stripe_session_id: s.id, }"
+  },
+  {
+    "type": "unknown-column",
+    "op": "upsert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 147,
+    "table": "subscriptions",
+    "column": "updated_at",
+    "evidence": "{ creator_profile_id: meta.creator_profile_id, fan_user_id: s.client_reference_id, stripe_subscription_id: s.subscription, status: \"active\", tier: \"premium\", tier_id: meta.tier_id || null, billing_per",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 147,
+    "table": "subscriptions",
+    "onConflict": "fan_user_id,creator_profile_id",
+    "matchesUnique": false,
+    "availableUniques": [
+      "stripe_subscription_id",
+      "creator_id,fan_user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 186,
+    "table": "post_unlocks",
+    "onConflict": "post_id,fan_user_id",
+    "matchesUnique": true,
+    "availableUniques": [
+      "fan_user_id,post_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 203,
+    "table": "campaign_donations",
+    "missing": [
+      "amount"
+    ],
+    "evidence": "{ campaign_id: meta.campaign_id, donor_user_id: meta.donor_user_id || null, amount, message: meta.message || null, stripe_session_id: s.id, tier_id: meta.tier_id || null, backer_code: meta.backer_code"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 354,
+    "table": "medal_purchases",
+    "missing": [
+      "medals"
+    ],
+    "evidence": "{ fan_user_id: meta.fan_user_id, pack_id: meta.pack_id, medals, amount_usd: parseFloat(meta.amount_usd ?? \"0\"), stripe_session: s.id, }"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 364,
+    "table": "medal_balances",
+    "onConflict": "fan_user_id",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "fan_user_id"
+  },
+  {
+    "type": "upsert",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 374,
+    "table": "early_access_passes",
+    "onConflict": "fan_user_id,creator_profile_id",
+    "matchesUnique": true,
+    "availableUniques": [
+      "creator_profile_id,fan_user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 386,
+    "table": "gift_subscriptions",
+    "missing": [
+      "redemption_code"
+    ],
+    "evidence": "{ gifter_user_id: meta.gifter_user_id, recipient_email: meta.recipient_email, creator_profile_id: meta.creator_profile_id, months: parseInt(meta.months ?? \"1\"), amount_paid: amount, stripe_session_id:"
+  },
+  {
+    "type": "embed-relation",
+    "file": "app/api/webhooks/stripe/route.ts",
+    "line": 450,
+    "table": "digital_products",
+    "rel": "creator:creator_profile_id",
+    "inner": "display_name, handle"
+  },
+  {
+    "type": "unknown-column",
+    "op": "update",
+    "file": "app/api/wishlist/confirm/route.ts",
+    "line": 62,
+    "table": "wishlist_purchases",
+    "column": "transfer_stripe_id",
+    "evidence": "{ status: \"creator_purchased\", receipt_url: receiptUrl ?? null, transfer_stripe_id: transfer.id, updated_at: new Date().toISOString(), }",
+    "confidence": "confirmed"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/guide/GuideClient.tsx",
+    "line": 1144,
+    "detail": "document.querySelectorAll(\".nav-item\")"
+  },
+  {
+    "type": "upsert",
+    "file": "app/onboarding/page.tsx",
+    "line": 354,
+    "table": "creator_plans",
+    "onConflict": "creator_profile_id",
+    "matchesUnique": true,
+    "availableUniques": [],
+    "pk": "creator_profile_id"
+  },
+  {
+    "type": "unknown-table",
+    "file": "app/wall/page.tsx",
+    "line": 18,
+    "table": "creator_medal_month"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/[creator]/CreatorStageClient.tsx",
+    "line": 119,
+    "detail": "s"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "app/[creator]/PostCarousel.tsx",
+    "line": 76,
+    "detail": "set"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/blur.ts",
+    "line": 14,
+    "detail": "await res.arrayBuffer()"
+  },
+  {
+    "type": "upsert",
+    "file": "lib/concierge-create.ts",
+    "line": 106,
+    "table": "creator_billing",
+    "onConflict": "user_id",
+    "matchesUnique": true,
+    "availableUniques": [
+      "user_id"
+    ],
+    "pk": "id"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/earnings.ts",
+    "line": 200,
+    "detail": "def.via.table"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/earnings.ts",
+    "line": 208,
+    "detail": "def.table"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/email.ts",
+    "line": 45,
+    "detail": "input, \"utf8\""
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/email.ts",
+    "line": 52,
+    "detail": "b64, \"base64\""
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/email.ts",
+    "line": 69,
+    "detail": "expected, \"utf8\""
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/email.ts",
+    "line": 70,
+    "detail": "sig, \"utf8\""
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/import-photos.ts",
+    "line": 89,
+    "detail": "m[2], \"base64\""
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "lib/notify.ts",
+    "line": 25,
+    "table": "notifications",
+    "missing": [
+      "type",
+      "title"
+    ],
+    "evidence": "{ user_id: userId, type, title, body: body ?? null, link: link ?? null, }"
+  },
+  {
+    "type": "insert-missing-notnull",
+    "file": "lib/notify.ts",
+    "line": 86,
+    "table": "notifications",
+    "missing": [
+      "user_id",
+      "type",
+      "title"
+    ],
+    "evidence": "rows"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/__tests__/claim.test.ts",
+    "line": 42,
+    "detail": "{ length: 200 }, () => generateClaimCode()"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "lib/__tests__/prospect-import.test.ts",
+    "line": 97,
+    "detail": "{ length: MAX_IMPORT_ROWS + 10 }, (_, i) => `Person ${i}`"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/admin/VideoStudio.tsx",
+    "line": 477,
+    "detail": "new Set(rows.map((m) => m.primary_category).filter(Boolean))"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/admin/VideoStudio.tsx",
+    "line": 522,
+    "detail": "new Set(rows.map((m) => m.primary_category).filter(Boolean))"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/admin/VideoStudio.tsx",
+    "line": 573,
+    "detail": "new Set(rows.map((m) => m.primary_category).filter(Boolean))"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/CreatorFeed.tsx",
+    "line": 52,
+    "detail": "set"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/dashboard/SocialPostsManager.tsx",
+    "line": 85,
+    "detail": "new Set( bulkText.split(/[\\n,]+/).map(u => u.trim()).filter(Boolean) )"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/MarketplaceMediaUploader.tsx",
+    "line": 192,
+    "detail": "files"
+  },
+  {
+    "type": "dynamic-table",
+    "file": "components/WatermarkedMedia.tsx",
+    "line": 34,
+    "detail": "{ length: 9 }"
+  }
+]

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCreatorSession, isGuardFailure } from "@/lib/ai-guard";
 import { getSecrets } from "@/lib/settings";
 import { tierNicheById } from "@/lib/tier-templates";
 
@@ -37,6 +38,10 @@ function sanitize(t: any): any | null {
 }
 
 export async function POST(req: NextRequest) {
+  // Anthropic spend is billed to the platform. Reached from the creator dashboard.
+  const guard = await requireCreatorSession({ requireProfile: true });
+  if (isGuardFailure(guard)) return guard.response;
+
   try {
     const body = await req.json();
     const { niche, contentType, audience, displayName, handle } = body ?? {};

@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase-client";
 import { useEffect, useState } from "react";
 import type { Database } from "@/lib/database.types";
+import { PUBLIC_CREATOR_SELECT } from "@/lib/creator-public";
 
 type Creator = Database["public"]["Tables"]["creator_profiles"]["Row"];
 
@@ -14,11 +15,15 @@ export function useCreator(handle: string) {
   useEffect(() => {
     async function fetchCreator() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("creator_profiles")
-        .select("*")
+      // Public, by-handle lookup from the browser. Reads the safe projection
+      // (lib/creator-public.ts), never the base table — `creator_profiles`
+      // carries claim_code, IP tracking, date_of_birth, shipping fields and
+      // Stripe identifiers, none of which belong in a browser.
+      const { data, error } = await (supabase as any)
+        .from("creator_public")
+        .select(PUBLIC_CREATOR_SELECT)
         .eq("handle", handle)
-        .single();
+        .maybeSingle();
 
       if (error) setError(error.message);
       else setCreator(data);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCreatorSession, isGuardFailure } from "@/lib/ai-guard";
 import { getSecrets } from "@/lib/settings";
 import { categoryById } from "@/lib/campaign-templates";
 import type { RewardType, TierReward } from "@/lib/campaign-rewards";
@@ -48,6 +49,10 @@ function sanitizeTier(t: any): any | null {
 }
 
 export async function POST(req: NextRequest) {
+  // Anthropic spend is billed to the platform. Reached from the creator dashboard and the admin campaign builder.
+  const guard = await requireCreatorSession({ requireProfile: true });
+  if (isGuardFailure(guard)) return guard.response;
+
   try {
     const body = await req.json();
     const { category, raisingFor, why, contentType, experience, displayName, handle } = body ?? {};
