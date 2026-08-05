@@ -312,8 +312,6 @@ export default function DashboardPage() {
                 <div className="db-nav-section">
                   <PaneButton current={pane} target="fans" onClick={setPane}>Fans</PaneButton>
                   <Link href="/messages" className="db-nav-link">Messages</Link>
-                  <PaneButton current={pane} target="campaigns" onClick={setPane}>Campaigns</PaneButton>
-                  <PaneButton current={pane} target="wishlist" onClick={setPane}>Wishlist</PaneButton>
                 </div>
               )}
             </div>
@@ -326,10 +324,12 @@ export default function DashboardPage() {
               </button>
               {openSections.has("earn") && (
                 <div className="db-nav-section">
-                  <PaneButton current={pane} target="advisor" onClick={setPane}>✦ Advisor</PaneButton>
-                  <PaneButton current={pane} target="analytics" onClick={setPane}>Analytics</PaneButton>
                   <PaneButton current={pane} target="tiers" onClick={setPane}>Subscription Tiers</PaneButton>
+                  <PaneButton current={pane} target="campaigns" onClick={setPane}>Campaigns</PaneButton>
+                  <PaneButton current={pane} target="wishlist" onClick={setPane}>Wishlist</PaneButton>
                   <PaneButton current={pane} target="refer" onClick={setPane}>Refer & Earn</PaneButton>
+                  <PaneButton current={pane} target="analytics" onClick={setPane}>Analytics</PaneButton>
+                  <PaneButton current={pane} target="advisor" onClick={setPane}>✦ Advisor</PaneButton>
                 </div>
               )}
             </div>
@@ -839,7 +839,8 @@ function OverviewPane({
           { pane: "social" as Pane, label: "Social posts", desc: "Bring in your Instagram, TikTok, or YouTube." },
           { href: "/live", label: "Go Live", desc: "Stream directly to your audience." },
           { href: "/merch", label: "Merch", desc: "Design and sell branded products. No upfront cost." },
-          { pane: "digital" as Pane, label: "Digital store", desc: "Guides, presets, courses. You keep 95%." },
+          { pane: "store" as Pane, label: "Digital store", desc: "Guides, presets, photo sets. You keep 100%." },
+          { pane: "campaigns" as Pane, label: "Campaigns", desc: "Raise for a goal. Backers get their own tiers." },
           { pane: "analytics" as Pane, label: "Analytics", desc: "Audience growth and earnings." },
           { pane: "advisor" as Pane, label: "✦ Advisor", desc: "AI-powered monetization strategy." },
         ] as Array<{ pane?: Pane; href?: string; label: string; desc: string; accent?: boolean }>).map(item => {
@@ -1644,9 +1645,56 @@ function CampaignsPane({ profile }: { profile: Profile }) {
     load();
   }, []);
 
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [draft, setDraft] = React.useState<any>(null);
+  const [savingEdit, setSavingEdit] = React.useState(false);
+  const [editErr, setEditErr] = React.useState<string | null>(null);
+
   async function closeCampaign(id: string) {
     await (supabase as any).from("campaigns").update({ status:"closed" }).eq("id", id);
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status:"closed" } : c));
+  }
+
+  async function reopenCampaign(id: string) {
+    const { error } = await (supabase as any).from("campaigns").update({ status:"active" }).eq("id", id);
+    if (error) { setEditErr(error.message); return; }
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status:"active" } : c));
+  }
+
+  function startEdit(c: any) {
+    setEditErr(null);
+    setEditingId(c.id);
+    setDraft({
+      title: c.title ?? "",
+      description: c.description ?? "",
+      goal_amount: String(c.goal_amount ?? ""),
+      deadline: c.deadline ? new Date(c.deadline).toISOString().slice(0, 10) : "",
+      reward_description: c.reward_description ?? "",
+    });
+  }
+
+  async function saveEdit(id: string) {
+    if (!draft?.title.trim()) { setEditErr("A campaign needs a title."); return; }
+    const goal = Number(draft.goal_amount);
+    if (!Number.isFinite(goal) || goal <= 0) { setEditErr("Set a goal above zero."); return; }
+
+    setSavingEdit(true);
+    setEditErr(null);
+    const patch = {
+      title: draft.title.trim(),
+      description: draft.description.trim() || null,
+      goal_amount: goal,
+      deadline: draft.deadline ? new Date(draft.deadline).toISOString() : null,
+      reward_description: draft.reward_description.trim() || null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await (supabase as any).from("campaigns").update(patch).eq("id", id);
+    setSavingEdit(false);
+    if (error) { setEditErr(error.message); return; }
+
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
+    setEditingId(null);
+    setDraft(null);
   }
 
   const pct = (raised: number, goal: number) => Math.min(100, Math.round((raised / goal) * 100));
@@ -1680,13 +1728,62 @@ function CampaignsPane({ profile }: { profile: Profile }) {
                 </div>
                 {c.description && <p style={{ fontSize:13, color:"var(--muted)", margin:0 }}>{c.description}</p>}
               </div>
-              {c.status === "active" && (
-                <button onClick={() => closeCampaign(c.id)}
-                  style={{ fontSize:11, background:"none", border:"1px solid var(--border)", color:"var(--muted)", padding:"5px 12px", borderRadius:"var(--r-1)", cursor:"pointer", flexShrink:0 }}>
-                  Close
+              <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
+                <button onClick={() => (editingId === c.id ? (setEditingId(null), setDraft(null)) : startEdit(c))}
+                  style={{ fontSize:11, background:"none", border:"1px solid var(--accent-border)", color:"var(--accent)", padding:"5px 12px", borderRadius:"var(--r-1)", cursor:"pointer" }}>
+                  {editingId === c.id ? "Cancel" : "Edit"}
                 </button>
-              )}
+                {c.status === "active" ? (
+                  <button onClick={() => closeCampaign(c.id)}
+                    style={{ fontSize:11, background:"none", border:"1px solid var(--border)", color:"var(--muted)", padding:"5px 12px", borderRadius:"var(--r-1)", cursor:"pointer" }}>
+                    Close
+                  </button>
+                ) : (
+                  <button onClick={() => reopenCampaign(c.id)}
+                    style={{ fontSize:11, background:"none", border:"1px solid var(--border)", color:"var(--muted)", padding:"5px 12px", borderRadius:"var(--r-1)", cursor:"pointer" }}>
+                    Reopen
+                  </button>
+                )}
+              </div>
             </div>
+
+            {editingId === c.id && draft && (
+              <div style={{ background:"var(--surface-2)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-5)", marginBottom:"var(--s-4)" }}>
+                <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+                  <div className="form-field">
+                    <label className="label">Title</label>
+                    <input className="input" value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
+                  </div>
+                  <div className="form-field">
+                    <label className="label">Goal ($)</label>
+                    <input className="input" type="number" min="1" step="1" value={draft.goal_amount} onChange={e => setDraft({ ...draft, goal_amount: e.target.value })} />
+                  </div>
+                </div>
+                <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
+                  <label className="label">Description</label>
+                  <textarea className="textarea" rows={2} value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
+                </div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 2fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+                  <div className="form-field">
+                    <label className="label">Deadline <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+                    <input className="input" type="date" value={draft.deadline} onChange={e => setDraft({ ...draft, deadline: e.target.value })} />
+                  </div>
+                  <div className="form-field">
+                    <label className="label">What backers get <span style={{ color:"var(--muted)", fontWeight:300 }}>(optional)</span></label>
+                    <input className="input" value={draft.reward_description} onChange={e => setDraft({ ...draft, reward_description: e.target.value })} />
+                  </div>
+                </div>
+                {editErr && <p style={{ color:"var(--red)", fontSize:12, marginBottom:"var(--s-3)" }}>{editErr}</p>}
+                <div style={{ display:"flex", gap:"var(--s-3)" }}>
+                  <button className="btn btn--primary" disabled={savingEdit} onClick={() => void saveEdit(c.id)} style={{ fontSize:12 }}>
+                    {savingEdit ? "Saving…" : "Save changes"}
+                  </button>
+                  <button className="btn btn--secondary" style={{ fontSize:12, borderRadius:"var(--r-pill)" }} onClick={() => { setEditingId(null); setDraft(null); }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Progress bar */}
             <div style={{ marginBottom:"var(--s-3)" }}>
@@ -1789,6 +1886,27 @@ function CampaignTierManager({ campaign, profile }: { campaign: any; profile: Pr
     setTiers((prev) => prev.filter((t) => t.id !== id));
   }
 
+  const [editTierId, setEditTierId] = React.useState<string | null>(null);
+  const [tierDraft, setTierDraft] = React.useState<{ title: string; amount: string; description: string } | null>(null);
+
+  function startTierEdit(t: any) {
+    setErr(null);
+    setEditTierId(t.id);
+    setTierDraft({ title: t.title ?? "", amount: String(t.amount ?? ""), description: t.description ?? "" });
+  }
+
+  async function saveTierEdit(id: string) {
+    if (!tierDraft?.title.trim()) { setErr("A tier needs a name."); return; }
+    const amt = Number(tierDraft.amount);
+    if (!Number.isFinite(amt) || amt <= 0) { setErr("A tier needs an amount above zero."); return; }
+    const patch = { title: tierDraft.title.trim(), amount: amt, description: tierDraft.description.trim() || null };
+    const { error } = await (supabase as any).from("campaign_tiers").update(patch).eq("id", id);
+    if (error) { setErr(error.message); return; }
+    setTiers((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    setEditTierId(null);
+    setTierDraft(null);
+  }
+
   function setReward(i: number, patch: Partial<TierReward>) {
     setDraft((d) => ({ ...d, rewards: d.rewards.map((r, idx) => (idx === i ? { ...r, ...patch } : r)) }));
   }
@@ -1825,9 +1943,26 @@ function CampaignTierManager({ campaign, profile }: { campaign: any; profile: Pr
                   <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "#fff", fontSize: 14 }}>
                     {t.title} · <span style={{ color: "var(--accent)" }}>${Number(t.amount).toLocaleString()}</span>
                   </span>
-                  <button onClick={() => deleteTier(t.id)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "3px 10px", borderRadius: "var(--r-1)", cursor: "pointer" }}>Delete</button>
+                  <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <button onClick={() => (editTierId === t.id ? (setEditTierId(null), setTierDraft(null)) : startTierEdit(t))} style={{ fontSize: 11, background: "none", border: "1px solid var(--accent-border)", color: "var(--accent)", padding: "3px 10px", borderRadius: "var(--r-1)", cursor: "pointer" }}>
+                      {editTierId === t.id ? "Cancel" : "Edit"}
+                    </button>
+                    <button onClick={() => deleteTier(t.id)} style={{ fontSize: 11, background: "none", border: "1px solid var(--border)", color: "var(--muted)", padding: "3px 10px", borderRadius: "var(--r-1)", cursor: "pointer" }}>Delete</button>
+                  </span>
                 </div>
-                {t.description && <p style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}>{t.description}</p>}
+
+                {editTierId === t.id && tierDraft ? (
+                  <div style={{ marginTop: "var(--s-3)" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--s-3)", marginBottom: "var(--s-3)" }}>
+                      <input className="input" value={tierDraft.title} onChange={(e) => setTierDraft({ ...tierDraft, title: e.target.value })} placeholder="Tier name" />
+                      <input className="input" type="number" min="1" step="1" value={tierDraft.amount} onChange={(e) => setTierDraft({ ...tierDraft, amount: e.target.value })} placeholder="Amount" />
+                    </div>
+                    <textarea className="textarea" rows={2} value={tierDraft.description} onChange={(e) => setTierDraft({ ...tierDraft, description: e.target.value })} placeholder="What this tier is" style={{ marginBottom: "var(--s-3)" }} />
+                    <button className="btn btn--primary" style={{ fontSize: 12 }} onClick={() => void saveTierEdit(t.id)}>Save tier</button>
+                  </div>
+                ) : (
+                  t.description && <p style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}>{t.description}</p>
+                )}
                 {rewards.length > 0 && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: "var(--s-3)" }}>
                     {rewards.map((r, i) => (

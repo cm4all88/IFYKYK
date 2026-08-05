@@ -431,7 +431,7 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
 
       // Email fan with download link
       if (purchase && s.customer_details?.email) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.spotlightly.app";
         const { data: product } = await (supabase as any)
           .from("digital_products")
           .select("title, creator:creator_profile_id(display_name, handle)")
@@ -448,8 +448,15 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
 <a href="${appUrl}/api/digital/download?token=${purchase.download_token}" style="display:inline-block;background:#F0B429;color:#09090C;font-weight:700;padding:14px 28px;border-radius:999px;text-decoration:none;font-size:14px;">
   Download now →
 </a><br><br>
-<span style="font-size:12px;color:rgba(242,242,240,0.3);">This link is unique to your purchase. Keep it safe — bookmark it for future downloads.</span>`,
-          }).catch(() => {});
+<span style="font-size:12px;color:rgba(242,242,240,0.3);">This link is unique to your purchase. Keep it safe. Bookmark it for future downloads.</span>`,
+          }).catch((e) => {
+            // The buyer has paid. If this email does not go out they have nothing,
+            // and a silent catch leaves no trace anywhere. Make it findable.
+            console.error(
+              `DELIVERY FAILED: digital purchase ${purchase.id} to ${s.customer_details?.email}. ` +
+              `Download token ${purchase.download_token}. Reason:`, e
+            );
+          });
 
         // Notify creator of sale
         await notifyCreator(
