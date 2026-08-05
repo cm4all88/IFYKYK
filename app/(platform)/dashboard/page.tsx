@@ -8,8 +8,8 @@ import { createClient } from "@/lib/supabase-client";
 import { entitlementsFor, type Entitlements } from "@/lib/entitlements";
 import { advisorRecsFor } from "@/lib/advisorRecs";
 import { FIRST_MONTH_OFFER_OPTIONS } from "@/lib/offers";
+import { grossUpForStripe } from "@/lib/fees";
 import MarketplaceImport from "./MarketplaceImport";
-import ThemeToggle from "@/components/ThemeToggle";
 import PaneTooltip from "@/components/PaneTooltip";
 import VideoUpload from "@/components/VideoUpload";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
@@ -219,7 +219,6 @@ export default function DashboardPage() {
           </Link>
 
           <div className="db-top-right">
-              <ThemeToggle />
             {spotlight && (
               <Link
                 href={`/${spotlight.handle}`}
@@ -2699,7 +2698,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
           <p className="kicker">Digital Store</p>
           <h1 className="pane-title">Sell your <em>work.</em></h1>
           <p style={{ fontSize:13, color:"var(--muted)", marginTop:"var(--s-2)", maxWidth:480 }}>
-            PDFs, preset packs, beat packs, templates, courses — anything digital. 10% platform fee, you keep 90%. Fans get an instant download link after purchase.
+            PDFs, photo sets, preset packs, beat packs, templates, courses. Anything digital. Spotlightly takes 0%, you keep your full price, and the fan covers the card fee. They get an instant download link after purchase.
           </p>
         </div>
         <button className="btn btn--primary" type="button" onClick={() => setCreating(c => !c)}>
@@ -2733,7 +2732,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
             </div>
             <div className="form-field">
               <label className="label">Digital file</label>
-              <input ref={fileRef} type="file" style={{ display:"none" }} onChange={uploadFile} accept=".pdf,.zip,.mp3,.mp4,.epub,.psd" />
+              <input ref={fileRef} type="file" style={{ display:"none" }} onChange={uploadFile} accept=".pdf,.zip,.rar,.7z,.mp3,.wav,.m4a,.mp4,.mov,.epub,.psd,.jpg,.jpeg,.png,.heic,.webp,.tif,.tiff" />
               {fileUrl ? (
                 <div style={{ display:"flex", alignItems:"center", gap:"var(--s-2)", padding:"var(--s-3) var(--s-4)", background:"rgba(52,211,153,0.06)", border:"1px solid rgba(52,211,153,0.2)", borderRadius:"var(--r-2)" }}>
                   <span style={{ color:"#34D399" }}>✓</span>
@@ -2759,13 +2758,26 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
           </div>
           {price && (
             <div style={{ background:"rgba(240,180,41,0.06)", border:"1px solid rgba(240,180,41,0.15)", borderRadius:"var(--r-2)", padding:"var(--s-3) var(--s-4)", marginBottom:"var(--s-5)", fontSize:13 }}>
-              At ${parseFloat(price||"0").toFixed(2)}: <strong style={{ color:"var(--text)" }}>You earn ${(parseFloat(price||"0") * 0.95).toFixed(2)}</strong>
-              <span style={{ color:"var(--muted)" }}> · Platform fee ${(parseFloat(price||"0") * 0.05).toFixed(2)}</span>
+              You earn <strong style={{ color:"var(--text)" }}>${parseFloat(price||"0").toFixed(2)}</strong>
+              <span style={{ color:"var(--muted)" }}> · fan pays ${(grossUpForStripe(Math.round(parseFloat(price||"0") * 100)) / 100).toFixed(2)} so the card fee never comes out of your side</span>
             </div>
           )}
-          <button type="submit" className="btn btn--primary" disabled={saving || !fileUrl || !title || !price}>
-            {saving ? "Publishing…" : "Publish product"}
-          </button>
+          {(() => {
+            const missing = [!title.trim() && "a title", !price && "a price", !fileUrl && "the file itself"].filter(Boolean) as string[];
+            return (
+              <>
+                <button type="submit" className="btn btn--primary" disabled={saving || missing.length > 0}>
+                  {saving ? "Publishing…" : "Publish product"}
+                </button>
+                {missing.length > 0 && (
+                  <p style={{ fontSize:12, color:"var(--muted)", marginTop:"var(--s-3)" }}>
+                    Still needs {missing.length === 1 ? missing[0] : missing.slice(0, -1).join(", ") + " and " + missing[missing.length - 1]}.
+                    {!fileUrl && " Selling a photo set? Zip the images together and upload the zip."}
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </form>
       )}
 
@@ -3030,7 +3042,7 @@ function BillingPane() {
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-6) var(--s-7)" }}>
             <p style={{ fontFamily: "var(--font-serif)", fontSize: 24, fontWeight: 400, color: "#fff", margin: "0 0 8px" }}>Start your free trial</p>
             <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.7, margin: "0 0 16px" }}>
-              30 days free. Add a card to unlock your dashboard — you won&apos;t be charged until the trial ends, and you can cancel anytime.
+              30 days free. Add a card to unlock your dashboard. You won&apos;t be charged until the trial ends, and you can cancel anytime.
             </p>
             <button onClick={startOrReactivate} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 13 }}>
               {openingPortal ? "Opening…" : "Add payment method →"}
@@ -3043,7 +3055,7 @@ function BillingPane() {
           {data.locked && (
             <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: "var(--r-3)", padding: "var(--s-5) var(--s-6)", marginBottom: 2 }}>
               <p style={{ fontSize: 14, color: "rgba(248,113,113,0.95)", margin: "0 0 10px", lineHeight: 1.6 }}>
-                <strong>Your account is paused.</strong> Add a working card to post and accept subscriptions again — your posts and subscribers are safe.
+                <strong>Your account is paused.</strong> Add a working card to post and accept subscriptions again. Your posts and subscribers are safe.
               </p>
               <button onClick={startOrReactivate} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 12 }}>
                 {openingPortal ? "Opening…" : "Reactivate →"}
@@ -3073,14 +3085,18 @@ function BillingPane() {
               </div>
               <div style={{ textAlign: "right" }}>
                 <p style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 800, color: "var(--accent)", letterSpacing: "-.03em" }}>
-                  ${TIER_INFO[data.billing.tier]?.priceUsd}<span style={{ fontSize: 13, fontWeight: 400, color: "var(--muted)" }}>/mo</span>
+                  ${data.billing.status === "free" ? 0 : TIER_INFO[data.billing.tier]?.priceUsd}<span style={{ fontSize: 13, fontWeight: 400, color: "var(--muted)" }}>/mo</span>
                 </p>
                 <div style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: "var(--r-pill)", fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: ".1em", textTransform: "uppercase",
-                  background: data.billing.status === "trial" ? "rgba(240,180,41,0.1)" : data.billing.status === "active" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
-                  color: data.billing.status === "trial" ? "var(--accent-spot)" : data.billing.status === "active" ? "var(--accent-open)" : "var(--red)",
-                  border: `1px solid ${data.billing.status === "trial" ? "rgba(240,180,41,0.2)" : data.billing.status === "active" ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,
+                  background: data.billing.status === "trial" ? "rgba(240,180,41,0.1)" : (data.billing.status === "active" || data.billing.status === "free") ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+                  color: data.billing.status === "trial" ? "var(--accent-spot)" : (data.billing.status === "active" || data.billing.status === "free") ? "var(--accent-open)" : "var(--red)",
+                  border: `1px solid ${data.billing.status === "trial" ? "rgba(240,180,41,0.2)" : (data.billing.status === "active" || data.billing.status === "free") ? "rgba(52,211,153,0.2)" : "rgba(248,113,113,0.2)"}`,
                 }}>
-                  {data.billing.status === "trial" ? `Trial · ${data.trialDaysLeft}d left` : data.billing.status}
+                  {data.billing.status === "trial"
+                    ? `Trial · ${data.trialDaysLeft}d left`
+                    : data.billing.status === "free"
+                      ? "Free plan"
+                      : data.billing.status}
                 </div>
               </div>
             </div>
@@ -3094,12 +3110,28 @@ function BillingPane() {
               }}>
                 <p style={{ fontSize: 13, color: data.trialDaysLeft <= 7 ? "rgba(248,113,113,0.9)" : "var(--text-soft)", lineHeight: 1.6, margin: "0 0 12px" }}>
                   {data.trialDaysLeft > 0
-                    ? <>Your free trial ends in <strong>{data.trialDaysLeft} day{data.trialDaysLeft !== 1 ? "s" : ""}</strong>. Add a payment method to keep your account active.</>
-                    : <>Your trial has ended. Add a payment method to reactivate your account.</>
+                    ? <>Your free trial ends in <strong>{data.trialDaysLeft} day{data.trialDaysLeft !== 1 ? "s" : ""}</strong>. Add a payment method to stay on {TIER_INFO[data.billing.tier]?.name}.</>
+                    : <>Your trial has ended. Your page stays live either way. Add a payment method whenever you want to stay on {TIER_INFO[data.billing.tier]?.name}.</>
                   }
                 </p>
                 <button onClick={addPaymentMethod} disabled={openingPortal} className="btn btn--primary" style={{ fontSize: 12 }}>
                   {openingPortal ? "Opening…" : "Add payment method →"}
+                </button>
+              </div>
+            )}
+
+            {/* Free plan: live, unbilled, no card on file */}
+            {data.billing.status === "free" && (
+              <div style={{
+                background: "rgba(52,211,153,0.05)",
+                border: "1px solid rgba(52,211,153,0.18)",
+                borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", marginBottom: "var(--s-5)",
+              }}>
+                <p style={{ fontSize: 13, color: "var(--text-soft)", lineHeight: 1.6, margin: "0 0 12px" }}>
+                  You&apos;re on the free plan. Your page is live, you keep everything you earn, and there&apos;s no card on file. We&apos;ll bring up Starter once you pass 25 paying supporters, which is where it starts paying for itself.
+                </p>
+                <button onClick={addPaymentMethod} disabled={openingPortal} className="btn btn--secondary" style={{ fontSize: 12, borderRadius: "var(--r-pill)" }}>
+                  {openingPortal ? "Opening…" : "Move to Starter early"}
                 </button>
               </div>
             )}
@@ -3129,7 +3161,7 @@ function BillingPane() {
                       <div style={{ height: "100%", width: `${pct}%`, background: "var(--accent)", borderRadius: 99, transition: "width 0.3s" }} />
                     </div>
                     <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
-                      {data.subscriberCount} of {tier.maxSubs} subscribers — next tier: {TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) + 1]]?.name} at ${TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) + 1]]?.priceUsd}/mo
+                      {data.subscriberCount} of {tier.maxSubs} subscribers. Next tier: {TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) + 1]]?.name} at ${TIER_INFO[TIER_ORDER[TIER_ORDER.indexOf(data.billing.tier) + 1]]?.priceUsd}/mo
                     </p>
                   </div>
                 );

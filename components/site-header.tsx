@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
-import ThemeToggle from "@/components/ThemeToggle";
 import NotificationBell from "@/components/NotificationBell";
 
 const ADMIN_ID = "9b5ac2dc-ea4f-4bac-b2ef-70608562568a";
@@ -35,7 +34,6 @@ export default async function SiteHeader({
         </Link>
 
         <nav className="sh-nav">
-          <ThemeToggle />
           <Link href="/guide" className="sh-link">Creator Guide</Link>
           {user ? (
             <>

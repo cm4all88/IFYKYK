@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase-server";
 import SiteHeader from "@/components/site-header";
 import Footer from "@/components/Footer";
 import ExploreClient from "./ExploreClient";
+import { notFound } from "next/navigation";
+import { exploreIsOpen } from "@/lib/discovery";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,6 +13,10 @@ export const metadata: Metadata = {
 
 export default async function ExplorePage() {
   const supabase = await createClient();
+
+  // Closed until the roster is big enough to be worth browsing. Reopens by
+  // itself once it is; see lib/discovery.ts.
+  if (!(await exploreIsOpen(supabase))) notFound();
 
   // Load initial creators — newest first
   const { data: creators } = await (supabase as any)

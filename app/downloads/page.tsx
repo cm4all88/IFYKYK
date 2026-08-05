@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
+import { exploreIsOpen } from "@/lib/discovery";
 import SiteHeader from "@/components/site-header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export default async function DownloadsPage({
   searchParams: { session_id?: string };
 }) {
   const supabase = await createClient();
+  const exploreOpen = await exploreIsOpen(supabase);
   const { data: { user } } = await supabase.auth.getUser();
 
   let newPurchase: any = null;
@@ -85,7 +87,9 @@ export default async function DownloadsPage({
           <div style={{ background: "#111115", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "40px 32px", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 16 }}>📦</div>
             <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 16 }}>No purchases yet.</p>
-            <Link href="/explore" style={{ color: "#F0B429", fontSize: 13, textDecoration: "none" }}>Explore creators →</Link>
+            {exploreOpen && (
+              <Link href="/explore" style={{ color: "#F0B429", fontSize: 13, textDecoration: "none" }}>Explore creators →</Link>
+            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>

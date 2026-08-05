@@ -16,9 +16,6 @@ export default function NotFound() {
         <Link href="/" style={{ background:"#F0B429", color:"#09090C", fontWeight:700, fontSize:13, padding:"12px 24px", borderRadius:999, textDecoration:"none" }}>
           Go home
         </Link>
-        <Link href="/explore" style={{ background:"transparent", color:"var(--text-soft)", fontWeight:500, fontSize:13, padding:"12px 24px", borderRadius:999, textDecoration:"none", border:"1px solid rgba(255,255,255,0.1)" }}>
-          Explore creators
-        </Link>
       </div>
     </main>
   );

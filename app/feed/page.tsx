@@ -313,9 +313,8 @@ function DiscoverEmpty() {
       <p className="empty-state-icon">✦</p>
       <h2 className="empty-state-title">New acts are arriving.</h2>
       <p className="empty-state-body" style={{ maxWidth: 380, margin: "0 auto var(--s-8)" }}>
-        There's nothing fresh to show just yet. Browse everyone on the platform and find your first creators.
+        There's nothing fresh to show just yet. Follow a creator and their posts land here.
       </p>
-      <Link href="/explore" className="btn btn--primary">Explore creators</Link>
     </div>
   );
 }

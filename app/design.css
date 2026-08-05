@@ -75,39 +75,9 @@
   --ambient-glow:   #FFBE5C20;
 }
 
-/* ── LIGHT MODE — "Golden Spotlight Light" ── */
-[data-theme="light"] {
-  --bg:          #F6F1E8;
-  --bg-elevated: #EFE8DC;
-  --surface:     #ECE5DA;
-  --surface-2:   #E5DDD0;
-  --surface-3:   #E2D8CA;
-
-  --border:        rgba(42,42,46,0.10);
-  --border-strong: rgba(42,42,46,0.20);
-
-  --text:        #2A2A2E;
-  --text-soft:   rgba(42,42,46,0.72);
-  --text-faint:  rgba(42,42,46,0.44);
-  --muted:       #68645F;
-  --muted-faint: #9B968F;
-
-  --accent:        #E6A43B;
-  --accent-bright: #F0B84A;
-  --accent-soft:   rgba(230,164,59,0.12);
-  --accent-border: rgba(230,164,59,0.30);
-  --accent-glow:   #FFB34725;
-  --accent-spot:   #E6A43B;
-
-  --accent-secondary: #C86B2A;
-  --accent-back: #7C3AED;
-  --accent-open: #2D9E6F;
-
-  --ambient-glow:    #FFB34725;
-  --spotlight-glow:  radial-gradient(ellipse 60% 40% at 50% 0%, rgba(230,164,59,0.12) 0%, transparent 70%);
-}
-
-html { transition: background-color var(--t-slow), color var(--t-slow); }
+/* Light mode was removed. Spotlightly is a dark stage: the gold only reads as a
+   spotlight against deep black, and creator pages sit on full-bleed photography
+   that a cream surface washes out. Deep black is an invariant, not a preference. */
 
 /* ── RESET ── */
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }

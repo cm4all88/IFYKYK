@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase-server";
+import { exploreIsOpen } from "@/lib/discovery";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createClient();
@@ -18,9 +19,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // Never advertise a route that currently 404s.
+  const exploreEntries = (await exploreIsOpen(supabase))
+    ? [{ url: "https://spotlightly.app/explore", lastModified: new Date(), changeFrequency: "daily" as const, priority: 0.9 }]
+    : [];
+
   return [
     { url: "https://spotlightly.app", lastModified: new Date(), changeFrequency: "daily", priority: 1 },
-    { url: "https://spotlightly.app/explore", lastModified: new Date(), changeFrequency: "daily", priority: 0.9 },
+    ...exploreEntries,
     { url: "https://spotlightly.app/gear", lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
     { url: "https://spotlightly.app/tools", lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
     { url: "https://spotlightly.app/music", lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
