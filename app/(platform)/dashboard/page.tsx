@@ -9,6 +9,7 @@ import { entitlementsFor, type Entitlements } from "@/lib/entitlements";
 import { advisorRecsFor } from "@/lib/advisorRecs";
 import { FIRST_MONTH_OFFER_OPTIONS } from "@/lib/offers";
 import { grossUpForStripe } from "@/lib/fees";
+import { creatorEarningsSummary } from "@/lib/earnings";
 import MarketplaceImport from "./MarketplaceImport";
 import PaneTooltip from "@/components/PaneTooltip";
 import VideoUpload from "@/components/VideoUpload";
@@ -553,6 +554,7 @@ function OverviewPane({
 }) {
   const supabase = createClient();
   const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
+  const [earningsIncomplete, setEarningsIncomplete] = React.useState(false);
   const [medals, setMedals] = React.useState<{ total: number; monthPoints: number; rank: number | null }>({ total: 0, monthPoints: 0, rank: null });
   const [checklistDismissed, setChecklistDismissed] = React.useState(false);
   const [hasTier, setHasTier] = React.useState(false);
@@ -597,18 +599,20 @@ function OverviewPane({
 
   React.useEffect(() => {
     async function load() {
-      const [{ count: audience }, { count: posts }, { data: tips }, { count: tierCount }] = await Promise.all([
+      const [{ count: audience }, { count: posts }, earnings, { count: tierCount }] = await Promise.all([
         (supabase as any).from("subscriptions").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "active"),
         (supabase as any).from("posts").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "live"),
-        (supabase as any).from("tips").select("amount_usd, created_at").eq("creator_profile_id", profile.id),
+        // Every revenue source, creator net. See lib/earnings.ts.
+        creatorEarningsSummary(supabase, profile.id!),
         (supabase as any).from("subscription_tiers").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("is_active", true),
       ]);
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const allTips = tips ?? [];
-      const thisMonth = allTips.filter((t: any) => t.created_at >= monthStart).reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
-      const lifetime = allTips.reduce((s: number, t: any) => s + Number(t.amount_usd), 0);
-      setStats({ audience: audience ?? 0, posts: posts ?? 0, thisMonth, lifetime });
+      setStats({
+        audience: audience ?? 0,
+        posts: posts ?? 0,
+        thisMonth: earnings.monthNet,
+        lifetime: earnings.lifetimeNet,
+      });
+      setEarningsIncomplete(earnings.failures.length > 0);
       setHasTier((tierCount ?? 0) > 0);
 
       // Medal standing
@@ -700,12 +704,12 @@ function OverviewPane({
         <div className="stat">
           <p className="stat-label">This month</p>
           <p className="stat-num">${stats.thisMonth.toFixed(0)}</p>
-          <p className="stat-meta">Tips + subs combined</p>
+          <p className="stat-meta">All sources, your share</p>
         </div>
         <div className="stat">
           <p className="stat-label">Lifetime</p>
           <p className="stat-num">${stats.lifetime.toFixed(0)}</p>
-          <p className="stat-meta">Total earned</p>
+          <p className="stat-meta">{earningsIncomplete ? "Total earned (incomplete)" : "Total earned"}</p>
         </div>
         <div className="stat">
           <p className="stat-label">Posts</p>

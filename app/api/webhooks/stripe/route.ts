@@ -704,6 +704,44 @@ Add a payment method before then to keep your creator account active. If you don
   // Payment succeeded — auto-upgrade tier if subscriber count has grown
   if (event.type === "invoice.payment_succeeded") {
     const invoice = event.data.object;
+
+    // ── Fan subscription revenue ledger ───────────────────────────────────
+    // A fan paying a creator, as opposed to a creator paying Spotlightly. The
+    // subscriptions table only held current state, so recurring revenue was
+    // never countable. One row per invoice; stripe_invoice_id is unique, so a
+    // replayed event cannot double count.
+    if (invoice.subscription) {
+      const { data: fanSub } = await (supabase as any)
+        .from("subscriptions")
+        .select("id, creator_profile_id, fan_user_id")
+        .eq("stripe_subscription_id", invoice.subscription)
+        .maybeSingle();
+
+      if (fanSub?.creator_profile_id && (invoice.amount_paid ?? 0) > 0) {
+        const gross = (invoice.amount_paid ?? 0) / 100;
+        // Fans cover Stripe on subscriptions, so the creator keeps their full
+        // net. application_fee_amount is exactly the gross-up, not a cut.
+        const appFee = (invoice.application_fee_amount ?? 0) / 100;
+        const { error: ledgerErr } = await (supabase as any)
+          .from("subscription_payments")
+          .insert({
+            subscription_id: fanSub.id,
+            creator_profile_id: fanSub.creator_profile_id,
+            fan_user_id: fanSub.fan_user_id ?? null,
+            gross_usd: gross,
+            platform_fee_usd: appFee,
+            creator_receives: Math.max(gross - appFee, 0),
+            stripe_invoice_id: invoice.id,
+            stripe_subscription_id: invoice.subscription,
+            status: "paid",
+          });
+        // Duplicate invoice ids are expected on replays and are not an error.
+        if (ledgerErr && !/duplicate key/i.test(ledgerErr.message ?? "")) {
+          console.error("Subscription ledger insert failed:", ledgerErr);
+        }
+      }
+    }
+
     if (invoice.subscription) {
       const { data: billing } = await (supabase as any)
         .from("creator_billing")

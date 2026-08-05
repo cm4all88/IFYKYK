@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
+// Service role. Both referral routes fire during signup, before the new user is
+// authenticated, and they write rows that belong to the *referrer*, not the
+// caller. Under the anon client every write was denied by RLS and rolled back,
+// while the route returned { ok: true } regardless. Referral credits have been
+// silently vanishing.
+  const supabase = await createServiceClient();
   const { referrerHandle, fanUserId, fanEmail, subscribed } = await req.json();
 
   if (!referrerHandle) return NextResponse.json({ ok: true });
@@ -34,12 +39,16 @@ export async function POST(req: NextRequest) {
     }
   } else {
     // New fan visit — record it
-    await (supabase as any).from("subscriber_referrals").insert({
+    const { error: subRefErr } = await (supabase as any).from("subscriber_referrals").insert({
       referrer_profile_id: referrer.id,
       fan_user_id: fanUserId ?? null,
       fan_email: fanEmail ?? null,
       subscribed: false,
     });
+    if (subRefErr) {
+      console.error("Subscriber referral insert failed:", subRefErr);
+      return NextResponse.json({ ok: false, error: "Could not record referral" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

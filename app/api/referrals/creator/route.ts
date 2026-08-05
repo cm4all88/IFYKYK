@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 
 const REFERRALS_PER_CREDIT = 5;
 const CREDIT_AMOUNT_USD = 29.00; // Starter tier price — lowest tier, fair for all
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
+// Service role. Both referral routes fire during signup, before the new user is
+// authenticated, and they write rows that belong to the *referrer*, not the
+// caller. Under the anon client every write was denied by RLS and rolled back,
+// while the route returned { ok: true } regardless. Referral credits have been
+// silently vanishing.
+  const supabase = await createServiceClient();
   const { referrerHandle, referredUserId, referredHandle } = await req.json();
 
   if (!referrerHandle) return NextResponse.json({ ok: true });
@@ -33,12 +38,16 @@ export async function POST(req: NextRequest) {
   }
 
   // Record the referral
-  await (supabase as any).from("creator_referrals").insert({
+  const { error: refErr } = await (supabase as any).from("creator_referrals").insert({
     referrer_profile_id: referrer.id,
     referred_user_id: referredUserId ?? null,
     referred_handle: referredHandle ?? null,
     credited: false,
   });
+  if (refErr) {
+    console.error("Referral insert failed:", refErr);
+    return NextResponse.json({ ok: false, error: "Could not record referral" }, { status: 500 });
+  }
 
   // Count uncredited referrals
   const { count } = await (supabase as any)
@@ -75,7 +84,11 @@ export async function POST(req: NextRequest) {
       applied: false,
     }));
 
-    await (supabase as any).from("billing_credits").insert(credits);
+    const { error: creditErr } = await (supabase as any).from("billing_credits").insert(credits);
+    if (creditErr) {
+      console.error("Referral credit insert failed:", creditErr);
+      return NextResponse.json({ ok: false, error: "Could not award referral credit" }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });
