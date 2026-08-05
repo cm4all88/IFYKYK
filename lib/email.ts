@@ -105,19 +105,26 @@ async function isOptedOut(email: string): Promise<boolean> {
 
 // ─── Transport ────────────────────────────────────────────────────
 
-async function send(
+export type SendResult = { ok: boolean; providerId: string | null };
+
+/**
+ * The single transport. Returns Resend's message id on success so callers that
+ * need to reconcile a send later (outreach records, delivery webhooks) can store
+ * it. Every suppression and validation rule lives here and nowhere else.
+ */
+async function sendTracked(
   to: string,
   subject: string,
   html: string,
   opts: { category?: EmailCategory } = {}
-): Promise<boolean> {
+): Promise<SendResult> {
   const category = opts.category ?? "transactional";
-  if (!RESEND_KEY) { console.warn("RESEND_API_KEY not set"); return false; }
-  if (!to || !to.includes("@")) return false;
+  if (!RESEND_KEY) { console.warn("RESEND_API_KEY not set"); return { ok: false, providerId: null }; }
+  if (!to || !to.includes("@")) return { ok: false, providerId: null };
 
   if (category === "marketing" && (await isOptedOut(to))) {
     console.warn("Suppressed marketing email to opted-out address");
-    return false;
+    return { ok: false, providerId: null };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -125,8 +132,26 @@ async function send(
     headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: FROM, to, subject, html }),
   });
-  if (!res.ok) { console.error("Resend error:", await res.text()); return false; }
-  return true;
+  if (!res.ok) { console.error("Resend error:", await res.text()); return { ok: false, providerId: null }; }
+
+  // A delivered send with an unreadable body is still delivered. Never fail on parse.
+  let providerId: string | null = null;
+  try {
+    const json = await res.json();
+    providerId = typeof json?.id === "string" ? json.id : null;
+  } catch { /* noop */ }
+
+  return { ok: true, providerId };
+}
+
+async function send(
+  to: string,
+  subject: string,
+  html: string,
+  opts: { category?: EmailCategory } = {}
+): Promise<boolean> {
+  const { ok } = await sendTracked(to, subject, html, opts);
+  return ok;
 }
 
 // ─── Shared shell ─────────────────────────────────────────────────
@@ -315,8 +340,28 @@ export async function sendProspectInvite(args: {
   body: string;
   claimUrl?: string | null;
 }): Promise<boolean> {
+  const { ok } = await sendProspectInviteTracked(args);
+  return ok;
+}
+
+/**
+ * Same email as sendProspectInvite, but returns Resend's message id alongside the
+ * result. The acquisition runner writes that id to prospect_outreach.provider_id,
+ * which is the only way to tie a bounce or complaint back to a specific send.
+ *
+ * Both entry points share one template on purpose: an invitation that varies by
+ * which function the caller happened to pick is a compliance problem, not a
+ * cosmetic one. The footer and opt-out are identical either way.
+ */
+export async function sendProspectInviteTracked(args: {
+  to: string;
+  subject: string;
+  /** Plain text; newlines become paragraphs. Never raw HTML from a form. */
+  body: string;
+  claimUrl?: string | null;
+}): Promise<SendResult> {
   const { to, subject, body, claimUrl } = args;
-  if (!to || !subject || !body) return false;
+  if (!to || !subject || !body) return { ok: false, providerId: null };
 
   const paragraphs = body
     .split(/\n\s*\n/)
@@ -335,7 +380,7 @@ export async function sendProspectInvite(args: {
     unsubscribeUrl: unsubscribeUrl(to),
   });
 
-  return send(to, subject, html, { category: "marketing" });
+  return sendTracked(to, subject, html, { category: "marketing" });
 }
 
 /** Prospect copy is admin-authored plain text; never trust it as markup. */
