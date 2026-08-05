@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://spotlightly.app";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.spotlightly.app";
   const netCents = Math.round(product.price * 100);
   const fanCents = grossUpForStripe(netCents); // fan covers the card fee
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY ?? ""}`, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: params.toString(),
   });
 

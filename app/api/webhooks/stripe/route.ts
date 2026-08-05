@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notify";
-import { createClient } from "@/lib/supabase-server";
+import { createServiceClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { sendAdminAlert, sendNotifyEmail } from "@/lib/email";
 import crypto from "node:crypto";
@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
   }
 
   const event = JSON.parse(rawBody);
-  const supabase = await createClient();
+
+  // Service role, not the anon client. Stripe posts with no cookies, so there is
+  // no session and auth.uid() is null. Under RLS that made every insert with a
+  // .select() chained onto it fail: the insert policy allowed the write, the
+  // select policy denied the RETURNING, and Postgres rolled the whole statement
+  // back. Digital purchases vanished exactly that way. It is also why
+  // notifyCreator's auth.admin.getUserById call could never have worked.
+  const supabase = await createServiceClient();
 
   // ── Connected account became ready → mark the creator onboarded ──
   // Reliable fallback: fires whenever the account's status changes, so the
@@ -408,7 +415,7 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
       const platformFee = 0; // 0% on digital — fan covers the card fee, creator keeps 100%
       const creatorEarns = meta.net_usd ? Number(meta.net_usd) : priceTotal;
 
-      const { data: purchase } = await (supabase as any)
+      const { data: purchase, error: purchaseErr } = await (supabase as any)
         .from("digital_purchases")
         .insert({
           digital_product_id: meta.product_id,
@@ -422,6 +429,13 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
         })
         .select()
         .single();
+
+      if (purchaseErr || !purchase) {
+        // The buyer has paid and has nothing. Fail loudly so Stripe retries
+        // rather than recording a success that never happened.
+        console.error(`DIGITAL PURCHASE INSERT FAILED for session ${s.id}:`, purchaseErr);
+        return NextResponse.json({ error: "Could not record purchase" }, { status: 500 });
+      }
 
       // Update product sales count
       if (purchase) {
