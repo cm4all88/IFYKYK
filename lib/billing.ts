@@ -131,11 +131,18 @@ export type BillingLockRow = {
  *  - conversion grace (Starter-due)→ unlocked (never punish a creator the
  *                                     moment Spotlightly starts working)
  *  - active                       → unlocked
- *  - trial (not expired)          → unlocked
+ *  - trial (expired or not)       → unlocked (see below)
  *  - past_due within grace window → unlocked (grace)
  *  - past_due, grace expired      → locked
  *  - free (Opening Act)           → unlocked (no card, never billed)
  *  - cancelled / incomplete / no row → locked
+ *
+ * Trial expiry no longer locks. A trial running out is a clock we started, not a
+ * payment that failed, and locking on it dark-pages creators who have not yet
+ * earned a dollar (the exact moment they most need their page live). The daily
+ * billing cron resolves expired trials instead: under the Starter threshold they
+ * move to the free plan and stay live, at or above it they move to past_due with
+ * the normal 7 day grace. Lock is reserved for a card that actually failed.
  */
 export function isBillingLocked(b: BillingLockRow): boolean {
   if (!b || !b.status) return true;
@@ -143,10 +150,7 @@ export function isBillingLocked(b: BillingLockRow): boolean {
   if (b.status === "free") return false;   // Opening Act — free plan, always unlocked
   const now = Date.now();
   if (b.status === "active") return false;
-  if (b.status === "trial") {
-    if (b.trial_ends_at && new Date(b.trial_ends_at).getTime() < now) return true;
-    return false;
-  }
+  if (b.status === "trial") return false;
   if (b.status === "past_due") {
     if (b.grace_ends_at && new Date(b.grace_ends_at).getTime() > now) return false; // in grace
     return true; // grace expired
