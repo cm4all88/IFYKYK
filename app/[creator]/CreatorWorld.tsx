@@ -115,12 +115,19 @@ async function loadWorld(handle: string) {
     .select("id, name, description, price_monthly, price_yearly, perks, color, sort_order")
     .eq("creator_profile_id", sp.id).eq("is_active", true).order("sort_order", { ascending: true });
 
-  const { data: posts } = await supabase
+  const { data: posts, error: postsErr } = await supabase
     .from("posts")
     .select("id, caption, media_url, media_urls, media_type, tier, lock_type, required_tier_id, is_pinned, created_at, likes_count, tags")
     .eq("creator_profile_id", sp.id).eq("status", "live")
     .or("expires_at.is.null,expires_at.gt." + new Date().toISOString())
     .order("created_at", { ascending: false }).limit(18);
+
+  // A failed posts query renders as an empty feed, which looks exactly like a
+  // creator who has not posted. Never let that happen silently: one missing
+  // column on this select takes the whole feed down.
+  if (postsErr) {
+    console.error(`CREATOR FEED QUERY FAILED for ${handle}:`, postsErr);
+  }
 
   // Viewer entitlement: a real, active subscription at or above the required
   // tier unlocks a post. Everyone else only ever gets the blur.
