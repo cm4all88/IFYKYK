@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase-server";
-import { PUBLIC_CREATOR_SELECT } from "@/lib/creator-public";
 import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
@@ -53,10 +52,9 @@ function SpineLabel({ children }: { children: ReactNode }) {
 async function loadCampaignFirst(handle: string) {
   const supabase = await createClient();
 
-  const { data: spotlight } = await (supabase as any)
-    .from("creator_public").select(PUBLIC_CREATOR_SELECT).eq("kind", "spotlight").eq("handle", handle).maybeSingle();
-  // The view filters soft-deleted rows, so the old deleted_at guard is in SQL now.
-  if (!spotlight) return null;
+  const { data: spotlight } = await supabase
+    .from("creator_profiles").select("*").eq("kind", "spotlight").eq("handle", handle).maybeSingle();
+  if (!spotlight || (spotlight as any).deleted_at) return null;
   const sp: any = spotlight;
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -286,7 +284,24 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={p.mediaUrl} alt="" style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }} />
                         ) : p.entitled && p.mediaUrl && p.isVid ? (
-                          <video src={p.mediaUrl} controls preload="metadata" muted playsInline style={{ width: "100%", height: 220, objectFit: "cover", display: "block", background: "#000" }} />
+                          // Bunny Stream hands back an embed page, not a video
+                          // file. A <video> tag pointed at one renders a silent
+                          // blank box, which is exactly how a working upload
+                          // looked like a failed post.
+                          p.mediaUrl.includes("iframe.mediadelivery.net") ? (
+                            <div style={{ position: "relative", paddingTop: "56.25%", background: "#000" }}>
+                              <iframe
+                                src={`${p.mediaUrl}${p.mediaUrl.includes("?") ? "&" : "?"}responsive=true`}
+                                title="Video"
+                                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                                allowFullScreen
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : (
+                            <video src={p.mediaUrl} controls preload="metadata" muted playsInline style={{ width: "100%", height: 220, objectFit: "cover", display: "block", background: "#000" }} />
+                          )
                         ) : p.blur ? (
                           <div style={{ position: "relative", height: 220, overflow: "hidden" }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -298,6 +313,16 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                               </a>
                             </div>
                           </div>
+                        ) : p.entitled ? (
+                          // A text post the viewer is entitled to. Without this
+                          // branch it fell through to the padlock below and a
+                          // free public post told everyone to subscribe to see
+                          // something that was never hidden.
+                          <div style={{ padding: "26px 22px", minHeight: 200, display: "flex", alignItems: "center", background: "linear-gradient(160deg, rgba(242,184,75,0.05), rgba(255,255,255,0.015))" }}>
+                            <p style={{ margin: 0, fontFamily: "var(--font-serif, 'Cormorant Garamond', Georgia, serif)", fontSize: 19, lineHeight: 1.5, color: "rgba(247,243,236,0.9)" }}>
+                              {clamp(String(p.caption ?? ""), 240)}
+                            </p>
+                          </div>
                         ) : (
                           <div style={{ height: 220, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "linear-gradient(160deg, rgba(242,184,75,0.06), rgba(255,255,255,0.02))" }}>
                             <span style={{ fontSize: 20 }}>🔒</span>
@@ -306,7 +331,8 @@ export default async function CampaignFirstPage({ handle }: { handle: string }) 
                             </a>
                           </div>
                         )}
-                        {p.caption ? (
+                        {/* The caption already is the tile for a text post; do not print it twice. */}
+                        {p.caption && !(p.entitled && !p.mediaUrl) ? (
                           <div style={{ padding: "12px 14px", fontSize: 13, color: "rgba(247,243,236,0.82)", lineHeight: 1.5 }}>{clamp(String(p.caption), 110)}</div>
                         ) : null}
                       </div>

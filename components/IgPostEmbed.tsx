@@ -24,6 +24,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const REAL_POST_MIN_HEIGHT = 380; // IG's "unavailable" stub measures well under this
 const LOAD_TIMEOUT_MS = 8000;
+// Backstop from mount. onLoad does not fire at all when the frame is blocked
+// outright (extension, CSP, network), and without this the card sits at zero
+// height forever with no fallback and no way to recover.
+const HARD_TIMEOUT_MS = 12000;
 const MAX_FRAME_HEIGHT = 640; // keeps one tall reel from dwarfing the lane
 const PROBE_HEIGHT = 900; // generous working height; the frame reports its own
 
@@ -99,8 +103,11 @@ export default function IgPostEmbed({ url, onFail }: { url: string; onFail: () =
     };
 
     window.addEventListener("message", onMessage);
+    const hardTimer = window.setTimeout(fail, HARD_TIMEOUT_MS);
+
     return () => {
       window.removeEventListener("message", onMessage);
+      window.clearTimeout(hardTimer);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     };
   }, [url, parsed, onFail, fail]);

@@ -92,7 +92,23 @@ export default function CreatorFeed({ items, viewerUserId, fn }: { items: Item[]
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.mediaUrl} alt="" style={{ width: "100%", height: 256, objectFit: "cover", display: "block" }} />
               ) : p.entitled && p.mediaUrl && p.isVid ? (
-                <video src={p.mediaUrl} preload="metadata" muted playsInline style={{ width: "100%", height: 256, objectFit: "cover", display: "block", background: "#000" }} />
+                // Bunny Stream returns an embed page, not a video file. A <video>
+                // tag pointed at one renders a silent blank box, which is exactly
+                // how a successful upload looked like a post that never appeared.
+                p.mediaUrl.includes("iframe.mediadelivery.net") ? (
+                  <div style={{ position: "relative", paddingTop: "56.25%", background: "#000" }}>
+                    <iframe
+                      src={`${p.mediaUrl}${p.mediaUrl.includes("?") ? "&" : "?"}responsive=true`}
+                      title="Video"
+                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <video src={p.mediaUrl} preload="metadata" muted playsInline style={{ width: "100%", height: 256, objectFit: "cover", display: "block", background: "#000" }} />
+                )
               ) : p.blur ? (
                 <div style={{ position: "relative", height: 256, overflow: "hidden" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -104,6 +120,13 @@ export default function CreatorFeed({ items, viewerUserId, fn }: { items: Item[]
                     </a>
                   </div>
                 </div>
+              ) : p.entitled ? (
+                // A text post the viewer is entitled to. The caption is the tile.
+                <div style={{ padding: "28px 22px", minHeight: 150, display: "flex", alignItems: "center", background: "linear-gradient(160deg, rgba(242,184,75,0.05), rgba(255,255,255,0.015))" }}>
+                  <p style={{ margin: 0, fontFamily: "var(--font-serif, 'Cormorant Garamond', Georgia, serif)", fontSize: 20, lineHeight: 1.5, color: "rgba(247,243,236,0.92)" }}>
+                    {clamp(String(p.caption ?? ""), 260)}
+                  </p>
+                </div>
               ) : (
                 <div style={{ height: 256, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "linear-gradient(160deg, rgba(242,184,75,0.06), rgba(255,255,255,0.02))" }}>
                   <span style={{ fontSize: 20 }}>🔒</span>
@@ -114,7 +137,7 @@ export default function CreatorFeed({ items, viewerUserId, fn }: { items: Item[]
               )}
 
               <div style={{ padding: "11px 14px" }}>
-                {p.caption ? <div style={{ fontSize: 13, color: "rgba(247,243,236,0.82)", lineHeight: 1.5, marginBottom: (p.tags.length || p.likesCount || p.entitled) ? 8 : 0 }}>{clamp(String(p.caption), 120)}</div> : null}
+                {p.caption && !(p.entitled && !p.mediaUrl) ? <div style={{ fontSize: 13, color: "rgba(247,243,236,0.82)", lineHeight: 1.5, marginBottom: (p.tags.length || p.likesCount || p.entitled) ? 8 : 0 }}>{clamp(String(p.caption), 120)}</div> : null}
                 {p.tags.length ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
                     {p.tags.slice(0, 4).map((t) => (
