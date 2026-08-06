@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { entitlementsFor } from "@/lib/entitlements";
+import { creatorEarnings } from "@/lib/earnings";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
       .gte("created_at", windowStart),
     (supabase as any)
       .from("tips")
-      .select("amount_usd, created_at")
+      .select("amount, platform_receives, created_at")
       .eq("creator_profile_id", profileId)
       .gte("created_at", windowStart),
     (supabase as any)
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
     const key = t.created_at?.slice(0, 10);
     if (days[key]) {
       days[key].tips += 1;
-      days[key].revenue += Number(t.amount_usd ?? 0);
+      days[key].revenue += Number(t.amount ?? 0) - Number(t.platform_receives ?? 0);
     }
   });
 
@@ -82,7 +83,18 @@ export async function GET(req: NextRequest) {
     .eq("creator_profile_id", profileId)
     .eq("status", "active")).count ?? 0;
 
-  const totalRevenue = (tips ?? []).reduce((s: number, t: any) => s + Number(t.amount_usd ?? 0), 0);
+  // Revenue across every source, creator net, for the same window. Tips alone
+  // were never the whole picture and the tips query was broken besides.
+  const earnings = await creatorEarnings(supabase, profileId, { since: windowStart });
 
-  return NextResponse.json({ chart, totalSubs, totalRevenue, days: windowDays, maxDays });
+  return NextResponse.json({
+    chart,
+    totalSubs,
+    totalRevenue: earnings.net,
+    totalGross: earnings.gross,
+    bySource: earnings.bySource.filter((r) => r.count > 0 || r.failed),
+    earningsIncomplete: earnings.failures.length > 0,
+    days: windowDays,
+    maxDays,
+  });
 }

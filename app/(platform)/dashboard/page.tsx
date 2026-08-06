@@ -553,7 +553,7 @@ function OverviewPane({
   onSetPane: (p: Pane) => void;
 }) {
   const supabase = createClient();
-  const [stats, setStats] = React.useState({ audience: 0, posts: 0, thisMonth: 0, lifetime: 0 });
+  const [stats, setStats] = React.useState({ audience: 0, backers: 0, posts: 0, thisMonth: 0, lifetime: 0 });
   const [earningsIncomplete, setEarningsIncomplete] = React.useState(false);
   const [medals, setMedals] = React.useState<{ total: number; monthPoints: number; rank: number | null }>({ total: 0, monthPoints: 0, rank: null });
   const [checklistDismissed, setChecklistDismissed] = React.useState(false);
@@ -599,15 +599,28 @@ function OverviewPane({
 
   React.useEffect(() => {
     async function load() {
-      const [{ count: audience }, { count: posts }, earnings, { count: tierCount }] = await Promise.all([
+      const [{ count: audience }, { count: posts }, earnings, { count: tierCount }, { data: ownCampaigns }] = await Promise.all([
         (supabase as any).from("subscriptions").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "active"),
         (supabase as any).from("posts").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("status", "live"),
         // Every revenue source, creator net. See lib/earnings.ts.
         creatorEarningsSummary(supabase, profile.id!),
         (supabase as any).from("subscription_tiers").select("id", { count: "exact", head: true }).eq("creator_profile_id", profile.id).eq("is_active", true),
+        (supabase as any).from("campaigns").select("id").eq("creator_profile_id", profile.id),
       ]);
+      // Distinct people backing any of this creator's campaigns. They are
+      // supporters, not subscribers, and showing 0 audience beside real earnings
+      // reads as a broken page.
+      let backerCount = 0;
+      const campaignIds = (ownCampaigns ?? []).map((c: any) => c.id);
+      if (campaignIds.length) {
+        const { data: donors } = await (supabase as any)
+          .from("campaign_donations").select("donor_user_id").in("campaign_id", campaignIds);
+        backerCount = new Set((donors ?? []).map((d: any) => d.donor_user_id).filter(Boolean)).size;
+      }
+
       setStats({
         audience: audience ?? 0,
+        backers: backerCount,
         posts: posts ?? 0,
         thisMonth: earnings.monthNet,
         lifetime: earnings.lifetimeNet,
@@ -698,8 +711,14 @@ function OverviewPane({
       <div className="stats">
         <div className="stat">
           <p className="stat-label">Audience</p>
-          <p className="stat-num">{stats.audience.toLocaleString()}</p>
-          <p className="stat-meta">Active subscribers</p>
+          <p className="stat-num">{(stats.audience + stats.backers).toLocaleString()}</p>
+          <p className="stat-meta">
+            {stats.backers > 0 && stats.audience === 0
+              ? `${stats.backers} backing your campaign`
+              : stats.backers > 0
+                ? `${stats.audience} subscribed · ${stats.backers} backing`
+                : "Active subscribers"}
+          </p>
         </div>
         <div className="stat">
           <p className="stat-label">This month</p>
@@ -3707,7 +3726,7 @@ function AnalyticsPane({ profile, onUpgrade }: { profile: Profile; onUpgrade?: (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, marginBottom: "var(--s-7)" }}>
         {[
           { label: "Active subscribers", val: totalSubs.toLocaleString() },
-          { label: `Tips earned (${windowDays}d)`, val: `$${totalRevenue.toFixed(2)}` },
+          { label: `Earned (${windowDays}d)`, val: `$${totalRevenue.toFixed(2)}` },
           { label: `Posts (${windowDays}d)`, val: chart.reduce((s: number, d: any) => s + d.posts, 0).toLocaleString() },
         ].map(s => (
           <div key={s.label} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-5) var(--s-5)" }}>
@@ -3716,6 +3735,41 @@ function AnalyticsPane({ profile, onUpgrade }: { profile: Profile; onUpgrade?: (
           </div>
         ))}
       </div>
+
+      {/* Where the money came from. A single total is a number a creator has to
+          take on faith; the breakdown is one they can check. */}
+      {(data?.bySource ?? []).length > 0 && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-5)", marginBottom: "var(--s-7)" }}>
+          <p style={{ fontFamily: mono, fontSize: 9, letterSpacing: ".16em", textTransform: "uppercase", color: "var(--muted)", margin: "0 0 var(--s-4)" }}>
+            Where it came from · last {windowDays} days
+          </p>
+          {(data?.bySource ?? []).map((r: any) => (
+            <div key={r.key} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <span style={{ fontSize: 13.5, color: "var(--text-soft)" }}>
+                {r.label}
+                <span style={{ color: "var(--muted)", fontSize: 12 }}> · {r.count}</span>
+              </span>
+              <span style={{ fontFamily: mono, fontSize: 13, color: r.failed ? "var(--red)" : "var(--text)" }}>
+                {r.failed ? "unavailable" : `$${Number(r.net).toFixed(2)}`}
+              </span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "var(--s-4)" }}>
+            <span style={{ fontSize: 13.5, color: "var(--text)", fontWeight: 500 }}>Your share</span>
+            <span style={{ fontFamily: mono, fontSize: 14, color: "var(--accent)" }}>${totalRevenue.toFixed(2)}</span>
+          </div>
+          {data?.totalGross != null && data.totalGross > totalRevenue && (
+            <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "10px 0 0", lineHeight: 1.5 }}>
+              Fans spent ${Number(data.totalGross).toFixed(2)}. The difference is card fees and platform cuts, not money you lost.
+            </p>
+          )}
+          {data?.earningsIncomplete && (
+            <p style={{ fontSize: 11.5, color: "var(--red)", margin: "10px 0 0" }}>
+              One or more sources could not be read, so this total is incomplete.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Opening Act → Starter: 30-day analytics upsell */}
       {!canExpandAnalytics && (
