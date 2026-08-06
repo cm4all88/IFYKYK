@@ -17,7 +17,7 @@ export const EXPLORE_MIN_CREATORS = 12;
 /** Published, handled, spotlight-kind creators. The ones a visitor could actually browse. */
 export async function publishedCreatorCount(supabase: any): Promise<number> {
   const { count } = await supabase
-    .from("creator_public")
+    .from("creator_profiles")
     .select("id", { count: "exact", head: true })
     .eq("kind", "spotlight")
     .eq("published", true)

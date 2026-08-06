@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
@@ -19,22 +18,12 @@ export async function POST(req: NextRequest) {
 
   const { data: product } = await (supabase as any)
     .from("digital_products")
-    .select("*")
+    .select("*, creator:creator_profile_id(stripe_account_id, handle, display_name)")
     .eq("id", productId)
     .eq("status", "active")
     .maybeSingle();
 
   if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
-
-  // The payee's Connect account, read with the service role (lib/payee.ts).
-  // Migration 064 removes anon read on creator_profiles, so the embed that
-  // used to supply this returns nothing. The parent row above is still read
-  // through the RLS-enforcing client — that is what authorises the purchase;
-  // this only answers where the money goes.
-  const payee = await getPayeeCreator((product as any).creator_profile_id);
-  if (!canReceivePayments(payee)) {
-    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
-  }
 
   const { STRIPE_SECRET_KEY } = await getSecrets(["STRIPE_SECRET_KEY"]);
   if (!STRIPE_SECRET_KEY) return NextResponse.json({ error: "Payments unavailable" }, { status: 503 });
@@ -52,7 +41,7 @@ export async function POST(req: NextRequest) {
     "line_items[0][quantity]": "1",
     mode: "payment",
     success_url: `${appUrl}/downloads?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/${payee.handle}`,
+    cancel_url: `${appUrl}/${product.creator.handle}`,
     "metadata[product_id]": productId,
     "metadata[creator_profile_id]": product.creator_profile_id,
     "metadata[fan_user_id]": user?.id ?? "",
@@ -61,8 +50,8 @@ export async function POST(req: NextRequest) {
     "metadata[net_usd]": String(product.price),
   });
 
-  if (payee.stripe_account_id) {
-    params.set("payment_intent_data[transfer_data][destination]", payee.stripe_account_id);
+  if (product.creator.stripe_account_id) {
+    params.set("payment_intent_data[transfer_data][destination]", product.creator.stripe_account_id);
     params.set("payment_intent_data[transfer_data][amount]", String(netCents)); // creator keeps 100%
   }
 
