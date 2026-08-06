@@ -60,6 +60,10 @@ export default function SocialPostCard({ post, isOwner, onDelete, onTogglePin }:
   const onIgFail = useCallback(() => setIgFailed(true), [])
   const showIg = post.platform === 'instagram' && !igFailed && !!igShortcode(post.url)
 
+  // Instagram that will not embed and has no thumbnail renders nothing. Better an
+  // absent card than a link that pushes the visitor off the page.
+  if (post.platform === 'instagram' && igFailed && !post.thumbnail_url && !isOwner) return null
+
   // Only show a date we actually trust: parseable, after 2010, not in the future.
   const ts = post.original_posted_at ? Date.parse(post.original_posted_at) : NaN
   const formattedDate = (!Number.isNaN(ts) && ts > 1262304000000 && ts < Date.now() + 86400000)

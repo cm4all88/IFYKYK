@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase-server";
-import { PUBLIC_CREATOR_SELECT } from "@/lib/creator-public";
 import { notFound } from "next/navigation";
 import { hasSecret } from "@/lib/settings";
 import { blurDataUrl } from "@/lib/blur";
@@ -75,20 +74,16 @@ function SectionLabel({ children, center }: { children: ReactNode; center?: bool
 async function loadWorld(handle: string) {
   const supabase = await createClient();
 
-  // `creator_public` is the safe projection of creator_profiles (see
-  // lib/creator-public.ts). It excludes claim_code, IP/user-agent tracking,
-  // date_of_birth, shipping fields and Stripe identifiers, and filters
-  // soft-deleted rows itself — so the old `deleted_at` guard now lives in SQL.
-  const { data: spotlight } = await (supabase as any)
-    .from("creator_public").select(PUBLIC_CREATOR_SELECT).eq("kind", "spotlight").eq("handle", handle).maybeSingle();
-  if (!spotlight) return null;
+  const { data: spotlight } = await supabase
+    .from("creator_profiles").select("*").eq("kind", "spotlight").eq("handle", handle).maybeSingle();
+  if (!spotlight || (spotlight as any).deleted_at) return null;
   const sp: any = spotlight;
 
   const { data: { user } } = await supabase.auth.getUser();
 
   // Founding creator: among the first 100 spotlight creators by signup.
   const { count: earlier } = await (supabase as any)
-    .from("creator_public").select("id", { count: "exact", head: true })
+    .from("creator_profiles").select("id", { count: "exact", head: true })
     .eq("kind", "spotlight").lt("created_at", sp.created_at);
   const isFounder = (earlier ?? 0) < 100;
 
@@ -357,7 +352,23 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start", maxWidth: campaign ? 920 : 480, margin: "0 auto" }}>
 
-              {/* Peer A — back the goal (only if there is a real campaign) */}
+              {/* Peer A — join the community. Primary: recurring support is what compounds. */}
+              <div>
+                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-soft, rgba(247,243,236,0.7))", marginBottom: 12 }}>
+                  Join {fn}&apos;s community{fromPrice ? ` · from $${Number(fromPrice).toFixed(2)}/mo` : ""}
+                </div>
+                <FreeTierCard
+                  name={sp.free_tier_name}
+                  blurb={sp.free_tier_blurb}
+                  perks={sp.free_tier_perks}
+                  handle={sp.handle}
+                  loggedIn={loggedIn}
+                />
+                <div style={{ marginTop: 14 }}>
+                  <SubscribeButton creatorProfileId={sp.id} />
+                </div>
+              </div>
+              {/* Peer B — back the goal. Secondary: a campaign ends, a subscription does not. */}
               {campaign ? (
                 <div>
                   <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 12 }}>
@@ -388,22 +399,6 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                 </div>
               ) : null}
 
-              {/* Peer B — join the community (free follow + any subscription tiers) */}
-              <div>
-                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-soft, rgba(247,243,236,0.7))", marginBottom: 12 }}>
-                  Join {fn}&apos;s community{fromPrice ? ` · from $${Number(fromPrice).toFixed(2)}/mo` : ""}
-                </div>
-                <FreeTierCard
-                  name={sp.free_tier_name}
-                  blurb={sp.free_tier_blurb}
-                  perks={sp.free_tier_perks}
-                  handle={sp.handle}
-                  loggedIn={loggedIn}
-                />
-                <div style={{ marginTop: 14 }}>
-                  <SubscribeButton creatorProfileId={sp.id} />
-                </div>
-              </div>
             </div>
 
 

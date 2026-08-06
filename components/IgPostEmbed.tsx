@@ -28,6 +28,9 @@ const LOAD_TIMEOUT_MS = 8000;
 // outright (extension, CSP, network), and without this the card sits at zero
 // height forever with no fallback and no way to recover.
 const HARD_TIMEOUT_MS = 12000;
+// How long to wait after the last MEASURE before deciding the post is done
+// growing and judging whether it is real.
+const SETTLE_MS = 2500;
 const MAX_FRAME_HEIGHT = 640; // keeps one tall reel from dwarfing the lane
 const PROBE_HEIGHT = 900; // generous working height; the frame reports its own
 
@@ -44,6 +47,8 @@ export default function IgPostEmbed({ url, onFail }: { url: string; onFail: () =
   const [height, setHeight] = useState<number | null>(null);
   const settled = useRef(false);
   const timerRef = useRef<number | null>(null);
+  const settleRef = useRef<number | null>(null);
+  const maxHeight = useRef(0);
 
   const fail = useCallback(() => {
     if (settled.current) return;
@@ -55,7 +60,9 @@ export default function IgPostEmbed({ url, onFail }: { url: string; onFail: () =
   // scrolled out of view can sit unloaded for a long time and that is not a failure.
   const onFrameLoad = useCallback(() => {
     if (settled.current || timerRef.current !== null) return;
-    timerRef.current = window.setTimeout(fail, LOAD_TIMEOUT_MS);
+    timerRef.current = window.setTimeout(() => {
+      if (maxHeight.current === 0) fail();
+    }, LOAD_TIMEOUT_MS);
   }, [fail]);
 
   useEffect(() => {
@@ -91,24 +98,38 @@ export default function IgPostEmbed({ url, onFail }: { url: string; onFail: () =
       const h = Number(payload?.details?.height);
       if (!Number.isFinite(h) || h <= 0) return;
 
-      // A short measurement means IG served its own unavailable card, not the post.
-      if (h < REAL_POST_MIN_HEIGHT) {
-        fail();
-        return;
-      }
+      // Instagram sends several MEASURE messages as the post lays out, and the
+      // first is small because the image and caption have not landed yet.
+      // Treating that first small number as the unavailable stub is what killed
+      // working posts. Take every measurement, keep the largest, and only judge
+      // whether it is a real post after it stops growing.
+      maxHeight.current = Math.max(maxHeight.current, h);
+      setHeight(maxHeight.current);
 
-      settled.current = true;
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-      setHeight(h);
+      if (settleRef.current !== null) window.clearTimeout(settleRef.current);
+      settleRef.current = window.setTimeout(() => {
+        if (settled.current) return;
+        if (maxHeight.current < REAL_POST_MIN_HEIGHT) {
+          // Still tiny after it stopped changing. This really is IG's stub.
+          fail();
+        } else {
+          settled.current = true;
+        }
+      }, SETTLE_MS);
     };
 
     window.addEventListener("message", onMessage);
-    const hardTimer = window.setTimeout(fail, HARD_TIMEOUT_MS);
+    const hardTimer = window.setTimeout(() => {
+      // Only a frame that never measured anything at all is a failure.
+      if (maxHeight.current === 0) fail();
+    }, HARD_TIMEOUT_MS);
 
     return () => {
       window.removeEventListener("message", onMessage);
       window.clearTimeout(hardTimer);
       if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+      if (settleRef.current !== null) window.clearTimeout(settleRef.current);
     };
   }, [url, parsed, onFail, fail]);
 
