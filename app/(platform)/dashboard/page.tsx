@@ -643,6 +643,9 @@ function OverviewPane({
 
   // Determine the most important next action
   const stripeConnected = !!(profile as any).stripe_onboarded;
+  // Built = the studio's own output already exists.
+  const pageIsBuilt = !!(profile.bio && profile.bio.trim().length > 0) && hasTier;
+
   const nextMove = !stripeConnected
     ? { pane: "payments" as Pane, label: "Connect Stripe", desc: "Required before your audience can pay you.", color: "var(--accent-open)" }
     : stats.posts === 0
@@ -805,14 +808,20 @@ function OverviewPane({
         />
       )}
 
-      <div style={{ marginBottom: "var(--s-6)", background: "linear-gradient(180deg, rgba(240,180,41,0.10), rgba(240,180,41,0.03))", border: "1px solid var(--accent-border)", borderRadius: "var(--r-3)", padding: "22px 26px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 18, flexWrap: "wrap" }}>
-        <div>
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>Build my page</p>
-          <p style={{ fontFamily: "var(--font-serif)", fontSize: 22, color: "#fff", margin: "0 0 4px" }}>Set up your whole page in one go.</p>
-          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, maxWidth: 520 }}>Answer a few questions and the studio builds your bio, your free tier, your paid tiers, and a starter campaign together. Edit anything before it goes live.</p>
+      {/* The studio is for a creator who has not built their page yet. Once the
+          page exists, telling them to build it every visit is noise that pushes
+          the things they came for further down. It stays reachable as a quiet
+          line at the bottom of Your tools. */}
+      {!pageIsBuilt && (
+        <div style={{ marginBottom: "var(--s-6)", background: "linear-gradient(180deg, rgba(240,180,41,0.10), rgba(240,180,41,0.03))", border: "1px solid var(--accent-border)", borderRadius: "var(--r-3)", padding: "22px 26px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 18, flexWrap: "wrap" }}>
+          <div>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".2em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 6 }}>Build my page</p>
+            <p style={{ fontFamily: "var(--font-serif)", fontSize: 22, color: "#fff", margin: "0 0 4px" }}>Set up your whole page in one go.</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0, maxWidth: 520 }}>Answer a few questions and the studio builds your bio, your free tier, your paid tiers, and a starter campaign together. Edit anything before it goes live.</p>
+          </div>
+          <button className="btn btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Build my page</button>
         </div>
-        <button className="btn btn--primary" style={{ flexShrink: 0 }} onClick={() => setStudioOpen(true)}>✨ Build my page</button>
-      </div>
+      )}
 
       {/* Quick actions — priority hierarchy */}
 
@@ -1198,11 +1207,15 @@ function FansPane({ profile }: { profile: Profile }) {
 
   React.useEffect(() => {
     async function load() {
-      const { data: s } = await (supabase as any)
-        .from("subscriptions").select("*, fan:fan_user_id(email, raw_user_meta_data)")
-        .eq("creator_profile_id", profile.id).eq("status", "active")
-        .order("created_at", { ascending: false });
-      setSubs(s ?? []);
+      // Fan identity lives in auth.users, which a browser client cannot embed.
+      // The server route resolves it with the service role.
+      try {
+        const res = await fetch("/api/creator/audience");
+        const json = await res.json();
+        setSubs(json.members ?? []);
+      } catch {
+        setSubs([]);
+      }
 
       const { data: b } = await (supabase as any)
         .from("fan_blocks").select("*").eq("creator_profile_id", profile.id)
@@ -1285,23 +1298,34 @@ function FansPane({ profile }: { profile: Profile }) {
         <div>
           {subs.length === 0 ? (
             <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-10)", textAlign:"center" }}>
-              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-2)" }}>No subscribers yet.</p>
-              <p style={{ fontSize:13, color:"var(--muted)" }}>Connect Stripe and post your first content to start building your audience.</p>
+              <p style={{ fontFamily:"var(--font-serif)", fontSize:20, fontStyle:"italic", color:"#fff", marginBottom:"var(--s-2)" }}>No supporters yet.</p>
+              <p style={{ fontSize:13, color:"var(--muted)" }}>Anyone who subscribes or backs your campaign appears here.</p>
             </div>
           ) : (
             <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-              {subs.map((s: any) => (
-                <div key={s.id} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", display:"grid", gridTemplateColumns:"1fr auto", gap:"var(--s-4)", alignItems:"center" }}>
-                  <div>
-                    <div style={{ fontSize:13, color:"var(--text)", fontWeight:600, marginBottom:3 }}>
-                      {s.fan?.email ?? "—"}
+              {subs.map((m: any) => (
+                <div key={m.userId} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", display:"grid", gridTemplateColumns:"1fr auto auto", gap:"var(--s-4)", alignItems:"center" }}>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:13, color:"var(--text)", fontWeight:600, marginBottom:3, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {m.name || m.email || "Supporter"}
                     </div>
                     <div style={{ fontFamily:"var(--font-mono)", fontSize:10, color:"var(--muted)", letterSpacing:".08em" }}>
-                      Phone: {s.fan?.raw_user_meta_data?.phone ?? "not provided"} · Subscribed {new Date(s.created_at).toLocaleDateString()}
+                      {m.subscribed ? `Subscribed${m.tier ? ` · ${m.tier}` : ""}` : "Campaign backer"}
+                      {m.backCount > 0 && ` · backed ${m.backCount}×`}
+                      {" · since "}{new Date(m.since).toLocaleDateString()}
                     </div>
                   </div>
-                  <button onClick={() => { setBlockEmail(s.fan?.email ?? ""); setTab("blocked"); }}
-                    style={{ fontFamily:"var(--font-display)", fontSize:11, fontWeight:700, padding:"6px 14px", background:"var(--red-soft)", color:"var(--red)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", cursor:"pointer" }}>
+                  <div style={{ textAlign:"right" }}>
+                    {m.monthly > 0 && (
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:13, color:"var(--accent)" }}>${m.monthly.toFixed(2)}<span style={{ color:"var(--muted)", fontSize:10 }}>/mo</span></div>
+                    )}
+                    {m.backed > 0 && (
+                      <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:"var(--text-soft)" }}>${m.backed.toFixed(2)} backed</div>
+                    )}
+                  </div>
+                  <button onClick={() => { setBlockEmail(m.email ?? ""); setTab("blocked"); }}
+                    disabled={!m.email}
+                    style={{ fontFamily:"var(--font-display)", fontSize:11, fontWeight:700, padding:"6px 14px", background:"var(--red-soft)", color:"var(--red)", border:"1px solid var(--red-border)", borderRadius:"var(--r-1)", cursor: m.email ? "pointer" : "not-allowed", opacity: m.email ? 1 : 0.4 }}>
                     Block
                   </button>
                 </div>
