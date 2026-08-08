@@ -3196,7 +3196,15 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
       price: String(p.price ?? ""),
       category: p.category ?? "other",
       thumbnail_url: p.thumbnail_url ?? "",
+      bundled: [...(p.bundled_product_ids ?? [])],
     });
+  }
+
+  function toggleDraftBundleItem(id: string) {
+    setDraft((d: any) => ({
+      ...d,
+      bundled: d.bundled.includes(id) ? d.bundled.filter((x: string) => x !== id) : [...d.bundled, id],
+    }));
   }
 
   async function saveEdit(id: string) {
@@ -3204,12 +3212,23 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
     const price = Number(draft.price);
     if (!Number.isFinite(price) || price <= 0) { setErr("Set a price above zero."); return; }
 
+    // Emptying a published bundle would leave it with nothing to deliver, which
+    // the deliverable constraint rejects at the database. Say so in words rather
+    // than surfacing a constraint violation.
+    const current = products.find((p: any) => p.id === id);
+    const wasBundle = (current?.bundled_product_ids ?? []).length > 0;
+    if (wasBundle && draft.bundled.length === 0 && !current?.file_url) {
+      setErr("A bundle needs at least one product in it. Add one, or remove the bundle instead.");
+      return;
+    }
+
     const patch = {
       title: draft.title.trim(),
       description: draft.description.trim() || null,
       price,
       category: draft.category,
       thumbnail_url: draft.thumbnail_url || null,
+      bundled_product_ids: draft.bundled ?? [],
     };
     const { error } = await (supabase as any).from("digital_products").update(patch).eq("id", id);
     if (error) { setErr(error.message); return; }
@@ -3453,6 +3472,40 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
                   {DIGITAL_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
                 </select>
               </div>
+              {(() => {
+                const others = products.filter((p: any) => p.id !== editId && (p.bundled_product_ids ?? []).length === 0);
+                if (others.length === 0) return null;
+                const worth = others
+                  .filter((p: any) => (draft.bundled ?? []).includes(p.id))
+                  .reduce((sum: number, p: any) => sum + Number(p.price ?? 0), 0);
+                return (
+                  <div style={{ marginBottom:"var(--s-4)" }}>
+                    <label className="label">What&apos;s in this bundle</label>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:6 }}>
+                      {others.map((p: any) => (
+                        <button key={p.id} type="button" onClick={() => toggleDraftBundleItem(p.id)}
+                          style={{
+                            fontSize:12, padding:"5px 12px", borderRadius:"var(--r-pill)", cursor:"pointer",
+                            background: (draft.bundled ?? []).includes(p.id) ? "var(--accent)" : "transparent",
+                            color: (draft.bundled ?? []).includes(p.id) ? "#0d0d0f" : "var(--text-soft)",
+                            border: `1px solid ${(draft.bundled ?? []).includes(p.id) ? "var(--accent)" : "var(--border)"}`,
+                          }}>
+                          {p.title} · ${Number(p.price).toFixed(0)}
+                        </button>
+                      ))}
+                    </div>
+                    {(draft.bundled ?? []).length > 0 && (
+                      <p style={{ fontSize:12.5, color:"var(--muted)", margin:"10px 0 0" }}>
+                        Worth <strong style={{ color:"var(--text-soft)" }}>${worth.toFixed(2)}</strong> bought separately.
+                        {draft.price && Number(draft.price) < worth
+                          ? <span style={{ color:"var(--accent)" }}> Buyers save ${(worth - Number(draft.price)).toFixed(2)}.</span>
+                          : draft.price ? <span style={{ color:"var(--red)" }}> No saving at this price.</span> : null}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div style={{ display:"flex", gap:"var(--s-3)", alignItems:"center", flexWrap:"wrap" }}>
                 <button className="btn btn--primary" style={{ fontSize:12 }} onClick={() => void saveEdit(editId)}>Save changes</button>
                 <button className="btn btn--secondary" style={{ fontSize:12, borderRadius:"var(--r-pill)" }} onClick={() => { setEditId(null); setDraft(null); }}>Cancel</button>

@@ -32,11 +32,16 @@ export async function POST(req: NextRequest) {
   const netCents = Math.round(product.price * 100);
   const fanCents = grossUpForStripe(netCents); // fan covers the card fee
 
+  // Stripe rejects an empty string here rather than treating it as absent, so the
+  // parameter is only sent when there is something to send. Any product without a
+  // description was failing at checkout, which bundles surfaced first because
+  // they are the first thing a creator makes without writing one.
+  const description = (product.description ?? "").trim().slice(0, 255);
+
   const params = new URLSearchParams({
     "payment_method_types[0]": "card",
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": product.title,
-    "line_items[0][price_data][product_data][description]": (product.description ?? "").slice(0, 255),
     "line_items[0][price_data][unit_amount]": String(fanCents),
     "line_items[0][quantity]": "1",
     mode: "payment",
@@ -53,6 +58,10 @@ export async function POST(req: NextRequest) {
   if (product.creator.stripe_account_id) {
     params.set("payment_intent_data[transfer_data][destination]", product.creator.stripe_account_id);
     params.set("payment_intent_data[transfer_data][amount]", String(netCents)); // creator keeps 100%
+  }
+
+  if (description) {
+    params.set("line_items[0][price_data][product_data][description]", description);
   }
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
