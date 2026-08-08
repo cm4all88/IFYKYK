@@ -3166,6 +3166,42 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
     await saveProduct("active");
   }
 
+  // Products were create-and-delete only, so fixing a typo or a price meant
+  // destroying a product that already had sales attached to it.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<any>(null);
+
+  function startEdit(p: any) {
+    setErr(null);
+    setEditId(p.id);
+    setDraft({
+      title: p.title ?? "",
+      description: p.description ?? "",
+      price: String(p.price ?? ""),
+      category: p.category ?? "other",
+      thumbnail_url: p.thumbnail_url ?? "",
+    });
+  }
+
+  async function saveEdit(id: string) {
+    if (!draft?.title.trim()) { setErr("A product needs a title."); return; }
+    const price = Number(draft.price);
+    if (!Number.isFinite(price) || price <= 0) { setErr("Set a price above zero."); return; }
+
+    const patch = {
+      title: draft.title.trim(),
+      description: draft.description.trim() || null,
+      price,
+      category: draft.category,
+      thumbnail_url: draft.thumbnail_url || null,
+    };
+    const { error } = await (supabase as any).from("digital_products").update(patch).eq("id", id);
+    if (error) { setErr(error.message); return; }
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...patch } : p));
+    setEditId(null);
+    setDraft(null);
+  }
+
   async function toggleStatus(id: string, current: string) {
     // Allowed values are active, draft, archived. 'paused' was not one of them, so
     // every pause silently violated the check constraint and changed nothing.
@@ -3315,6 +3351,9 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
                   </div>
                 </div>
                 <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
+                  <button className="btn btn--secondary" style={{ fontSize:11, padding:"5px 12px", borderRadius:"var(--r-pill)" }} onClick={() => (editId === p.id ? (setEditId(null), setDraft(null)) : startEdit(p))}>
+                    {editId === p.id ? "Cancel" : "Edit"}
+                  </button>
                   <button className="btn btn--secondary" style={{ fontSize:11, padding:"5px 12px", borderRadius:"var(--r-pill)" }} onClick={() => toggleStatus(p.id, p.status)}>
                     {p.status === "active" ? "Unpublish" : "Publish"}
                   </button>
@@ -3323,6 +3362,36 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
               </div>
             );
           })}
+
+          {editId && draft && (
+            <div style={{ background:"var(--surface-2)", border:"1px solid var(--accent-border)", borderRadius:"var(--r-2)", padding:"var(--s-5)" }}>
+              <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+                <div className="form-field">
+                  <label className="label">Title</label>
+                  <input className="input" value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })} />
+                </div>
+                <div className="form-field">
+                  <label className="label">Price ($)</label>
+                  <input className="input" type="number" min="1" step="0.01" value={draft.price} onChange={e => setDraft({ ...draft, price: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
+                <label className="label">Description</label>
+                <textarea className="textarea" rows={2} value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
+              </div>
+              <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
+                <label className="label">Category</label>
+                <select className="input" value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                  {DIGITAL_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+                </select>
+              </div>
+              <div style={{ display:"flex", gap:"var(--s-3)", alignItems:"center", flexWrap:"wrap" }}>
+                <button className="btn btn--primary" style={{ fontSize:12 }} onClick={() => void saveEdit(editId)}>Save changes</button>
+                <button className="btn btn--secondary" style={{ fontSize:12, borderRadius:"var(--r-pill)" }} onClick={() => { setEditId(null); setDraft(null); }}>Cancel</button>
+                <span style={{ fontSize:11.5, color:"var(--muted)" }}>The file and cover stay as they are. Remove and re-add the product to change the file.</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
