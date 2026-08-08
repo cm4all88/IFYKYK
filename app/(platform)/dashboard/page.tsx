@@ -654,9 +654,14 @@ function OverviewPane({
     ? { pane: "payments" as Pane, label: "Connect Stripe", desc: "Required before your audience can pay you.", color: "var(--accent-open)" }
     : stats.posts === 0
     ? { pane: "posts" as Pane, label: "Create your first post", desc: "Free posts build your audience. Paid posts build your income.", color: "var(--accent)" }
-    : stats.audience === 0
+    : !hasTier
     ? { pane: "tiers" as Pane, label: "Set up a subscription", desc: "Give your audience a reason to join.", color: "var(--accent)" }
-    : { pane: "posts" as Pane, label: "New post", desc: "Keep your audience engaged.", color: "var(--accent)" };
+    : null;
+
+  // Once the account is set up, everything above is finished business. A creator
+  // opening the dashboard for the tenth time should see their money and their
+  // people, not a fourth reminder to build a page that already exists.
+  const setupComplete = stripeConnected && stats.posts > 0 && hasTier && !!profile.bio;
 
   return (
     <div className="pane">
@@ -701,8 +706,10 @@ function OverviewPane({
         </button>
       )}
 
-      {/* Onboarding checklist */}
-      {!checklistDismissed && (
+      {/* Onboarding checklist. Hidden once every item is done: a completed
+          checklist is not a to-do list, it is decoration in the most valuable
+          space on the screen. */}
+      {!checklistDismissed && !setupComplete && (
         <OnboardingChecklist
           hasAvatar={!!profile.avatar_url}
           hasBio={!!profile.bio}
@@ -829,14 +836,15 @@ function OverviewPane({
 
       {/* Quick actions — priority hierarchy */}
 
-      {/* Next action — dynamic based on actual state */}
+      {/* Next action. Only while something is genuinely unfinished. */}
+      {nextMove && (
       <div style={{ marginBottom: "var(--s-8)" }}>
         <button
-          onClick={() => onSetPane(nextMove.pane)}
+          onClick={() => onSetPane(nextMove!.pane)}
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             background: "var(--surface)", border: "1px solid var(--border)",
-            borderLeft: `3px solid ${nextMove.color}`,
+            borderLeft: `3px solid ${nextMove!.color}`,
             padding: "20px 28px", color: "inherit", cursor: "pointer",
             borderRadius: "var(--r-2)", transition: "background var(--t-fast)",
             gap: 16, width: "100%", textAlign: "left",
@@ -845,21 +853,28 @@ function OverviewPane({
           onMouseLeave={e => (e.currentTarget.style.background = "var(--surface)")}
         >
           <div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: nextMove.color, marginBottom: 6 }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: nextMove!.color, marginBottom: 6 }}>
               Your next move
             </p>
             <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontWeight: 400, color: "#fff", margin: "0 0 4px" }}>
-              {nextMove.label}
+              {nextMove!.label}
             </p>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{nextMove.desc}</p>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>{nextMove!.desc}</p>
           </div>
-          <span style={{ color: nextMove.color, fontSize: 20, flexShrink: 0 }}>→</span>
+          <span style={{ color: nextMove!.color, fontSize: 20, flexShrink: 0 }}>→</span>
         </button>
       </div>
+      )}
+
+      {/* Recent sales. For a working creator this is the reason they opened the
+          dashboard, so it sits above the referral and setup prompts rather than
+          under them. */}
+      <RecentSalesCard onSetPane={onSetPane} />
 
       <ReferralQuickCard handle={profile.handle} onOpen={() => onSetPane("refer")} />
 
-      <SetupNextCard profile={profile} onSetPane={onSetPane} />
+      {/* Setup suggestions are for accounts still being set up. */}
+      {!setupComplete && <SetupNextCard profile={profile} onSetPane={onSetPane} />}
 
       {/* Tools — a tidy grid, not a wall */}
       <p className="kicker" style={{ marginBottom: "var(--s-4)" }}>Your tools</p>
@@ -1682,6 +1697,69 @@ function GuidedCampaignCreator({ profile, onCreated, onCancel }: { profile: Prof
 // their own customers. Everything needed to answer "I never got my file"
 // lives on this screen.
 // ──────────────────────────────────────────────────────────────────
+
+
+// ──────────────────────────────────────────────────────────────────
+// Recent sales on the overview. A creator opening the dashboard wants to know
+// whether anyone paid them and whether anyone is stuck. Both answers live here,
+// above every setup prompt.
+// ──────────────────────────────────────────────────────────────────
+
+function RecentSalesCard({ onSetPane }: { onSetPane: (p: Pane) => void }) {
+  const [data, setData] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/creator/sales");
+        setData(await res.json());
+      } catch { /* the overview still works without it */ }
+    })();
+  }, []);
+
+  const orders: any[] = data?.orders ?? [];
+  if (orders.length === 0) return null;
+
+  const stuck = data?.totals?.undelivered ?? 0;
+  const money = (n: number) => `$${Number(n ?? 0).toFixed(2)}`;
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-3)", padding: "var(--s-5)", marginBottom: "var(--s-6)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "var(--s-4)", gap: 12 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--muted)", margin: 0 }}>
+          Recent sales
+        </p>
+        <button onClick={() => onSetPane("sales")}
+          style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent)" }}>
+          See all →
+        </button>
+      </div>
+
+      {stuck > 0 && (
+        <button onClick={() => onSetPane("sales")}
+          style={{ width: "100%", textAlign: "left", background: "rgba(240,180,41,0.07)", border: "1px solid var(--accent-border)", borderRadius: "var(--r-2)", padding: "10px 14px", marginBottom: "var(--s-4)", cursor: "pointer" }}>
+          <span style={{ fontSize: 12.5, color: "var(--text-soft)" }}>
+            {stuck} buyer{stuck === 1 ? "" : "s"} never opened their download. Send their link →
+          </span>
+        </button>
+      )}
+
+      <div style={{ display: "grid", gap: 1 }}>
+        {orders.slice(0, 5).map((o: any) => (
+          <div key={`${o.kind}-${o.id}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.what}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)", letterSpacing: ".05em", marginTop: 2 }}>
+                {o.buyerName || o.buyerEmail || o.label} · {new Date(o.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--accent)", flexShrink: 0 }}>{money(o.net)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function SalesPane() {
   const [data, setData] = React.useState<any>(null);
