@@ -144,9 +144,18 @@ export async function POST(req: NextRequest) {
 
     // ── Subscription ────────────────────────────────────────────────
     else if (type === "subscription" || (s.mode === "subscription" && !type)) {
+      // client_reference_id is the primary source, metadata the fallback. A row
+      // with a null fan is worse than no row: it satisfies the upsert and then
+      // belongs to nobody.
+      const fanUserId = s.client_reference_id || meta.fan_user_id || null;
+      if (!fanUserId) {
+        console.error(`SUBSCRIPTION WITHOUT FAN for session ${s.id}. Not recording.`);
+        return NextResponse.json({ error: "Subscription had no fan id" }, { status: 500 });
+      }
+
       await (supabase as any).from("subscriptions").upsert({
         creator_profile_id: meta.creator_profile_id,
-        fan_user_id: s.client_reference_id,
+        fan_user_id: fanUserId,
         stripe_subscription_id: s.subscription,
         status: "active",
         tier: "premium",

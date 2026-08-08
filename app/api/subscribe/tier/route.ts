@@ -12,6 +12,14 @@ export async function POST(req: NextRequest) {
 
   const { tierId, billingPeriod = "monthly", successUrl, cancelUrl } = await req.json();
 
+  // A subscription must belong to an account. Without one there is nothing to
+  // attach the row to, the creator never sees the subscriber, and the fan has no
+  // way to reach what they paid for. The page already shows a sign-in prompt for
+  // logged-out visitors; this stops the route being reachable another way.
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to subscribe", needsAuth: true }, { status: 401 });
+  }
+
   if (!tierId) return NextResponse.json({ error: "Tier ID required" }, { status: 400 });
   if (!["monthly", "yearly"].includes(billingPeriod)) {
     return NextResponse.json({ error: "Invalid billing period" }, { status: 400 });
@@ -67,10 +75,18 @@ export async function POST(req: NextRequest) {
     "line_items[0][quantity]": "1",
     success_url: successUrl ?? `${appUrl}/${tier.creator.handle}?subscribed=1`,
     cancel_url: cancelUrl ?? `${appUrl}/${tier.creator.handle}`,
+    // The webhook reads fan_user_id from client_reference_id. Without it the
+    // subscription row is written with a null fan and the subscriber never
+    // appears anywhere: not in the creator's audience, not in their sales, not
+    // in the subscriber count. /api/subscribe has always set this; this route,
+    // which is what every tier button on a creator page uses, never did.
+    client_reference_id: user.id,
     "metadata[type]": "subscription",
     "metadata[tier_id]": tierId,
     "metadata[creator_profile_id]": tier.creator_profile_id,
     "metadata[billing_period]": billingPeriod,
+    "metadata[fan_user_id]": user.id,
+    "metadata[fan_email]": user.email ?? "",
   });
 
   if (user?.id) params.set("metadata[fan_user_id]", user.id);
