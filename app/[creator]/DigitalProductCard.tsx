@@ -22,7 +22,7 @@ interface Props {
   creatorProfileId: string;
 }
 
-export default function DigitalProductCard({ product, creatorProfileId }: Props) {
+export default function DigitalProductCard({ product, creatorProfileId, bundleSavings }: Props & { bundleSavings?: number }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +55,11 @@ export default function DigitalProductCard({ product, creatorProfileId }: Props)
 
       <div style={{ padding: "var(--s-4)", flex: 1, display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
         <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", lineHeight: 1.3 }}>{product.title}</p>
+        {bundleSavings != null && bundleSavings > 0 && (
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)", margin: "4px 0 0" }}>
+            Bundle · save ${bundleSavings.toFixed(0)}
+          </p>
+        )}
 
         {product.preview_description && (
           <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{product.preview_description}</p>

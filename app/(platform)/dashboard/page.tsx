@@ -3056,6 +3056,21 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
   const [products, setProducts] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [creating, setCreating] = React.useState(false);
+  // A bundle contains other products instead of its own file. Selling three sets
+  // together for less than the sum is the closest thing to "buy 2 get 1 free"
+  // that works without a cart, and every Buy button here is a single-item
+  // checkout, so a cart is a much larger change than it looks.
+  const [bundleIds, setBundleIds] = React.useState<string[]>([]);
+  const isBundle = bundleIds.length > 0;
+  const bundleFullPrice = products
+    .filter((p: any) => bundleIds.includes(p.id))
+    .reduce((sum: number, p: any) => sum + Number(p.price ?? 0), 0);
+
+  function toggleBundleItem(id: string) {
+    setBundleIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
+
+
   const [uploading, setUploading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [title, setTitle] = React.useState("");
@@ -3138,7 +3153,7 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
 
   async function saveProduct(status: "active" | "draft") {
     if (!title.trim() || !price) { setErr("A title and a price are required, even for a draft."); return; }
-    if (status === "active" && !fileUrl) { setErr("A published product needs its file. Save it as a draft and add the file later."); return; }
+    if (status === "active" && !fileUrl && bundleIds.length === 0) { setErr("A published product needs its file, or it needs to be a bundle of other products."); return; }
     setSaving(true);
     setErr(null);
 
@@ -3151,13 +3166,14 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
       file_size_bytes: fileSizeBytes || null, file_type: fileType || null, category,
       thumbnail_url: previewImageUrl || null,
       storage_provider: "supabase",
+      bundled_product_ids: bundleIds,
       status,
     });
     setSaving(false);
     if (error) { setErr(error.message); return; }
 
     setCreating(false); setTitle(""); setDescription(""); setPrice("");
-    setFileUrl(""); setFileName(""); setFileSizeBytes(0); setCategory("other"); setPreviewImageUrl("");
+    setFileUrl(""); setFileName(""); setFileSizeBytes(0); setCategory("other"); setPreviewImageUrl(""); setBundleIds([]);
     void load();
   }
 
@@ -3291,8 +3307,41 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
               <span style={{ color:"var(--muted)" }}> · fan pays ${(grossUpForStripe(Math.round(parseFloat(price||"0") * 100)) / 100).toFixed(2)} so the card fee never comes out of your side</span>
             </div>
           )}
+          {products.filter((p: any) => (p.bundled_product_ids ?? []).length === 0).length > 1 && (
+            <div style={{ background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4) var(--s-5)", marginBottom:"var(--s-5)" }}>
+              <p style={{ fontFamily:"var(--font-mono)", fontSize:9, letterSpacing:".16em", textTransform:"uppercase", color:"var(--muted)", margin:"0 0 4px" }}>Or make this a bundle</p>
+              <p style={{ fontSize:12.5, color:"var(--muted)", margin:"0 0 12px", lineHeight:1.5 }}>
+                Pick the products to include and price it below the total. Buyers get every file from one purchase, and no separate upload is needed.
+              </p>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                {products.filter((p: any) => (p.bundled_product_ids ?? []).length === 0).map((p: any) => (
+                  <button key={p.id} type="button" onClick={() => toggleBundleItem(p.id)}
+                    style={{
+                      fontSize:12, padding:"5px 12px", borderRadius:"var(--r-pill)", cursor:"pointer",
+                      background: bundleIds.includes(p.id) ? "var(--accent)" : "transparent",
+                      color: bundleIds.includes(p.id) ? "#0d0d0f" : "var(--text-soft)",
+                      border: `1px solid ${bundleIds.includes(p.id) ? "var(--accent)" : "var(--border)"}`,
+                    }}>
+                    {p.title} · ${Number(p.price).toFixed(0)}
+                  </button>
+                ))}
+              </div>
+              {isBundle && (
+                <p style={{ fontSize:12.5, color:"var(--text-soft)", margin:"12px 0 0" }}>
+                  {bundleIds.length} included, worth <strong>${bundleFullPrice.toFixed(2)}</strong> separately.
+                  {price && Number(price) < bundleFullPrice && (
+                    <span style={{ color:"var(--accent)" }}> Buyers save ${(bundleFullPrice - Number(price)).toFixed(2)} ({Math.round((1 - Number(price) / bundleFullPrice) * 100)}% off).</span>
+                  )}
+                  {price && Number(price) >= bundleFullPrice && (
+                    <span style={{ color:"var(--red)" }}> Priced at or above buying them separately, so there is no reason to choose it.</span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
+
           {(() => {
-            const missing = [!title.trim() && "a title", !price && "a price", !fileUrl && "the file itself"].filter(Boolean) as string[];
+            const missing = [!title.trim() && "a title", !price && "a price", !fileUrl && !isBundle && "the file itself"].filter(Boolean) as string[];
             const canDraft = !!title.trim() && !!price;
             return (
               <>
@@ -3347,6 +3396,11 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)", fontWeight:700 }}>${Number(p.price).toFixed(2)}</span>
                     <span style={{ fontSize:11, color:"var(--muted)" }}>{cat?.label}</span>
                     <span style={{ fontSize:11, color:"var(--muted)" }}>{p.total_sales} sold</span>
+                    {(p.bundled_product_ids ?? []).length > 0 && (
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".08em", textTransform:"uppercase", color:"var(--accent)" }}>
+                        bundle of {p.bundled_product_ids.length}
+                      </span>
+                    )}
                     <span style={{ fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".1em", textTransform:"uppercase", color: p.status === "active" ? "#34D399" : "var(--muted)", background: p.status === "active" ? "rgba(52,211,153,0.08)" : "rgba(255,255,255,0.04)", border: `1px solid ${p.status === "active" ? "rgba(52,211,153,0.2)" : "var(--border)"}`, padding:"1px 7px", borderRadius:99 }}>{p.status}</span>
                   </div>
                 </div>

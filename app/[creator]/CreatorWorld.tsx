@@ -212,7 +212,7 @@ async function loadWorld(handle: string) {
 
   const { data: digitalProducts } = await (supabase as any)
     .from("digital_products")
-    .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales")
+    .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales, bundled_product_ids")
     .eq("creator_profile_id", sp.id).eq("status", "active")
     .order("created_at", { ascending: false }).limit(8);
 
@@ -434,7 +434,20 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
               <SectionLabel center>{fn}&apos;s digital store</SectionLabel>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
                 {digitalProducts.map((pr: any) => (
-                  <DigitalProductCard key={pr.id} product={pr} creatorProfileId={sp.id} />
+                  <DigitalProductCard
+                    key={pr.id}
+                    product={pr}
+                    creatorProfileId={sp.id}
+                    bundleSavings={(() => {
+                      const ids: string[] = pr.bundled_product_ids ?? [];
+                      if (ids.length === 0) return undefined;
+                      // What the same items would cost bought one at a time.
+                      const full = (digitalProducts ?? [])
+                        .filter((x: any) => ids.includes(x.id))
+                        .reduce((sum: number, x: any) => sum + Number(x.price ?? 0), 0);
+                      return full > Number(pr.price) ? full - Number(pr.price) : undefined;
+                    })()}
+                  />
                 ))}
               </div>
             </section>
