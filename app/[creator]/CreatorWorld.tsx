@@ -447,6 +447,14 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                         .reduce((sum: number, x: any) => sum + Number(x.price ?? 0), 0);
                       return full > Number(pr.price) ? full - Number(pr.price) : undefined;
                     })()}
+                    bundleCovers={(() => {
+                      const ids: string[] = pr.bundled_product_ids ?? [];
+                      if (ids.length === 0) return undefined;
+                      // Keep the creator's own ordering of the bundle.
+                      return ids
+                        .map((id) => (digitalProducts ?? []).find((x: any) => x.id === id)?.thumbnail_url)
+                        .filter(Boolean) as string[];
+                    })()}
                   />
                 ))}
               </div>

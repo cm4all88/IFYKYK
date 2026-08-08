@@ -3388,7 +3388,21 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
             return (
               <div key={p.id} style={{ display:"flex", alignItems:"center", gap:"var(--s-4)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", opacity: p.status === "active" ? 1 : 0.6 }}>
                 <div style={{ width:52, height:40, background:"var(--surface-2)", border:"1px solid var(--border)", borderRadius:"var(--r-1)", flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
-                  {p.thumbnail_url ? <img src={p.thumbnail_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ fontSize:20 }}>{cat?.emoji ?? "📦"}</span>}
+                  {(() => {
+                    if (p.thumbnail_url) return <img src={p.thumbnail_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />;
+                    const ids: string[] = p.bundled_product_ids ?? [];
+                    const covers = ids
+                      .map((id) => products.find((x: any) => x.id === id)?.thumbnail_url)
+                      .filter(Boolean) as string[];
+                    if (covers.length === 0) return <span style={{ fontSize:20 }}>{cat?.emoji ?? "📦"}</span>;
+                    return (
+                      <div style={{ width:"100%", height:"100%", display:"grid", gap:1, gridTemplateColumns: covers.length === 1 ? "1fr" : "1fr 1fr", gridTemplateRows: covers.length <= 2 ? "1fr" : "1fr 1fr" }}>
+                        {covers.slice(0, 4).map((src, i) => (
+                          <img key={i} src={src} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.title}</p>

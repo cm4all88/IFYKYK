@@ -22,7 +22,12 @@ interface Props {
   creatorProfileId: string;
 }
 
-export default function DigitalProductCard({ product, creatorProfileId, bundleSavings }: Props & { bundleSavings?: number }) {
+export default function DigitalProductCard({
+  product,
+  creatorProfileId,
+  bundleSavings,
+  bundleCovers,
+}: Props & { bundleSavings?: number; bundleCovers?: string[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,12 +50,37 @@ export default function DigitalProductCard({ product, creatorProfileId, bundleSa
       borderRadius: "var(--r-3)", overflow: "hidden",
       display: "flex", flexDirection: "column",
     }}>
-      {/* Thumbnail or category icon */}
+      {/* Cover. A bundle with no cover of its own builds one from what is inside
+          it, laid out as a grid. Composed at render rather than generated and
+          stored, so it stays correct when a creator changes one of the covers. */}
       <div style={{ height: 120, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {product.thumbnail_url
-          ? <img src={product.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <span style={{ fontSize: 44 }}>{CATEGORY_EMOJI[product.category] ?? "💾"}</span>
-        }
+        {product.thumbnail_url ? (
+          <img src={product.thumbnail_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : bundleCovers && bundleCovers.length > 0 ? (
+          <div style={{
+            width: "100%", height: "100%", display: "grid", gap: 1,
+            gridTemplateColumns: bundleCovers.length === 1 ? "1fr" : "1fr 1fr",
+            gridTemplateRows: bundleCovers.length <= 2 ? "1fr" : "1fr 1fr",
+          }}>
+            {bundleCovers.slice(0, 4).map((src, i) => (
+              <div key={i} style={{ position: "relative", overflow: "hidden", background: "rgba(255,255,255,0.03)" }}>
+                <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                {/* More than four included: mark the last tile with the remainder. */}
+                {i === 3 && bundleCovers.length > 4 && (
+                  <div style={{
+                    position: "absolute", inset: 0, background: "rgba(10,10,15,0.66)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, color: "#fff",
+                  }}>
+                    +{bundleCovers.length - 3}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span style={{ fontSize: 44 }}>{CATEGORY_EMOJI[product.category] ?? "💾"}</span>
+        )}
       </div>
 
       <div style={{ padding: "var(--s-4)", flex: 1, display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
