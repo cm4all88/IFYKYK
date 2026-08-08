@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
 
-const SIGNED_URL_TTL_SECONDS = 300; // 5 minutes: long enough to start a download, short enough not to be shareable
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// An hour. The signed URL is minted per request, so this only needs to outlast a
+// single download, but a large file on a slow connection can take a while and an
+// expiry mid-transfer looks identical to a broken link.
+const SIGNED_URL_TTL_SECONDS = 3600;
 
 export async function GET(req: NextRequest) {
   const token = new URL(req.url).searchParams.get("token");
@@ -59,10 +65,27 @@ export async function GET(req: NextRequest) {
     target = purchase.product.file_url;
   }
 
-  await (supabase as any)
-    .from("digital_purchases")
-    .update({ download_count: purchase.download_count + 1 })
-    .eq("id", purchase.id);
+  // Link previews and prefetchers send HEAD or a purpose hint. Those are not
+  // downloads and must not count against a buyer's limit.
+  const purpose = req.headers.get("purpose") || req.headers.get("sec-purpose") || "";
+  const isPrefetch = /prefetch|preview/i.test(purpose);
 
-  return NextResponse.redirect(target);
+  if (!isPrefetch) {
+    await (supabase as any)
+      .from("digital_purchases")
+      .update({ download_count: purchase.download_count + 1 })
+      .eq("id", purchase.id);
+  }
+
+  // Never let this redirect be cached. A cached 307 replays a signed URL that has
+  // already expired, so the first click works and every later one dies with an
+  // InvalidJWT from storage. It is also why download_count was incrementing
+  // twice: prefetchers hit the route, cached the redirect, and burned a count
+  // before the buyer clicked anything.
+  const res = NextResponse.redirect(target, { status: 302 });
+  res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.headers.set("CDN-Cache-Control", "no-store");
+  res.headers.set("Vercel-CDN-Cache-Control", "no-store");
+  res.headers.set("Pragma", "no-cache");
+  return res;
 }

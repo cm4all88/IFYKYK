@@ -40,7 +40,7 @@ type Profile = {
 };
 
 type Tab = "spotlight" | "backstage";
-type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "refer" | "marketplace" | "import" | "social" | "settings";
+type Pane = "overview" | "profile" | "posts" | "channels" | "fans" | "campaigns" | "wishlist" | "advisor" | "analytics" | "payments" | "moderation" | "blocks" | "messages" | "live" | "billing" | "digital" | "tiers" | "store" | "sales" | "refer" | "marketplace" | "import" | "social" | "settings";
 
 // ──────────────────────────────────────────────────────────────────
 // Component
@@ -62,7 +62,7 @@ export default function DashboardPage() {
   // Collapsible sidebar sections
   const PANE_SECTION: Partial<Record<Pane, string>> = {
     fans:"audience", campaigns:"audience", wishlist:"audience",
-    advisor:"earn", analytics:"earn", tiers:"earn", refer:"earn",
+    advisor:"earn", analytics:"earn", tiers:"earn", refer:"earn", sales:"earn",
     marketplace:"publish", store:"publish", social:"publish",
     payments:"account", billing:"account", settings:"account",
     moderation:"account", blocks:"account",
@@ -325,6 +325,7 @@ export default function DashboardPage() {
               </button>
               {openSections.has("earn") && (
                 <div className="db-nav-section">
+                  <PaneButton current={pane} target="sales" onClick={setPane}>Sales</PaneButton>
                   <PaneButton current={pane} target="tiers" onClick={setPane}>Subscription Tiers</PaneButton>
                   <PaneButton current={pane} target="campaigns" onClick={setPane}>Campaigns</PaneButton>
                   <PaneButton current={pane} target="wishlist" onClick={setPane}>Wishlist</PaneButton>
@@ -457,6 +458,9 @@ export default function DashboardPage() {
           )}
           {pane === "campaigns" && active && (
             <CampaignsPane profile={active} />
+          )}
+          {pane === "sales" && active && (
+            <SalesPane />
           )}
           {pane === "wishlist" && active && (
             <WishlistPane profile={active} />
@@ -871,6 +875,7 @@ function OverviewPane({
           { pane: "social" as Pane, label: "Social posts", desc: "Bring in your Instagram, TikTok, or YouTube." },
           { href: "/live", label: "Go Live", desc: "Stream directly to your audience." },
           { href: "/merch", label: "Merch", desc: "Design and sell branded products. No upfront cost." },
+          { pane: "sales" as Pane, label: "Sales", desc: "Every order, who bought it, and their download link." },
           { pane: "store" as Pane, label: "Digital store", desc: "Guides, presets, photo sets. You keep 100%." },
           { pane: "campaigns" as Pane, label: "Campaigns", desc: "Raise for a goal. Backers get their own tiers." },
           { pane: "analytics" as Pane, label: "Analytics", desc: "Audience growth and earnings." },
@@ -1669,6 +1674,184 @@ function GuidedCampaignCreator({ profile, onCreated, onCancel }: { profile: Prof
   );
 }
 
+
+
+// ──────────────────────────────────────────────────────────────────
+// Sales — every order, who bought it, and what to do when delivery fails.
+// A creator who has to ask us for a buyer's download link cannot support
+// their own customers. Everything needed to answer "I never got my file"
+// lives on this screen.
+// ──────────────────────────────────────────────────────────────────
+
+function SalesPane() {
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [filter, setFilter] = React.useState<"all" | "digital" | "undelivered">("all");
+  const [copied, setCopied] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/creator/sales");
+        setData(await res.json());
+      } catch {
+        setData({ orders: [], totals: null });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const orders: any[] = data?.orders ?? [];
+  const shown = orders.filter((o) =>
+    filter === "all" ? true :
+    filter === "digital" ? o.kind === "digital" :
+    o.kind === "digital" && (o.downloadCount ?? 0) === 0
+  );
+
+  async function copy(text: string, id: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(id);
+      setTimeout(() => setCopied(null), 1800);
+    } catch { /* clipboard blocked */ }
+  }
+
+  const money = (n: number) => `$${Number(n ?? 0).toFixed(2)}`;
+  const t = data?.totals;
+
+  return (
+    <div>
+      <p className="kicker">Earn</p>
+      <h1 className="pane-title">Your <em>sales.</em></h1>
+      <p className="pane-sub">Everyone who has paid you, what they paid for, and the link to send if their download went missing.</p>
+
+      {loading && <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading…</p>}
+
+      {!loading && t && (
+        <>
+          <div className="stats" style={{ marginBottom: "var(--s-6)" }}>
+            <div className="stat">
+              <p className="stat-label">Your share</p>
+              <p className="stat-num">{money(t.net)}</p>
+              <p className="stat-meta">{t.count} order{t.count === 1 ? "" : "s"} all time</p>
+            </div>
+            <div className="stat">
+              <p className="stat-label">Last 30 days</p>
+              <p className="stat-num">{money(t.net30)}</p>
+              <p className="stat-meta">{t.count30} order{t.count30 === 1 ? "" : "s"}</p>
+            </div>
+            <div className="stat">
+              <p className="stat-label">Fans spent</p>
+              <p className="stat-num">{money(t.gross)}</p>
+              <p className="stat-meta">Before card fees</p>
+            </div>
+            <div className="stat">
+              <p className="stat-label">Not downloaded</p>
+              <p className="stat-num">{t.undelivered}</p>
+              <p className="stat-meta">Worth checking on</p>
+            </div>
+          </div>
+
+          {t.undelivered > 0 && (
+            <div style={{ background: "rgba(240,180,41,0.06)", border: "1px solid var(--accent-border)", borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)", marginBottom: "var(--s-5)" }}>
+              <p style={{ fontSize: 13, color: "var(--text-soft)", margin: 0, lineHeight: 1.6 }}>
+                {t.undelivered} buyer{t.undelivered === 1 ? " has" : "s have"} not opened their download yet. That usually means the email went to spam. Copy their link below and send it to them directly.
+              </p>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginBottom: "var(--s-5)", flexWrap: "wrap" }}>
+            {([["all", "All orders"], ["digital", "Digital only"], ["undelivered", "Not downloaded"]] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setFilter(k as any)}
+                style={{
+                  fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: ".06em",
+                  padding: "6px 14px", borderRadius: "var(--r-pill)", cursor: "pointer",
+                  background: filter === k ? "var(--accent)" : "transparent",
+                  color: filter === k ? "#0d0d0f" : "var(--muted)",
+                  border: `1px solid ${filter === k ? "var(--accent)" : "var(--border)"}`,
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {!loading && shown.length === 0 && (
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-2)", padding: "var(--s-7)", textAlign: "center" }}>
+          <p style={{ fontFamily: "var(--font-serif)", fontSize: 20, fontStyle: "italic", color: "#fff", marginBottom: "var(--s-2)" }}>Nothing here yet.</p>
+          <p style={{ fontSize: 13, color: "var(--muted)" }}>Every sale, tip, and campaign backing shows up here with the buyer's details.</p>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gap: 2 }}>
+        {shown.map((o: any) => {
+          const undelivered = o.kind === "digital" && (o.downloadCount ?? 0) === 0;
+          return (
+            <div key={`${o.kind}-${o.id}`} style={{ background: "var(--surface)", border: `1px solid ${undelivered ? "var(--accent-border)" : "var(--border)"}`, borderRadius: "var(--r-2)", padding: "var(--s-4) var(--s-5)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "baseline", flexWrap: "wrap" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, color: "var(--text)", fontWeight: 600 }}>{o.what}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", letterSpacing: ".06em", marginTop: 3 }}>
+                    {o.label} · {new Date(o.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--accent)" }}>{money(o.net)}</div>
+                  {o.gross > o.net && (
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--muted)" }}>fan paid {money(o.gross)}</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                {(o.buyerName || o.buyerEmail) && (
+                  <span style={{ fontSize: 12.5, color: "var(--text-soft)" }}>
+                    {o.buyerName ? `${o.buyerName} · ` : ""}{o.buyerEmail ?? "no email on file"}
+                  </span>
+                )}
+                {o.buyerEmail && (
+                  <button onClick={() => copy(o.buyerEmail, `mail-${o.id}`)}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 10, padding: "3px 9px", background: "transparent", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: "var(--r-1)", cursor: "pointer" }}>
+                    {copied === `mail-${o.id}` ? "copied" : "copy email"}
+                  </button>
+                )}
+              </div>
+
+              {o.note && (
+                <p style={{ fontSize: 12, color: "var(--muted)", margin: "8px 0 0", fontStyle: "italic" }}>{o.note}</p>
+              )}
+
+              {o.kind === "digital" && o.downloadUrl && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: undelivered ? "var(--accent)" : "var(--muted)", letterSpacing: ".06em" }}>
+                    {undelivered ? "NEVER DOWNLOADED" : `Downloaded ${o.downloadCount}×`}
+                    {o.downloadLimit ? ` of ${o.downloadLimit} allowed` : ""}
+                  </span>
+                  <button onClick={() => copy(o.downloadUrl, `dl-${o.id}`)}
+                    style={{ fontFamily: "var(--font-display)", fontSize: 11, fontWeight: 700, padding: "6px 14px", background: "var(--accent)", color: "#0d0d0f", border: "none", borderRadius: "var(--r-pill)", cursor: "pointer" }}>
+                    {copied === `dl-${o.id}` ? "Copied" : "Copy download link"}
+                  </button>
+                  <a href={o.downloadUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--muted)", textDecoration: "underline" }}>
+                    test it
+                  </a>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {!loading && shown.length > 0 && (
+        <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: "var(--s-5)", lineHeight: 1.6 }}>
+          Download links are private to each buyer. Only send one to the person who bought it.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function CampaignsPane({ profile }: { profile: Profile }) {
   const supabase = createClient();
