@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const { itemId, buyerMessage } = await req.json();
@@ -27,10 +28,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Someone else is currently purchasing this. Try again in a few minutes." }, { status: 409 });
   }
 
-  await (supabase as any).from("wishlist_items").update({
+  await writeOrLog("wishlist/purchase update wishlist_items", (supabase as any).from("wishlist_items").update({
     reserved_until: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
     purchased_by_id: user.id,
-  }).eq("id", itemId);
+  }).eq("id", itemId));
 
   const itemPrice = Number(item.price);
   // Service fee: 12% min $3 — this is what Spotlightly keeps
@@ -73,8 +74,8 @@ export async function POST(req: NextRequest) {
   });
 
   if (!stripeRes.ok) {
-    await (supabase as any).from("wishlist_items")
-      .update({ reserved_until: null, purchased_by_id: null }).eq("id", itemId);
+    await writeOrLog("wishlist/purchase update wishlist_items", (supabase as any).from("wishlist_items")
+      .update({ reserved_until: null, purchased_by_id: null }).eq("id", itemId));
     return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
   }
 

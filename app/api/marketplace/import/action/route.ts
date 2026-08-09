@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { sanitizePrice, normalizeCategory, normalizeCondition } from "@/lib/import-core";
 import { resolveSpotlightProfile } from "@/lib/import-draft";
+import { writeOrLog } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (draft.status !== "draft") return NextResponse.json({ error: "Already processed" }, { status: 409 });
 
   if (action === "skip") {
-    await (supabase as any).from("marketplace_listings").delete().eq("id", id).eq("creator_profile_id", profile.id);
+    await writeOrLog("marketplace/import/action delete marketplace_listings", (supabase as any).from("marketplace_listings").delete().eq("id", id).eq("creator_profile_id", profile.id));
     return NextResponse.json({ ok: true, action: "skip" });
   }
 

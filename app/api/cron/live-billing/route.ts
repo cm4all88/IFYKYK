@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { LIVE_FREE_SECONDS, liveIncrementCents } from "@/lib/fees";
+import { writeOrLog } from "@/lib/db";
 
 // Runs every 15 minutes. For each live stream past its first (free) hour, accrue
 // one 15-minute usage increment ($0.01/viewer/hour). When a stream ends, roll its
@@ -44,12 +45,12 @@ export async function GET(req: NextRequest) {
     const amount = liveIncrementCents(viewers);
     if (amount <= 0) continue;
 
-    await (supabase as any).from("live_usage_charges").insert({
+    await writeOrLog("cron/live-billing insert live_usage_charges", (supabase as any).from("live_usage_charges").insert({
       stream_id: s.id,
       creator_profile_id: s.creator_profile_id,
       viewer_count: viewers,
       amount_cents: amount,
-    });
+    }));
   }
 
   // 2) Bill ended streams: one invoice item per stream's unbilled usage.
@@ -95,9 +96,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    await (supabase as any).from("live_usage_charges")
+    await writeOrLog("cron/live-billing update live_usage_charges", (supabase as any).from("live_usage_charges")
       .update({ billed: true, stripe_invoice_item_id: invoiceItemId })
-      .in("id", g.ids);
+      .in("id", g.ids));
   }
 
   return NextResponse.json({ ok: true });

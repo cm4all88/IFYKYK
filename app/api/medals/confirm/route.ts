@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { writeOrLog } from "@/lib/db";
 
 // Records a medal-pack purchase by verifying the PaymentIntent directly with
 // Stripe (never trusting the client). Idempotent: safe to call more than once.
@@ -34,21 +35,21 @@ export async function POST(req: NextRequest) {
   const medals = parseInt(meta.medals ?? "0", 10);
 
   if (!existing) {
-    await (supabase as any).from("medal_purchases").insert({
+    await writeOrLog("medals/confirm insert medal_purchases", (supabase as any).from("medal_purchases").insert({
       fan_user_id: user.id,
       pack_id: meta.pack_id,
       medals,
       amount_usd: parseFloat(meta.amount_usd ?? "0"),
       stripe_session: pi.id,
-    });
+    }));
     const { data: bal } = await (supabase as any)
       .from("medal_balances").select("balance, lifetime_purchased").eq("fan_user_id", user.id).maybeSingle();
-    await (supabase as any).from("medal_balances").upsert({
+    await writeOrLog("medals/confirm upsert medal_balances", (supabase as any).from("medal_balances").upsert({
       fan_user_id: user.id,
       balance: (bal?.balance ?? 0) + medals,
       lifetime_purchased: (bal?.lifetime_purchased ?? 0) + medals,
       updated_at: new Date().toISOString(),
-    }, { onConflict: "fan_user_id" });
+    }, { onConflict: "fan_user_id" }));
   }
 
   const { data: now } = await (supabase as any)

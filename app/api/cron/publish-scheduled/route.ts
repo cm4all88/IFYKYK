@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { writeOrLog } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   // Verify it's from Vercel cron
@@ -26,10 +27,10 @@ export async function GET(req: NextRequest) {
 
   const ids = due.map((p: any) => p.id);
 
-  await supabase
+  await writeOrLog("cron/publish-scheduled update posts", supabase
     .from("posts")
     .update({ status: "live", scheduled_at: null })
-    .in("id", ids);
+    .in("id", ids));
 
   // Notify each creator's subscribers that a scheduled post is now live.
   try {

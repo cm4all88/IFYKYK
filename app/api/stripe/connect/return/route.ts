@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { stripe } from "@/lib/stripe";
+import { writeOrLog } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -19,10 +20,10 @@ export async function GET(req: NextRequest) {
       const account = await stripe.accounts.retrieve(profile.stripe_account_id);
       if (account.details_submitted) {
         // ✅ Mark creator as onboarded in the database
-        await (supabase as any)
+        await writeOrLog("stripe/connect/return update creator_profiles", (supabase as any)
           .from("creator_profiles")
           .update({ stripe_onboarded: true })
-          .eq("id", profile.id);
+          .eq("id", profile.id));
 
         return NextResponse.redirect(new URL("/dashboard?pane=payments&stripe=connected", req.url));
       }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { createHash } from "crypto";
+import { writeOrLog } from "@/lib/db";
 
 function hashContact(value: string) {
   return createHash("sha256").update(value.toLowerCase().trim()).digest("hex");
@@ -105,10 +106,10 @@ export async function DELETE(req: NextRequest) {
   const { blockId } = await req.json();
   if (!blockId) return NextResponse.json({ error: "Missing blockId" }, { status: 400 });
 
-  await (supabase as any)
+  await writeOrLog("blocks delete creator_contact_blocks", (supabase as any)
     .from("creator_contact_blocks")
     .delete()
-    .eq("id", blockId);
+    .eq("id", blockId));
 
   return NextResponse.json({ ok: true });
 }

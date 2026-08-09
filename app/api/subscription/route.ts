@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -33,10 +34,10 @@ export async function POST(req: NextRequest) {
 
   if (!res.ok) return NextResponse.json({ error: "Could not cancel subscription" }, { status: 500 });
 
-  await (supabase as any)
+  await writeOrLog("subscription update subscriptions", (supabase as any)
     .from("subscriptions")
     .update({ status: "cancelling" })
-    .eq("id", subscriptionId);
+    .eq("id", subscriptionId));
 
   return NextResponse.json({ ok: true });
 }

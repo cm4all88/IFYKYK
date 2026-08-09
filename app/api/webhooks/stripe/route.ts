@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { sendAdminAlert, sendNotifyEmail } from "@/lib/email";
 import crypto from "node:crypto";
+import { writeOrLog } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -56,10 +57,10 @@ export async function POST(req: NextRequest) {
   if (event.type === "account.updated") {
     const acct = event.data.object;
     if (acct?.id && acct.details_submitted && acct.charges_enabled) {
-      await (supabase as any)
+      await writeOrLog("webhooks/stripe update creator_profiles", (supabase as any)
         .from("creator_profiles")
         .update({ stripe_onboarded: true })
-        .eq("stripe_account_id", acct.id);
+        .eq("stripe_account_id", acct.id));
     }
     return NextResponse.json({ received: true });
   }
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
           billingStatus = sub.status === "trialing" ? "trial" : sub.status === "active" ? "active" : "trial";
         }
       } catch { /* defaults are fine */ }
-      await (supabase as any).from("creator_billing").upsert({
+      await writeOrLog("webhooks/stripe upsert creator_billing", (supabase as any).from("creator_billing").upsert({
         user_id: meta.user_id,
         stripe_customer_id: s.customer,
         stripe_subscription_id: s.subscription,
@@ -95,18 +96,18 @@ export async function POST(req: NextRequest) {
         current_period_end: trialEnd,
         grace_ends_at: null,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      }, { onConflict: "user_id" }));
     }
 
     // ── Tip ─────────────────────────────────────────────────────────
     if (type === "tip") {
       const amount = parseFloat(meta.amount_usd ?? "0") || (s.amount_total ?? 0) / 100;
-      await (supabase as any).from("tips").insert({
+      await writeOrLog("webhooks/stripe insert tips", (supabase as any).from("tips").insert({
         fan_user_id: meta.fan_user_id || null,
         creator_profile_id: meta.creator_profile_id,
         amount,
         stripe_session_id: s.id,
-      });
+      }));
       await notifyCreator(supabase, meta.creator_profile_id,
         `💛 New tip: $${amount.toFixed(2)}`,
         `A fan just tipped you $${amount.toFixed(2)}.`,
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
       const platformReceives = parseFloat(meta.recognition_usd ?? "0");
       const badgeExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      await (supabase as any).from("super_tips").insert({
+      await writeOrLog("webhooks/stripe insert super_tips", (supabase as any).from("super_tips").insert({
         creator_profile_id: meta.creator_profile_id,
         fan_user_id: meta.fan_user_id || null,
         fan_display_name: meta.fan_display_name,
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
         platform_receives: platformReceives,
         stripe_session_id: s.id,
         badge_expires_at: badgeExpires,
-      });
+      }));
 
       const msgNote = meta.message ? `<br><br>Their message: <em>"${meta.message}"</em>` : "";
       await notifyCreator(supabase, meta.creator_profile_id,
@@ -153,7 +154,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Subscription had no fan id" }, { status: 500 });
       }
 
-      await (supabase as any).from("subscriptions").upsert({
+      await writeOrLog("webhooks/stripe upsert subscriptions", (supabase as any).from("subscriptions").upsert({
         creator_profile_id: meta.creator_profile_id,
         fan_user_id: fanUserId,
         stripe_subscription_id: s.subscription,
@@ -162,7 +163,7 @@ export async function POST(req: NextRequest) {
         tier_id: meta.tier_id || null,
         billing_period: meta.billing_period || "monthly",
         updated_at: new Date().toISOString(),
-      }, { onConflict: "fan_user_id,creator_profile_id" });
+      }, { onConflict: "fan_user_id,creator_profile_id" }));
 
       // Get tier name for notification
       let tierDisplay = "";
@@ -192,12 +193,12 @@ export async function POST(req: NextRequest) {
     // ── Post Unlock ─────────────────────────────────────────────────
     else if (type === "post_unlock") {
       const amount = parseFloat(meta.amount_usd ?? "0");
-      await (supabase as any).from("post_unlocks").upsert({
+      await writeOrLog("webhooks/stripe upsert post_unlocks", (supabase as any).from("post_unlocks").upsert({
         post_id: meta.post_id,
         fan_user_id: meta.fan_user_id,
         amount_paid: amount,
         stripe_session_id: s.id,
-      }, { onConflict: "post_id,fan_user_id" });
+      }, { onConflict: "post_id,fan_user_id" }));
 
       await notifyCreator(supabase, meta.creator_profile_id ?? "",
         `🔓 Someone unlocked your post · $${amount.toFixed(2)}`,
@@ -209,7 +210,7 @@ export async function POST(req: NextRequest) {
     // ── Campaign Donation ────────────────────────────────────────────
     else if (type === "campaign_donation" && meta.campaign_id) {
       const amount = parseFloat(meta.amount_usd ?? "0");
-      await (supabase as any).from("campaign_donations").insert({
+      await writeOrLog("webhooks/stripe insert campaign_donations", (supabase as any).from("campaign_donations").insert({
         campaign_id: meta.campaign_id,
         donor_user_id: meta.donor_user_id || null,
         amount,
@@ -217,13 +218,13 @@ export async function POST(req: NextRequest) {
         stripe_session_id: s.id,
         tier_id: meta.tier_id || null,
         backer_code: meta.backer_code || null,
-      });
+      }));
       const { data: camp } = await (supabase as any)
         .from("campaigns").select("raised_amount, goal_amount, title, creator_profile_id").eq("id", meta.campaign_id).maybeSingle();
       if (camp) {
         const newRaised = Number(camp.raised_amount) + amount;
         const newStatus = newRaised >= Number(camp.goal_amount) ? "funded" : "active";
-        await (supabase as any).from("campaigns").update({ raised_amount: newRaised, status: newStatus }).eq("id", meta.campaign_id);
+        await writeOrLog("webhooks/stripe update campaigns", (supabase as any).from("campaigns").update({ raised_amount: newRaised, status: newStatus }).eq("id", meta.campaign_id));
         const funded = newStatus === "funded" ? "<br><br><strong>🎉 Your campaign is fully funded!</strong>" : "";
         await notifyCreator(supabase, camp.creator_profile_id,
           `💛 New campaign donation: $${amount.toFixed(2)}`,
@@ -235,13 +236,13 @@ export async function POST(req: NextRequest) {
 
     // ── Wishlist Gift ────────────────────────────────────────────────
     else if (type === "wishlist_gift" && meta.wishlist_item_id) {
-      await (supabase as any).from("wishlist_items").update({
+      await writeOrLog("webhooks/stripe update wishlist_items", (supabase as any).from("wishlist_items").update({
         is_purchased: true,
         purchased_at: new Date().toISOString(),
         purchased_by_id: meta.buyer_user_id,
-      }).eq("id", meta.wishlist_item_id);
+      }).eq("id", meta.wishlist_item_id));
 
-      await (supabase as any).from("wishlist_purchases").insert({
+      await writeOrLog("webhooks/stripe insert wishlist_purchases", (supabase as any).from("wishlist_purchases").insert({
         wishlist_item_id: meta.wishlist_item_id,
         creator_profile_id: meta.creator_profile_id,
         buyer_user_id: meta.buyer_user_id || null,
@@ -251,7 +252,7 @@ export async function POST(req: NextRequest) {
         stripe_session_id: s.id,
         status: "pending",
         buyer_message: meta.buyer_message || null,
-      });
+      }));
 
       const { data: item } = await (supabase as any).from("wishlist_items").select("name, price").eq("id", meta.wishlist_item_id).maybeSingle();
       if (item) {
@@ -284,20 +285,20 @@ export async function POST(req: NextRequest) {
         }).select().single();
         thread = t;
       } else {
-        await (supabase as any).from("message_threads")
+        await writeOrLog("webhooks/stripe update message_threads", (supabase as any).from("message_threads")
           .update({ creator_unread: (thread.creator_unread ?? 0) + 1, last_message_at: new Date().toISOString() })
-          .eq("id", thread.id);
+          .eq("id", thread.id));
       }
 
       if (thread) {
-        await (supabase as any).from("messages").insert({
+        await writeOrLog("webhooks/stripe insert messages", (supabase as any).from("messages").insert({
           thread_id: thread.id,
           sender_user_id: meta.buyer_user_id,
           creator_profile_id: meta.creator_profile_id,
           content: meta.content,
           is_front_row: true,
           front_row_amount: amount,
-        });
+        }));
       }
 
       await notifyCreator(supabase, meta.creator_profile_id,
@@ -317,8 +318,8 @@ export async function POST(req: NextRequest) {
 
       // Guard on 'pending' so webhook retries never double-notify.
       if (order && order.status === "pending") {
-        await (supabase as any).from("social_addback_orders")
-          .update({ status: "paid" }).eq("id", order.id);
+        await writeOrLog("webhooks/stripe update social_addback_orders", (supabase as any).from("social_addback_orders")
+          .update({ status: "paid" }).eq("id", order.id));
 
         const { data: addback } = await (supabase as any)
           .from("social_addbacks")
@@ -346,7 +347,7 @@ export async function POST(req: NextRequest) {
     // ── Comment Boost ────────────────────────────────────────────────
     else if (type === "comment_boost") {
       const boostedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      await (supabase as any)
+      await writeOrLog("webhooks/stripe update comments", (supabase as any)
         .from("comments")
         .update({
           is_boosted: true,
@@ -354,38 +355,38 @@ export async function POST(req: NextRequest) {
           boost_amount_usd: parseFloat(meta.amount_usd ?? "0"),
           boost_stripe_session: s.id,
         })
-        .eq("id", meta.comment_id);
+        .eq("id", meta.comment_id));
     }
 
     // ── Medal Pack purchase (100% platform) ──────────────────────────
     else if (type === "medal_pack" && meta.fan_user_id) {
       const medals = parseInt(meta.medals ?? "0", 10);
-      await (supabase as any).from("medal_purchases").insert({
+      await writeOrLog("webhooks/stripe insert medal_purchases", (supabase as any).from("medal_purchases").insert({
         fan_user_id: meta.fan_user_id,
         pack_id: meta.pack_id,
         medals,
         amount_usd: parseFloat(meta.amount_usd ?? "0"),
         stripe_session: s.id,
-      });
+      }));
       // Credit the fan's balance (create the row if needed).
       const { data: bal } = await (supabase as any)
         .from("medal_balances").select("balance, lifetime_purchased").eq("fan_user_id", meta.fan_user_id).maybeSingle();
-      await (supabase as any).from("medal_balances").upsert({
+      await writeOrLog("webhooks/stripe upsert medal_balances", (supabase as any).from("medal_balances").upsert({
         fan_user_id: meta.fan_user_id,
         balance: (bal?.balance ?? 0) + medals,
         lifetime_purchased: (bal?.lifetime_purchased ?? 0) + medals,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "fan_user_id" });
+      }, { onConflict: "fan_user_id" }));
     }
 
     // ── Early Access Pass ────────────────────────────────────────────
     else if (type === "early_access") {
-      await (supabase as any).from("early_access_passes").upsert({
+      await writeOrLog("webhooks/stripe upsert early_access_passes", (supabase as any).from("early_access_passes").upsert({
         fan_user_id: meta.fan_user_id,
         creator_profile_id: meta.creator_profile_id,
         stripe_subscription_id: s.subscription,
         status: "active",
-      }, { onConflict: "fan_user_id,creator_profile_id" });
+      }, { onConflict: "fan_user_id,creator_profile_id" }));
     }
 
     // ── Gift Subscription ────────────────────────────────────────────
@@ -449,7 +450,7 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
       // Update product sales count
       if (purchase) {
         const { data: prod } = await (supabase as any).from("digital_products").select("total_sales").eq("id", meta.product_id).maybeSingle();
-        await (supabase as any).from("digital_products").update({ total_sales: (prod?.total_sales ?? 0) + 1 }).eq("id", meta.product_id);
+        await writeOrLog("webhooks/stripe update digital_products", (supabase as any).from("digital_products").update({ total_sales: (prod?.total_sales ?? 0) + 1 }).eq("id", meta.product_id));
       }
 
       // Email fan with download link
@@ -594,7 +595,7 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
         ).catch(() => {});
       }
 
-      await (supabase as any).from("merch_orders").insert({
+      await writeOrLog("webhooks/stripe insert merch_orders", (supabase as any).from("merch_orders").insert({
         merch_product_id: meta.product_id,
         creator_profile_id: meta.creator_profile_id,
         fan_user_id: meta.buyer_user_id || null,
@@ -614,7 +615,7 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
         shipping_state: addr.state ?? "",
         shipping_zip: addr.postal_code ?? "",
         shipping_country: addr.country ?? "US",
-      });
+      }));
 
       await notifyCreator(supabase, meta.creator_profile_id,
         `🧢 New merch order — ${meta.product_name}`,
@@ -629,8 +630,8 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
     const sub = event.data.object;
 
     // Fan→creator subscription updates
-    await supabase.from("subscriptions").update({ status: sub.status }).eq("stripe_subscription_id", sub.id);
-    await (supabase as any).from("early_access_passes").update({ status: sub.status }).eq("stripe_subscription_id", sub.id);
+    await writeOrLog("webhooks/stripe update subscriptions", supabase.from("subscriptions").update({ status: sub.status }).eq("stripe_subscription_id", sub.id));
+    await writeOrLog("webhooks/stripe update early_access_passes", (supabase as any).from("early_access_passes").update({ status: sub.status }).eq("stripe_subscription_id", sub.id));
 
     // Creator platform billing updates
     const meta = sub.metadata ?? {};
@@ -641,7 +642,7 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
         sub.status === "past_due"    ? "past_due"  :
         sub.status === "canceled"    ? "cancelled" : sub.status;
 
-      await (supabase as any)
+      await writeOrLog("webhooks/stripe update creator_billing", (supabase as any)
         .from("creator_billing")
         .update({
           status: billingStatus,
@@ -650,7 +651,7 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
           cancel_at_period_end: sub.cancel_at_period_end,
           updated_at: new Date().toISOString(),
         })
-        .eq("stripe_customer_id", sub.customer);
+        .eq("stripe_customer_id", sub.customer));
 
       // If cancelled — send retention email
       if (sub.status === "canceled" && meta.user_id) {
@@ -701,10 +702,10 @@ Add a payment method before then to keep your creator account active. If you don
             }).catch(() => {});
 
           // Mark warning as sent
-          await (supabase as any)
+          await writeOrLog("webhooks/stripe update creator_billing", (supabase as any)
             .from("creator_billing")
             .update({ trial_warning_sent: true })
-            .eq("stripe_customer_id", sub.customer);
+            .eq("stripe_customer_id", sub.customer));
         }
       }
     }
@@ -761,9 +762,9 @@ Add a payment method before then to keep your creator account active. If you don
       if (billing) {
         // Real payment cleared — lift any past-due/grace and reactivate.
         if ((invoice.amount_paid ?? 0) > 0) {
-          await (supabase as any).from("creator_billing")
+          await writeOrLog("webhooks/stripe update creator_billing", (supabase as any).from("creator_billing")
             .update({ status: "active", grace_ends_at: null, last_dunning_warned_at: null, updated_at: new Date().toISOString() })
-            .eq("stripe_subscription_id", invoice.subscription);
+            .eq("stripe_subscription_id", invoice.subscription));
           try {
             const { getSecrets } = await import("@/lib/settings");
             const { resumeFanSubscriptionsForCreator } = await import("@/lib/billing");
@@ -811,10 +812,10 @@ Add a payment method before then to keep your creator account active. If you don
                   }).toString(),
                 });
 
-                await (supabase as any)
+                await writeOrLog("webhooks/stripe update creator_billing", (supabase as any)
                   .from("creator_billing")
                   .update({ tier: correctTier, updated_at: new Date().toISOString() })
-                  .eq("user_id", billing.user_id);
+                  .eq("user_id", billing.user_id));
               }
             }
           }
@@ -836,9 +837,9 @@ Add a payment method before then to keep your creator account active. If you don
       if (billing) {
         // Declined card → past_due with a 7-day grace window (set once per cycle).
         const graceEnds = billing.grace_ends_at ?? new Date(Date.now() + 7 * 86400000).toISOString();
-        await (supabase as any).from("creator_billing")
+        await writeOrLog("webhooks/stripe update creator_billing", (supabase as any).from("creator_billing")
           .update({ status: "past_due", grace_ends_at: graceEnds, last_dunning_warned_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq("stripe_subscription_id", invoice.subscription);
+          .eq("stripe_subscription_id", invoice.subscription));
 
         const { data: au } = await supabase.auth.admin.getUserById(billing.user_id);
         if (au?.user?.email) {

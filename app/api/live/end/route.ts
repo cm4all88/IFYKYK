@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -21,10 +22,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Mark stream as ended in DB
-  await (supabase as any)
+  await writeOrLog("live/end update live_streams", (supabase as any)
     .from("live_streams")
     .update({ status: "ended", ended_at: new Date().toISOString() })
-    .eq("bunny_stream_id", streamId);
+    .eq("bunny_stream_id", streamId));
 
   return NextResponse.json({ ok: true });
 }

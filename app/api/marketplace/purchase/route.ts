@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 
 import { MARKETPLACE_MIN_CENTS, grossUpForStripe } from "@/lib/fees";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,24 +15,14 @@ export async function POST(req: NextRequest) {
 
   const { data: listing } = await (supabase as any)
     .from("marketplace_listings")
-    .select("*")
+    .select("*, creator:creator_profile_id(handle, display_name, stripe_account_id, stripe_onboarded, user_id)")
     .eq("id", listingId)
     .eq("status", "active")
     .maybeSingle();
 
   if (!listing) return NextResponse.json({ error: "Listing not found or sold" }, { status: 404 });
-
-  // The payee's Connect account, read with the service role (lib/payee.ts).
-  // Migration 064 removes anon read on creator_profiles, so the embed that
-  // used to supply this returns nothing. The parent row above is still read
-  // through the RLS-enforcing client — that is what authorises the purchase;
-  // this only answers where the money goes.
-  const payee = await getPayeeCreator((listing as any).creator_profile_id);
-  if (!canReceivePayments(payee)) {
-    return NextResponse.json({ error: "Creator has not connected payments yet." }, { status: 503 });
-  }
   if (listing.quantity < 1) return NextResponse.json({ error: "Item is sold out" }, { status: 400 });
-  if (!payee.stripe_onboarded) return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });
+  if (!listing.creator?.stripe_onboarded) return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });
 
   // Check subscriber only
   if (listing.subscriber_only) {
@@ -59,14 +49,14 @@ export async function POST(req: NextRequest) {
   const params = new URLSearchParams({
     "line_items[0][price_data][currency]": "usd",
     "line_items[0][price_data][product_data][name]": listing.title,
-    "line_items[0][price_data][product_data][description]": listing.description || `From @${payee.handle}`,
+    "line_items[0][price_data][product_data][description]": listing.description || `From @${listing.creator.handle}`,
     "line_items[0][price_data][unit_amount]": String(totalCents),
     "line_items[0][quantity]": "1",
     mode: "payment",
-    success_url: `${appUrl}/${payee.handle}?purchase=success`,
-    cancel_url: `${appUrl}/${payee.handle}`,
+    success_url: `${appUrl}/${listing.creator.handle}?purchase=success`,
+    cancel_url: `${appUrl}/${listing.creator.handle}`,
     // Creator receives the full listed price; the grossed-up remainder covers Stripe.
-    "payment_intent_data[transfer_data][destination]": payee.stripe_account_id,
+    "payment_intent_data[transfer_data][destination]": listing.creator.stripe_account_id,
     "payment_intent_data[transfer_data][amount]": String(amountCents),
     "shipping_address_collection[allowed_countries][0]": "US",
     "shipping_address_collection[allowed_countries][1]": "CA",
@@ -75,7 +65,7 @@ export async function POST(req: NextRequest) {
     "metadata[type]": "marketplace",
     "metadata[listing_id]": listingId,
     "metadata[buyer_user_id]": user.id,
-    "metadata[creator_user_id]": payee.user_id,
+    "metadata[creator_user_id]": listing.creator.user_id,
   });
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
@@ -88,14 +78,14 @@ export async function POST(req: NextRequest) {
   if (!res.ok) return NextResponse.json({ error: session.error?.message ?? "Checkout failed" }, { status: 500 });
 
   // Record order
-  await (supabase as any).from("marketplace_orders").insert({
+  await writeOrLog("marketplace/purchase insert marketplace_orders", (supabase as any).from("marketplace_orders").insert({
     listing_id: listingId,
     buyer_user_id: user.id,
     buyer_email: user.email,
     amount_usd: listing.price_usd,
     platform_fee_usd: 0,
     stripe_session_id: session.id,
-  });
+  }));
 
   return NextResponse.json({ url: session.url });
 }

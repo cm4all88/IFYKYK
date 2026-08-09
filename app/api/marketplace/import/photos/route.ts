@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { sanitizePrice, normalizeCategory, normalizeCondition } from "@/lib/import-core";
 import { resolveSpotlightProfile, insertDraft } from "@/lib/import-draft";
+import { writeOrLog } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -69,12 +70,12 @@ export async function POST(req: NextRequest) {
 
   const res = await insertDraft(supabase, { creatorProfileId: profile.id, importRunId: runId, source: "photos", listing, images: imageUrls });
 
-  await (supabase as any).from("import_runs").update({
+  await writeOrLog("marketplace/import/photos update import_runs", (supabase as any).from("import_runs").update({
     status: res.ok ? "complete" : "failed",
     listings_imported: res.ok ? 1 : 0, listings_skipped: res.ok ? 0 : 1,
     photos_saved: imageUrls.length,
     errors: res.ok ? [] : [res.error], completed_at: new Date().toISOString(),
-  }).eq("id", runId);
+  }).eq("id", runId));
 
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: 500 });
   return NextResponse.json({ runId, imported: 1, aiDrafted: !!ai, photosSaved: imageUrls.length });

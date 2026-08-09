@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { tierForCount, getPriceId, getOrCreateStripePrices, TIERS, type TierKey, isBillingLocked, isStarterDue } from "@/lib/billing";
+import { writeOrLog } from "@/lib/db";
 
 // GET — current billing status for the logged-in creator
 export async function GET() {
@@ -40,13 +41,13 @@ export async function GET() {
     if (starterDue && !conversionDueAt) {
       // First time across the line — stamp it.
       conversionDueAt = new Date().toISOString();
-      await (supabase as any).from("creator_billing")
-        .update({ conversion_due_at: conversionDueAt }).eq("user_id", user.id);
+      await writeOrLog("billing update creator_billing", (supabase as any).from("creator_billing")
+        .update({ conversion_due_at: conversionDueAt }).eq("user_id", user.id));
     } else if (!starterDue && conversionDueAt) {
       // Dropped back below the threshold, or converted to a paid plan — ease off.
       conversionDueAt = null;
-      await (supabase as any).from("creator_billing")
-        .update({ conversion_due_at: null }).eq("user_id", user.id);
+      await writeOrLog("billing update creator_billing", (supabase as any).from("creator_billing")
+        .update({ conversion_due_at: null }).eq("user_id", user.id));
     }
   } catch { /* marker is best-effort; the computed flag below still drives the UI */ }
 
@@ -91,7 +92,7 @@ export async function POST(req: NextRequest) {
       const sub = await subRes.json();
       const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString();
       const status = sub.status === "trialing" ? "trial" : sub.status === "active" ? "active" : "trial";
-      await (supabase as any).from("creator_billing").upsert({
+      await writeOrLog("billing upsert creator_billing", (supabase as any).from("creator_billing").upsert({
         user_id: user.id,
         stripe_customer_id: session.customer,
         stripe_subscription_id: session.subscription,
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
         grace_ends_at: null,
         conversion_due_at: null,
         updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      }, { onConflict: "user_id" }));
     }
     const { data: billing } = await (supabase as any).from("creator_billing").select("*").eq("user_id", user.id).maybeSingle();
     return NextResponse.json({ billing });

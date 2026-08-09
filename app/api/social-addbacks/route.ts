@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 // GET — list addbacks for a creator profile
 export async function GET(req: NextRequest) {
@@ -46,9 +47,9 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await req.json();
-  await (supabase as any).from("social_addbacks").update({ is_active: false })
+  await writeOrLog("social-addbacks update social_addbacks", (supabase as any).from("social_addbacks").update({ is_active: false })
     .eq("id", id)
-    .eq("creator_profile_id", (await (supabase as any).from("creator_profiles").select("id").eq("user_id", user.id).maybeSingle()).data?.id);
+    .eq("creator_profile_id", (await (supabase as any).from("creator_profiles").select("id").eq("user_id", user.id).maybeSingle()).data?.id));
 
   return NextResponse.json({ ok: true });
 }

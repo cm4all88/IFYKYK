@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
 // Service role. Both referral routes fire during signup, before the new user is
@@ -32,10 +33,10 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (existing) {
-      await (supabase as any)
+      await writeOrLog("referrals/subscriber update subscriber_referrals", (supabase as any)
         .from("subscriber_referrals")
         .update({ subscribed: true, subscribed_at: new Date().toISOString() })
-        .eq("id", existing.id);
+        .eq("id", existing.id));
     }
   } else {
     // New fan visit — record it

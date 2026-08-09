@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
 import { sendMerchShippedEmail, sendAdminAlert } from "@/lib/email";
+import { writeOrLog } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, ignored: type });
   }
 
-  await (supabase as any).from("merch_orders").update(update).eq("id", mo.id);
+  await writeOrLog("webhooks/printful update merch_orders", (supabase as any).from("merch_orders").update(update).eq("id", mo.id));
 
   // ── Tell the fan their order shipped (in-app + email) ────────────
   if (notifyShipped && mo.fan_user_id) {
@@ -118,9 +119,9 @@ export async function POST(req: NextRequest) {
     const body = `${productName}${creatorHandle ? ` from @${creatorHandle}` : ""} is on its way.`;
 
     // Service client bypasses RLS, so this insert always lands.
-    await (supabase as any).from("notifications").insert({
+    await writeOrLog("webhooks/printful insert notifications", (supabase as any).from("notifications").insert({
       user_id: mo.fan_user_id, type: "merch_shipped", title: "Your order shipped 📦", body, link,
-    });
+    }));
 
     // Email — look the fan's address up via the admin API.
     try {

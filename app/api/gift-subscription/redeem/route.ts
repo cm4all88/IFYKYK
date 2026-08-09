@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + gift.months);
 
-  await (supabase as any).from("subscriptions").upsert({
+  await writeOrLog("gift-subscription/redeem upsert subscriptions", (supabase as any).from("subscriptions").upsert({
     fan_user_id: user.id,
     creator_profile_id: gift.creator_profile_id,
     status: "active",
@@ -30,13 +31,13 @@ export async function POST(req: NextRequest) {
     gift_subscription_id: gift.id,
     expires_at: expiresAt.toISOString(),
     updated_at: new Date().toISOString(),
-  }, { onConflict: "fan_user_id,creator_profile_id" });
+  }, { onConflict: "fan_user_id,creator_profile_id" }));
 
   // Mark gift as redeemed
-  await (supabase as any)
+  await writeOrLog("gift-subscription/redeem update gift_subscriptions", (supabase as any)
     .from("gift_subscriptions")
     .update({ redeemed_at: new Date().toISOString(), recipient_user_id: user.id })
-    .eq("id", gift.id);
+    .eq("id", gift.id));
 
   return NextResponse.json({
     ok: true,

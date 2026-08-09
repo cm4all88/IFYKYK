@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -15,9 +16,9 @@ export async function POST(req: NextRequest) {
 
   // Unpin all first if pinning
   if (pinned) {
-    await (supabase as any).from("posts")
+    await writeOrLog("posts/pin update posts", (supabase as any).from("posts")
       .update({ is_pinned: false })
-      .eq("creator_profile_id", profile.id);
+      .eq("creator_profile_id", profile.id));
   }
 
   const { error } = await (supabase as any)

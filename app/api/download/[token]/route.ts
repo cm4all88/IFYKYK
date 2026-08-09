@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
@@ -38,10 +39,10 @@ export async function GET(
   }
 
   // Increment download count
-  await (supabase as any)
+  await writeOrLog("download/[token] update digital_purchases", (supabase as any)
     .from("digital_purchases")
     .update({ download_count: purchase.download_count + 1 })
-    .eq("id", purchase.id);
+    .eq("id", purchase.id));
 
   // Redirect to the actual file
   // In production this would use a signed CDN URL for extra security

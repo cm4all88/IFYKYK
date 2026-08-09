@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPayeeCreator } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const { creatorProfileId, content, amountUsd, isFrontRow } = await req.json();
@@ -13,10 +13,11 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Must be signed in" }, { status: 401 });
 
-  // Connect routing data. Read with the service role via lib/payee.ts:
-  // migration 064 removes anon read on creator_profiles, and guests can pay,
-  // so this cannot come from the cookie client any more.
-  const creator = await getPayeeCreator(creatorProfileId);
+  const { data: creator } = await (supabase as any)
+    .from("creator_profiles")
+    .select("id, handle, stripe_account_id, stripe_onboarded")
+    .eq("id", creatorProfileId)
+    .maybeSingle();
 
   if (!creator) return NextResponse.json({ error: "Creator not found" }, { status: 404 });
 
@@ -36,18 +37,18 @@ export async function POST(req: NextRequest) {
       }).select().single();
       thread = t;
     } else {
-      await (supabase as any).from("message_threads")
+      await writeOrLog("messages/front-row update message_threads", (supabase as any).from("message_threads")
         .update({ creator_unread: (thread as any).creator_unread + 1, last_message_at: new Date().toISOString() })
-        .eq("id", thread.id);
+        .eq("id", thread.id));
     }
 
-    await (supabase as any).from("messages").insert({
+    await writeOrLog("messages/front-row insert messages", (supabase as any).from("messages").insert({
       thread_id: thread.id,
       sender_user_id: user.id,
       creator_profile_id: creatorProfileId,
       content: content.trim(),
       is_front_row: false,
-    });
+    }));
 
     return NextResponse.json({ ok: true, type: "free" });
   }

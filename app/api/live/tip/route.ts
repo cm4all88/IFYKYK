@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
 import { grossUpForStripe } from "@/lib/fees";
-import { getPayeeCreator, canReceivePayments } from "@/lib/payee";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -16,28 +16,24 @@ export async function POST(req: NextRequest) {
 
   const { data: stream } = await (supabase as any)
     .from("live_streams")
-    .select("id, creator_profile_id")
+    .select("id, creator_profile_id, creator_profiles(kind, stripe_account_id)")
     .eq("id", streamId)
     .eq("status", "live")
     .maybeSingle();
 
   if (!stream) return NextResponse.json({ error: "Stream not found" }, { status: 404 });
 
-  // The payee's Connect account, read with the service role (lib/payee.ts).
-  // Migration 064 removes anon read on creator_profiles, so the embedded
-  // `creator_profiles(...)` above returns nothing. The stream row is still read
-  // through the RLS-enforcing client, which is what proves the stream is live.
-  const payee = await getPayeeCreator((stream as any).creator_profile_id);
+  const isBackstage = stream.creator_profiles?.kind === "backstage";
 
-  if (payee?.kind === "backstage") {
+  if (isBackstage) {
     // CCBill tips handled separately — return a CCBill redirect URL
     return NextResponse.json({ error: "CCBill tips coming soon" }, { status: 501 });
   }
 
-  if (!canReceivePayments(payee)) {
+  const stripeAccount = stream.creator_profiles?.stripe_account_id;
+  if (!stripeAccount) {
     return NextResponse.json({ error: "Creator hasn't connected Stripe yet" }, { status: 400 });
   }
-  const stripeAccount = payee.stripe_account_id;
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
@@ -71,14 +67,14 @@ export async function POST(req: NextRequest) {
   });
 
   // Record in DB (pre-payment — confirmed via webhook)
-  await (supabase as any).from("live_stream_tips").insert({
+  await writeOrLog("live/tip insert live_stream_tips", (supabase as any).from("live_stream_tips").insert({
     stream_id: streamId,
     user_id: user.id,
     display_name: displayName?.trim() || "Anonymous",
     amount_usd: amountUsd,
     message: message?.trim() || null,
     payment_method: "stripe",
-  });
+  }));
 
   return NextResponse.json({ url: session.url });
 }

@@ -2,6 +2,7 @@
 import { verifyWebhook } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
         return Response.json({ error: "Missing metadata" }, { status: 400 });
       }
 
-      await (supabase as any).from("subscriptions").insert({
+      await writeOrLog("webhooks/ccbill insert subscriptions", (supabase as any).from("subscriptions").insert({
         creator_profile_id: creatorId,
         fan_user_id: fanUserId,
         stripe_subscription_id: sub.id,
@@ -38,26 +39,26 @@ export async function POST(req: NextRequest) {
         status: sub.status,
         current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
         current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-      });
+      }));
       break;
     }
 
     case "customer.subscription.updated": {
       const sub = event.data.object as Stripe.Subscription;
-      await supabase.from("subscriptions")
+      await writeOrLog("webhooks/ccbill update subscriptions", supabase.from("subscriptions")
         .update({
           status: sub.status,
           current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
         })
-        .eq("stripe_subscription_id", sub.id);
+        .eq("stripe_subscription_id", sub.id));
       break;
     }
 
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
-      await supabase.from("subscriptions")
+      await writeOrLog("webhooks/ccbill update subscriptions", supabase.from("subscriptions")
         .update({ status: "canceled" })
-        .eq("stripe_subscription_id", sub.id);
+        .eq("stripe_subscription_id", sub.id));
       break;
     }
 

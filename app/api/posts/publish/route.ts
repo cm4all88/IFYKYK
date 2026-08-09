@@ -5,6 +5,7 @@ import { can } from "@/lib/entitlements";
 import { moderateChatMessage } from "@/lib/advisor";
 import { getSecrets } from "@/lib/settings";
 import { notifySubscribers } from "@/lib/notify";
+import { writeOrLog } from "@/lib/db";
 
 // AI honesty check for locked posts — separate from content moderation.
 // Verifies the description accurately represents what's being sold.
@@ -132,13 +133,13 @@ export async function POST(req: NextRequest) {
       // Moderation unavailable — allow post through
     }
     if (!(mod as any).allowed) {
-      await (supabase as any).from("moderation_events").insert({
+      await writeOrLog("posts/publish insert moderation_events", (supabase as any).from("moderation_events").insert({
         creator_profile_id: creatorProfileId,
         content_type: "post",
         flag_reason: (mod as any).reason ?? "Content policy violation",
         severity: (mod as any).severity ?? "medium",
         action_taken: "blocked_at_publish",
-      });
+      }));
       return NextResponse.json({ error: `Post blocked: ${mod.reason}`, blocked: true }, { status: 422 });
     }
   }
@@ -199,7 +200,7 @@ export async function POST(req: NextRequest) {
   // publishing never breaks if migration 058 has not been run yet.
   if (post?.id && gallery.length > 1) {
     try {
-      await (supabase as any).from("posts").update({ media_urls: gallery }).eq("id", post.id);
+      await writeOrLog("posts/publish update posts", (supabase as any).from("posts").update({ media_urls: gallery }).eq("id", post.id));
     } catch {
       // Column not present yet — the cover still posted fine.
     }
@@ -212,7 +213,7 @@ export async function POST(req: NextRequest) {
   if (post?.id && !scheduledAt) {
     try {
       const { data: cp } = await (supabase as any)
-        .from("creator_public").select("handle, display_name").eq("id", creatorProfileId).maybeSingle();
+        .from("creator_profiles").select("handle, display_name").eq("id", creatorProfileId).maybeSingle();
       const who = cp?.display_name || (cp?.handle ? `@${cp.handle}` : "A creator");
       await notifySubscribers({
         creatorProfileId,

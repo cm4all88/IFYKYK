@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import { createCloudflareLiveInput } from "@/lib/cloudflare-stream";
 import { notifySubscribers } from "@/lib/notify";
+import { writeOrLog } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -21,17 +22,17 @@ export async function POST(req: NextRequest) {
   if (!profile) return NextResponse.json({ error: "Profile not found" }, { status: 404 });
 
   // End any existing live streams for this profile
-  await (supabase as any)
+  await writeOrLog("live/start update live_streams", (supabase as any)
     .from("live_streams")
     .update({ status: "ended", ended_at: new Date().toISOString() })
     .eq("creator_profile_id", creatorProfileId)
-    .eq("status", "live");
+    .eq("status", "live"));
 
   try {
     const live = await createCloudflareLiveInput(title || "Live Stream");
 
     // Save to DB so fans can see the live stream (bunny_stream_id now holds the Cloudflare input uid)
-    await (supabase as any).from("live_streams").insert({
+    await writeOrLog("live/start insert live_streams", (supabase as any).from("live_streams").insert({
       creator_profile_id: creatorProfileId,
       bunny_stream_id: live.uid,
       title: title || "Live Stream",
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
       playback_url: live.playbackUrl,
       rtmp_url: null,
       stream_key: live.uid,
-    });
+    }));
 
     // Tell subscribers the stream is on — the highest-intent notification there is.
     notifySubscribers({

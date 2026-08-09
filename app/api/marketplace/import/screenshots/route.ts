@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { sanitizePrice, normalizeCategory, normalizeCondition } from "@/lib/import-core";
 import { resolveSpotlightProfile, insertDraft } from "@/lib/import-draft";
+import { writeOrLog } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
@@ -82,10 +83,10 @@ export async function POST(req: NextRequest) {
     if (res.ok) imported += 1; else skipped += 1;
   }
 
-  await (supabase as any).from("import_runs").update({
+  await writeOrLog("marketplace/import/screenshots update import_runs", (supabase as any).from("import_runs").update({
     status: "complete", listings_imported: imported, listings_skipped: skipped,
     photos_saved: imageUrls.length, completed_at: new Date().toISOString(),
-  }).eq("id", runId);
+  }).eq("id", runId));
 
   return NextResponse.json({ runId, found: imageUrls.length, imported, skipped, photosSaved: imageUrls.length, aiUsed: !!ANTHROPIC_API_KEY });
 }

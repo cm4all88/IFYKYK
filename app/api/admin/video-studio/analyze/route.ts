@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { bunnySignUrl } from "@/lib/bunny";
 import { loadFeedUrls } from "@/lib/videoStudioFeed";
+import { writeOrLog } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 // Vision on many images can run long; give it room so it doesn't time out and return an
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
           return;
         }
         tags.url = raw;
-        await supabase
+        await writeOrLog("admin/video-studio/analyze upsert creator_media_analysis", supabase
           .from("creator_media_analysis")
           .upsert(
             {
@@ -137,7 +138,7 @@ export async function POST(req: Request) {
               updated_at: new Date().toISOString(),
             },
             { onConflict: "media_url" }
-          );
+          ));
         byUrl[raw] = tags;
         analyzed++;
       })

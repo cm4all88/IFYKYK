@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
+import { writeOrLog } from "@/lib/db";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
@@ -34,10 +35,10 @@ export async function POST() {
       },
     });
     accountId = account.id;
-    await (supabase as any)
+    await writeOrLog("stripe/connect/session update creator_profiles", (supabase as any)
       .from("creator_profiles")
       .update({ stripe_account_id: accountId })
-      .eq("id", profile.id);
+      .eq("id", profile.id));
   }
 
   try {

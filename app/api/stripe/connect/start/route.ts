@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
+import { writeOrLog } from "@/lib/db";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
@@ -41,10 +42,10 @@ async function startOnboarding(): Promise<{ url?: string; error?: string; status
         },
       });
       accountId = account.id;
-      await (supabase as any)
+      await writeOrLog("stripe/connect/start update creator_profiles", (supabase as any)
         .from("creator_profiles")
         .update({ stripe_account_id: accountId })
-        .eq("id", profile.id);
+        .eq("id", profile.id));
     } catch (e: any) {
       console.error("Account creation failed:", e.message, e.code);
       return { error: `Account creation failed: ${e.message}`, status: 500 };

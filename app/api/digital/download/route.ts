@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -113,10 +114,10 @@ export async function GET(req: NextRequest) {
   const isPrefetch = /prefetch|preview/i.test(purpose);
 
   if (!isPrefetch) {
-    await (supabase as any)
+    await writeOrLog("digital/download update digital_purchases", (supabase as any)
       .from("digital_purchases")
       .update({ download_count: purchase.download_count + 1 })
-      .eq("id", purchase.id);
+      .eq("id", purchase.id));
   }
 
   // Never let this redirect be cached. A cached 307 replays a signed URL that has

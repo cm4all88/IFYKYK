@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-server";
+import { writeOrLog } from "@/lib/db";
 
 const REFERRALS_PER_CREDIT = 5;
 const CREDIT_AMOUNT_USD = 29.00; // Starter tier price — lowest tier, fair for all
@@ -70,10 +71,10 @@ export async function POST(req: NextRequest) {
       .limit(referralsToMark);
 
     if (toCredit?.length) {
-      await (supabase as any)
+      await writeOrLog("referrals/creator update creator_referrals", (supabase as any)
         .from("creator_referrals")
         .update({ credited: true })
-        .in("id", toCredit.map((r: any) => r.id));
+        .in("id", toCredit.map((r: any) => r.id)));
     }
 
     // Issue $29 credits
