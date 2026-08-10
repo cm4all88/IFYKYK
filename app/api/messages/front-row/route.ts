@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient, createServiceClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { writeOrLog } from "@/lib/db";
 
@@ -23,32 +23,57 @@ export async function POST(req: NextRequest) {
 
   // Free message — just insert directly
   if (!isFrontRow || !amountUsd) {
-    // Get or create thread
-    let { data: thread } = await (supabase as any)
+    // Threads and messages are written with the service role. The fan owns the
+    // message but not the thread, and an insert with .select() chained onto it
+    // is rolled back whole when the select policy denies the RETURNING clause.
+    // That is what silently dropped digital purchases, and it was dropping
+    // messages here the same way.
+    const db = await createServiceClient();
+
+    // The unread counter needs its current value, and the old query only
+    // selected id, so this was incrementing undefined into NaN and failing.
+    let { data: thread } = await (db as any)
       .from("message_threads")
-      .select("id").eq("creator_profile_id", creatorProfileId)
-      .eq("fan_user_id", user.id).maybeSingle();
+      .select("id, creator_unread")
+      .eq("creator_profile_id", creatorProfileId)
+      .eq("fan_user_id", user.id)
+      .maybeSingle();
 
     if (!thread) {
-      const { data: t } = await (supabase as any).from("message_threads").insert({
+      const { data: t, error: threadErr } = await (db as any).from("message_threads").insert({
         creator_profile_id: creatorProfileId,
         fan_user_id: user.id,
         creator_unread: 1,
+        last_message_at: new Date().toISOString(),
       }).select().single();
+
+      if (threadErr || !t) {
+        console.error("DB WRITE FAILED [messages/front-row insert message_threads]:", threadErr);
+        return NextResponse.json({ error: "Could not start the conversation. Try again." }, { status: 500 });
+      }
       thread = t;
     } else {
-      await writeOrLog("messages/front-row update message_threads", (supabase as any).from("message_threads")
-        .update({ creator_unread: (thread as any).creator_unread + 1, last_message_at: new Date().toISOString() })
+      await writeOrLog("messages/front-row update message_threads", (db as any).from("message_threads")
+        .update({
+          creator_unread: Number(thread.creator_unread ?? 0) + 1,
+          last_message_at: new Date().toISOString(),
+        })
         .eq("id", thread.id));
     }
 
-    await writeOrLog("messages/front-row insert messages", (supabase as any).from("messages").insert({
+    const { error: msgErr } = await (db as any).from("messages").insert({
       thread_id: thread.id,
       sender_user_id: user.id,
       creator_profile_id: creatorProfileId,
       content: content.trim(),
       is_front_row: false,
-    }));
+    });
+
+    // Never tell a fan their message sent when it did not.
+    if (msgErr) {
+      console.error("DB WRITE FAILED [messages/front-row insert messages]:", msgErr);
+      return NextResponse.json({ error: "Message could not be sent. Try again." }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true, type: "free" });
   }
