@@ -3051,6 +3051,27 @@ const DIGITAL_CATEGORIES = [
 
 
 
+// An ISO timestamp in the shape a datetime-local input wants, in the creator's
+// own timezone. Slicing the ISO string directly would show them UTC.
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Mirrors saleIsLive in lib/promotions.ts. Display only. The purchase route
+// recomputes the real price from the row.
+function isSaleLive(p: any): boolean {
+  if (p?.sale_price === null || p?.sale_price === undefined) return false;
+  if (Number(p.sale_price) >= Number(p.price)) return false;
+  const now = Date.now();
+  if (p.sale_starts_at && new Date(p.sale_starts_at).getTime() > now) return false;
+  if (p.sale_ends_at && new Date(p.sale_ends_at).getTime() <= now) return false;
+  return true;
+}
+
 function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: string | null) => void }) {
   const supabase = createClient();
   const [products, setProducts] = React.useState<any[]>([]);
@@ -3197,6 +3218,8 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
       category: p.category ?? "other",
       thumbnail_url: p.thumbnail_url ?? "",
       bundled: [...(p.bundled_product_ids ?? [])],
+      sale_price: p.sale_price === null || p.sale_price === undefined ? "" : String(p.sale_price),
+      sale_ends_at: toLocalInput(p.sale_ends_at),
     });
   }
 
@@ -3222,6 +3245,19 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
       return;
     }
 
+    // A sale price that is not below the list price is not a sale, and the
+    // database rejects it. Say so here rather than surfacing a constraint name.
+    let salePrice: number | null = null;
+    if (String(draft.sale_price ?? "").trim() !== "") {
+      salePrice = Number(draft.sale_price);
+      if (!Number.isFinite(salePrice) || salePrice < 0) { setErr("A sale price cannot be negative."); return; }
+      if (salePrice >= price) { setErr("A sale price has to be below the normal price."); return; }
+    }
+
+    const saleEnds = salePrice !== null && String(draft.sale_ends_at ?? "").trim() !== ""
+      ? new Date(draft.sale_ends_at).toISOString()
+      : null;
+
     const patch = {
       title: draft.title.trim(),
       description: draft.description.trim() || null,
@@ -3229,6 +3265,11 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
       category: draft.category,
       thumbnail_url: draft.thumbnail_url || null,
       bundled_product_ids: draft.bundled ?? [],
+      sale_price: salePrice,
+      sale_ends_at: saleEnds,
+      // Starting now unless it is being cleared. A scheduled start is more
+      // machinery than a solo creator running a weekend sale needs.
+      sale_starts_at: salePrice !== null ? new Date().toISOString() : null,
     };
     const { error } = await (supabase as any).from("digital_products").update(patch).eq("id", id);
     if (error) { setErr(error.message); return; }
@@ -3426,7 +3467,15 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:14, fontWeight:700, color:"var(--text)", marginBottom:2, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{p.title}</p>
                   <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)" }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)", fontWeight:700 }}>${Number(p.price).toFixed(2)}</span>
+                    {isSaleLive(p) ? (
+                      <span style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--muted)", textDecoration:"line-through" }}>${Number(p.price).toFixed(2)}</span>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)", fontWeight:700 }}>${Number(p.sale_price).toFixed(2)}</span>
+                        <span style={{ fontFamily:"var(--font-mono)", fontSize:9.5, letterSpacing:".1em", textTransform:"uppercase", color:"#09090C", background:"var(--accent)", padding:"1px 6px", borderRadius:99, fontWeight:700 }}>on sale</span>
+                      </span>
+                    ) : (
+                      <span style={{ fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)", fontWeight:700 }}>${Number(p.price).toFixed(2)}</span>
+                    )}
                     <span style={{ fontSize:11, color:"var(--muted)" }}>{cat?.label}</span>
                     <span style={{ fontSize:11, color:"var(--muted)" }}>{p.total_sales} sold</span>
                     {(p.bundled_product_ids ?? []).length > 0 && (
@@ -3466,6 +3515,39 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
                 <label className="label">Description</label>
                 <textarea className="textarea" rows={2} value={draft.description} onChange={e => setDraft({ ...draft, description: e.target.value })} />
               </div>
+
+              {/* Put it on sale. No code needed: the price on the card changes and
+                  the old one shows struck through. */}
+              <div style={{ background:"rgba(255,255,255,0.02)", border:"1px solid var(--border)", borderRadius:"var(--r-2)", padding:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+                <p className="kicker" style={{ marginBottom:"var(--s-3)" }}>Sale</p>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-4)" }}>
+                  <div className="form-field">
+                    <label className="label">Sale price ($)</label>
+                    <input
+                      className="input" type="number" min="0" step="0.01"
+                      placeholder="Leave empty for no sale"
+                      value={draft.sale_price ?? ""}
+                      onChange={e => setDraft({ ...draft, sale_price: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label className="label">Ends (optional)</label>
+                    <input
+                      className="input" type="datetime-local"
+                      value={draft.sale_ends_at ?? ""}
+                      onChange={e => setDraft({ ...draft, sale_ends_at: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <p style={{ fontSize:12, color:"var(--muted)", margin:"8px 0 0" }}>
+                  {String(draft.sale_price ?? "").trim() === ""
+                    ? "Set a price below the normal one and the card shows it on sale. Clear it to end the sale."
+                    : Number(draft.sale_price) === 0
+                      ? "Free while the sale runs. Buyers give an email and get the download link, no card involved."
+                      : `Buyers pay $${Number(draft.sale_price).toFixed(2)} and you keep all of it. Leave the end time empty to run it until you clear it.`}
+                </p>
+              </div>
+
               <div className="form-field" style={{ marginBottom:"var(--s-4)" }}>
                 <label className="label">Category</label>
                 <select className="input" value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
@@ -3513,6 +3595,260 @@ function DigitalStorePane({ profile, setErr }: { profile: Profile; setErr: (m: s
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      <PromoCodesSection profile={profile} products={products} setErr={setErr} />
+    </div>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────────
+// Promo codes
+//
+// A sale changes the price for everyone. A code changes it for whoever has the
+// code, which is what a launch list, a podcast read, or a thank you to the first
+// hundred buyers actually needs. Reads and writes go straight through Supabase
+// under the creator's own session: promo_codes has a creator-owns-it policy, so
+// there is nothing here a route would add.
+// ──────────────────────────────────────────────────────────────────
+function PromoCodesSection({
+  profile, products, setErr,
+}: { profile: Profile; products: any[]; setErr: (m: string | null) => void }) {
+  const supabase = createClient();
+  const [codes, setCodes] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [creating, setCreating] = React.useState(false);
+  const [copied, setCopied] = React.useState<string | null>(null);
+
+  const [code, setCode] = React.useState("");
+  const [kind, setKind] = React.useState<"percent" | "fixed">("percent");
+  const [value, setValue] = React.useState("20");
+  const [scope, setScope] = React.useState<"all" | "product">("all");
+  const [productId, setProductId] = React.useState("");
+  const [maxRedemptions, setMaxRedemptions] = React.useState("");
+  const [endsAt, setEndsAt] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("promo_codes")
+      .select("*")
+      .eq("creator_profile_id", profile.id ?? "")
+      .order("created_at", { ascending: false });
+    // An empty list and a failed query look identical on screen. Only one of
+    // them is worth a log line.
+    if (error) console.error("promo_codes load failed:", error);
+    setCodes(data ?? []);
+    setLoading(false);
+  }, [profile.id, supabase]);
+
+  React.useEffect(() => { if (profile.id) void load(); else setLoading(false); }, [load, profile.id]);
+
+  function suggest() {
+    const words = ["LAUNCH", "THANKS", "EARLY", "FRIENDS", "WELCOME"];
+    setCode(`${words[Math.floor(Math.random() * words.length)]}${Math.floor(Math.random() * 90 + 10)}`);
+  }
+
+  async function createCode(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+
+    const clean = code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 24);
+    if (clean.length < 3) { setErr("A code needs at least three letters or numbers."); return; }
+
+    const num = Number(value);
+    if (!Number.isFinite(num) || num <= 0) { setErr("Set a discount above zero."); return; }
+    if (kind === "percent" && num > 100) { setErr("A percentage cannot go above 100."); return; }
+    if (scope === "product" && !productId) { setErr("Pick which product this code is for."); return; }
+
+    setSaving(true);
+    const { error } = await (supabase as any).from("promo_codes").insert({
+      creator_profile_id: profile.id,
+      code: clean,
+      kind,
+      value: num,
+      scope,
+      digital_product_id: scope === "product" ? productId : null,
+      max_redemptions: maxRedemptions.trim() === "" ? null : Number(maxRedemptions),
+      ends_at: endsAt.trim() === "" ? null : new Date(endsAt).toISOString(),
+      active: true,
+    });
+    setSaving(false);
+
+    if (error) {
+      setErr(/duplicate|unique/i.test(error.message) ? "You already have a code with that name." : error.message);
+      return;
+    }
+
+    setCreating(false);
+    setCode(""); setValue("20"); setScope("all"); setProductId(""); setMaxRedemptions(""); setEndsAt("");
+    void load();
+  }
+
+  async function toggleActive(c: any) {
+    const { error } = await (supabase as any).from("promo_codes").update({ active: !c.active }).eq("id", c.id);
+    if (error) { setErr(error.message); return; }
+    setCodes(prev => prev.map(x => x.id === c.id ? { ...x, active: !c.active } : x));
+  }
+
+  async function removeCode(c: any) {
+    if (!confirm(`Delete ${c.code}? Anyone who already used it keeps what they bought.`)) return;
+    const { error } = await (supabase as any).from("promo_codes").delete().eq("id", c.id);
+    if (error) { setErr(error.message); return; }
+    setCodes(prev => prev.filter(x => x.id !== c.id));
+  }
+
+  function copyLink(c: any) {
+    const url = `https://spotlightly.app/${profile.handle}`;
+    navigator.clipboard.writeText(`${url}  ·  code ${c.code}`);
+    setCopied(c.id);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  function describe(c: any): string {
+    const off = c.kind === "percent" ? `${Number(c.value)}% off` : `$${Number(c.value).toFixed(2)} off`;
+    const where = c.scope === "product"
+      ? products.find((p: any) => p.id === c.digital_product_id)?.title ?? "one product"
+      : "everything";
+    return `${off} ${where}`;
+  }
+
+  function status(c: any): { label: string; live: boolean } {
+    if (!c.active) return { label: "paused", live: false };
+    if (c.ends_at && new Date(c.ends_at).getTime() <= Date.now()) return { label: "expired", live: false };
+    if (c.max_redemptions !== null && c.redemption_count >= c.max_redemptions) return { label: "used up", live: false };
+    return { label: "live", live: true };
+  }
+
+  return (
+    <div style={{ marginTop: 48, paddingTop: 40, borderTop: "1px solid var(--border)" }}>
+      <div className="pane-head pane-head--row">
+        <div>
+          <p className="kicker">Promo codes</p>
+          <h2 style={{ fontFamily:"var(--font-serif, inherit)", fontSize:24, fontWeight:400, color:"var(--text)", margin:"4px 0 0" }}>
+            A price just for the people you give it to.
+          </h2>
+          <p style={{ fontSize:13, color:"var(--muted)", marginTop:"var(--s-2)", maxWidth:520 }}>
+            A sale drops the price for everyone. A code drops it for whoever has the code. Good for a launch list, a podcast read, or thanking the people who showed up first. The discount comes off your price, so you decide exactly what you keep.
+          </p>
+        </div>
+        <button className="btn btn--primary" type="button" onClick={() => setCreating(c => !c)}>
+          {creating ? "Cancel" : "+ New code"}
+        </button>
+      </div>
+
+      {creating && (
+        <form onSubmit={createCode} style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-5)", marginBottom:"var(--s-4)" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1.2fr 1fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Code</label>
+              <input
+                className="input" value={code}
+                onChange={e => setCode(e.target.value.toUpperCase())}
+                placeholder="LAUNCH20"
+                style={{ fontFamily:"var(--font-mono)", letterSpacing:".08em" }}
+              />
+              <button type="button" onClick={suggest} style={{ background:"none", border:"none", padding:"6px 0 0", color:"var(--muted)", fontSize:11.5, cursor:"pointer" }}>
+                Suggest one
+              </button>
+            </div>
+            <div className="form-field">
+              <label className="label">Type</label>
+              <select className="input" value={kind} onChange={e => setKind(e.target.value as any)}>
+                <option value="percent">Percent off</option>
+                <option value="fixed">Dollars off</option>
+              </select>
+            </div>
+            <div className="form-field">
+              <label className="label">{kind === "percent" ? "Percent" : "Dollars"}</label>
+              <input className="input" type="number" min="0" step={kind === "percent" ? "1" : "0.01"} value={value} onChange={e => setValue(e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Applies to</label>
+              <select className="input" value={scope} onChange={e => setScope(e.target.value as any)}>
+                <option value="all">Everything in my store</option>
+                <option value="product">One product</option>
+              </select>
+            </div>
+            {scope === "product" && (
+              <div className="form-field">
+                <label className="label">Which product</label>
+                <select className="input" value={productId} onChange={e => setProductId(e.target.value)}>
+                  <option value="">Pick one…</option>
+                  {products.map((p: any) => <option key={p.id} value={p.id}>{p.title}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--s-4)", marginBottom:"var(--s-4)" }}>
+            <div className="form-field">
+              <label className="label">Limit uses (optional)</label>
+              <input className="input" type="number" min="1" step="1" placeholder="Unlimited" value={maxRedemptions} onChange={e => setMaxRedemptions(e.target.value)} />
+            </div>
+            <div className="form-field">
+              <label className="label">Expires (optional)</label>
+              <input className="input" type="datetime-local" value={endsAt} onChange={e => setEndsAt(e.target.value)} />
+            </div>
+          </div>
+
+          <p style={{ fontSize:12, color:"var(--muted)", marginBottom:"var(--s-4)" }}>
+            Each person can use a code once. A code worth 100% makes the product free, and buyers get the download link by email with no card involved.
+          </p>
+
+          <button className="btn btn--primary" type="submit" disabled={saving}>
+            {saving ? "Creating…" : "Create code"}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <p style={{ color:"var(--muted)", fontSize:13 }}>Loading…</p>
+      ) : codes.length === 0 ? (
+        <div style={{ background:"var(--surface)", border:"1px dashed var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-6)", textAlign:"center" }}>
+          <p style={{ fontSize:13, color:"var(--muted)" }}>No codes yet. Make one when you have somewhere to send it.</p>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
+          {codes.map((c: any) => {
+            const st = status(c);
+            return (
+              <div key={c.id} style={{ display:"flex", alignItems:"center", gap:"var(--s-4)", background:"var(--surface)", border:"1px solid var(--border)", borderRadius:"var(--r-3)", padding:"var(--s-4) var(--s-5)", opacity: st.live ? 1 : 0.6 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, letterSpacing:".08em", color:"var(--text)", marginBottom:3 }}>{c.code}</p>
+                  <div style={{ display:"flex", alignItems:"center", gap:"var(--s-3)", flexWrap:"wrap" }}>
+                    <span style={{ fontSize:11.5, color:"var(--accent)" }}>{describe(c)}</span>
+                    <span style={{ fontSize:11.5, color:"var(--muted)" }}>
+                      {c.redemption_count} used{c.max_redemptions ? ` of ${c.max_redemptions}` : ""}
+                    </span>
+                    {c.ends_at && <span style={{ fontSize:11.5, color:"var(--muted)" }}>ends {new Date(c.ends_at).toLocaleDateString()}</span>}
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:10, letterSpacing:".1em", textTransform:"uppercase",
+                      color: st.live ? "#34D399" : "var(--muted)",
+                      background: st.live ? "rgba(52,211,153,0.08)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${st.live ? "rgba(52,211,153,0.2)" : "var(--border)"}`,
+                      padding:"1px 7px", borderRadius:99,
+                    }}>{st.label}</span>
+                  </div>
+                </div>
+                <div style={{ display:"flex", gap:"var(--s-2)", flexShrink:0 }}>
+                  <button className="btn btn--secondary" style={{ fontSize:11, padding:"5px 12px", borderRadius:"var(--r-pill)" }} onClick={() => copyLink(c)}>
+                    {copied === c.id ? "Copied" : "Copy"}
+                  </button>
+                  <button className="btn btn--secondary" style={{ fontSize:11, padding:"5px 12px", borderRadius:"var(--r-pill)" }} onClick={() => void toggleActive(c)}>
+                    {c.active ? "Pause" : "Resume"}
+                  </button>
+                  <button onClick={() => void removeCode(c)} style={{ background:"none", border:"none", color:"rgba(248,113,113,0.5)", cursor:"pointer", fontSize:11, padding:"5px 8px" }}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

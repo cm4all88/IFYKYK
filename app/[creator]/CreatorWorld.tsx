@@ -212,7 +212,7 @@ async function loadWorld(handle: string) {
 
   const { data: digitalProducts } = await (supabase as any)
     .from("digital_products")
-    .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales, bundled_product_ids")
+    .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales, bundled_product_ids, sale_price, sale_starts_at, sale_ends_at")
     .eq("creator_profile_id", sp.id).eq("status", "active")
     .order("created_at", { ascending: false }).limit(8);
 

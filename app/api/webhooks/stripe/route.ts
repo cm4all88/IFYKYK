@@ -425,17 +425,25 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
       const platformFee = 0; // 0% on digital — fan covers the card fee, creator keeps 100%
       const creatorEarns = meta.net_usd ? Number(meta.net_usd) : priceTotal;
 
+      const buyerEmail = meta.fan_email || s.customer_details?.email || "";
+      const listUsd = meta.list_usd ? Number(meta.list_usd) : creatorEarns;
+      const discountUsd = meta.discount_usd ? Number(meta.discount_usd) : 0;
+      const promoCodeId = meta.promo_code_id || null;
+
       const { data: purchase, error: purchaseErr } = await (supabase as any)
         .from("digital_purchases")
         .insert({
           digital_product_id: meta.product_id,
           creator_profile_id: meta.creator_profile_id,
           fan_user_id: meta.fan_user_id || null,
-          fan_email: meta.fan_email || s.customer_details?.email || "",
+          fan_email: buyerEmail,
           amount_paid: priceTotal,
           platform_fee: platformFee,
           creator_receives: creatorEarns,
           stripe_session_id: s.id,
+          list_price: listUsd,
+          discount_amount: discountUsd,
+          promo_code_id: promoCodeId,
         })
         .select()
         .single();
@@ -445,6 +453,38 @@ Your redemption code: <strong style="font-family:monospace;font-size:18px;letter
         // rather than recording a success that never happened.
         console.error(`DIGITAL PURCHASE INSERT FAILED for session ${s.id}:`, purchaseErr);
         return NextResponse.json({ error: "Could not record purchase" }, { status: 500 });
+      }
+
+      // ── Promo redemption ────────────────────────────────────────────
+      // Deliberately after the purchase insert and never fatal. The buyer has
+      // paid and is owed their file; a redemption row that fails to write is a
+      // reporting problem, not a delivery one. It is logged rather than
+      // swallowed, and the unique (code, email) index means a repeat use by a
+      // logged out buyer lands here as a conflict rather than as a second count.
+      if (promoCodeId) {
+        const { error: redErr } = await (supabase as any).from("promo_redemptions").insert({
+          promo_code_id: promoCodeId,
+          creator_profile_id: meta.creator_profile_id,
+          digital_product_id: meta.product_id,
+          digital_purchase_id: purchase.id,
+          fan_user_id: meta.fan_user_id || null,
+          fan_email: buyerEmail,
+          discount_amount: discountUsd,
+        });
+
+        if (redErr) {
+          console.error(
+            `PROMO REDEMPTION NOT RECORDED for session ${s.id}, code ${meta.promo_code ?? promoCodeId}:`,
+            redErr
+          );
+        } else {
+          const { data: pc } = await (supabase as any)
+            .from("promo_codes").select("redemption_count").eq("id", promoCodeId).maybeSingle();
+          await writeOrLog("webhooks/stripe increment promo_codes", (supabase as any)
+            .from("promo_codes")
+            .update({ redemption_count: (pc?.redemption_count ?? 0) + 1 })
+            .eq("id", promoCodeId));
+        }
       }
 
       // Update product sales count
@@ -488,7 +528,10 @@ from ${product?.creator?.display_name ?? "a creator"} on Spotlightly<br><br>
           meta.creator_profile_id,
           `💾 New sale — ${product?.title}`,
           `Someone bought your digital product for $${priceTotal.toFixed(2)}.`,
-          `Someone just bought <strong>${product?.title}</strong> for <strong>$${priceTotal.toFixed(2)}</strong>. You receive <strong style="color:#F0B429;">$${creatorEarns.toFixed(2)}</strong>.`
+          `Someone just bought <strong>${product?.title}</strong> for <strong>$${priceTotal.toFixed(2)}</strong>. You receive <strong style="color:#F0B429;">$${creatorEarns.toFixed(2)}</strong>.` +
+          (discountUsd > 0
+            ? `<br><br>They used ${meta.promo_code ? `code <strong>${meta.promo_code}</strong>` : "a discount"}, worth $${discountUsd.toFixed(2)} off.`
+            : "")
         );
       }
     }
