@@ -218,6 +218,28 @@ async function loadWorld(handle: string) {
 
   const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
 
+  // Does this creator have a code out in the world right now. Only a boolean
+  // crosses to the client: promo_codes has no public read policy on purpose, so
+  // this uses the service role and counts rather than selecting. Without it the
+  // card would either show a code field to every visitor of every store, or
+  // hide it so well that nobody with a code can find it.
+  let codesAvailable = false;
+  try {
+    const { createServiceClient } = await import("@/lib/supabase-server");
+    const service = await createServiceClient();
+    const nowIso = new Date().toISOString();
+    const { count, error } = await (service as any)
+      .from("promo_codes")
+      .select("id", { count: "exact", head: true })
+      .eq("creator_profile_id", sp.id)
+      .eq("active", true)
+      .or(`ends_at.is.null,ends_at.gt.${nowIso}`);
+    if (error) console.error("promo code availability check failed:", error);
+    codesAvailable = (count ?? 0) > 0;
+  } catch (e) {
+    console.error("promo code availability check threw:", e);
+  }
+
   return {
     sp, isFounder, campaign,
     subscriberCount: subscriberCount ?? 0,
@@ -228,6 +250,7 @@ async function loadWorld(handle: string) {
     merchCount: merchCount ?? 0,
     marketCount: marketCount ?? 0,
     digitalProducts: (digitalProducts ?? []) as any[],
+    codesAvailable,
     loggedIn: !!user,
     viewerUserId: user?.id ?? null,
     stripeReady,
@@ -241,7 +264,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
 
   const {
     sp, isFounder, campaign, subscriberCount, subscriptionTiers,
-    content, socialPosts, liveStream, merchCount, marketCount, digitalProducts, loggedIn,
+    content, socialPosts, liveStream, merchCount, marketCount, digitalProducts, codesAvailable, loggedIn,
     viewerUserId,
     lastActiveLabel,
   } = data;
@@ -438,6 +461,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                     key={pr.id}
                     product={pr}
                     creatorProfileId={sp.id}
+                    codesAvailable={codesAvailable}
                     bundleSavings={(() => {
                       const ids: string[] = pr.bundled_product_ids ?? [];
                       if (ids.length === 0) return undefined;

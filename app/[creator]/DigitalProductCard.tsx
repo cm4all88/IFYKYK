@@ -49,13 +49,13 @@ function endsIn(iso?: string | null): string | null {
 export default function DigitalProductCard({
   product,
   creatorProfileId,
+  codesAvailable,
   bundleSavings,
   bundleCovers,
-}: Props & { bundleSavings?: number; bundleCovers?: string[] }) {
+}: Props & { codesAvailable?: boolean; bundleSavings?: number; bundleCovers?: string[] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [showCode, setShowCode] = useState(false);
   const [code, setCode] = useState("");
   const [checking, setChecking] = useState(false);
   const [applied, setApplied] = useState<{ code: string; label: string; netCents: number; free: boolean } | null>(null);
@@ -198,17 +198,43 @@ export default function DigitalProductCard({
           </p>
         ) : null}
 
-        {onSale && (
+        {onSale && !applied && (
           <p style={{ fontSize: 12, color: "var(--muted)" }}>
             <span style={{ textDecoration: "line-through", opacity: 0.6 }}>${Number(product.price).toFixed(2)}</span>
             {saleWindow ? <span style={{ marginLeft: 8, color: "var(--accent)" }}>{saleWindow}</span> : null}
           </p>
         )}
 
-        {applied && (
-          <p style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, letterSpacing: ".06em", color: "var(--accent)" }}>
-            {applied.code} applied · {applied.label}
+        {applied && applied.netCents < baseCents && (
+          <p style={{ fontSize: 12, color: "var(--muted)" }}>
+            <span style={{ textDecoration: "line-through", opacity: 0.6 }}>${(baseCents / 100).toFixed(2)}</span>
+            <span style={{ marginLeft: 8, color: "var(--accent)" }}>
+              you save ${((baseCents - applied.netCents) / 100).toFixed(2)}
+            </span>
           </p>
+        )}
+
+        {applied && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+            background: "rgba(240,180,41,0.08)",
+            border: "1px solid var(--accent-border, rgba(240,180,41,0.25))",
+            borderRadius: "var(--r-2, 8px)", padding: "9px 11px",
+          }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700, letterSpacing: ".08em", color: "var(--accent)" }}>
+                {applied.code}
+              </span>
+              <span style={{ fontSize: 12, color: "var(--text)", marginLeft: 8 }}>{applied.label}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => { setApplied(null); setCode(""); setError(null); setNeedEmail(false); }}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}
+            >
+              Remove
+            </button>
+          </div>
         )}
 
         {granted ? (
@@ -242,46 +268,52 @@ export default function DigitalProductCard({
               />
             )}
 
-            {!applied && (
-              showCode ? (
+            {!applied && codesAvailable && (
+              <div style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-2, 8px)",
+                padding: "10px 10px 11px",
+              }}>
+                <label style={{
+                  display: "block",
+                  fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: ".14em",
+                  textTransform: "uppercase", color: "var(--muted)", marginBottom: 7,
+                }}>
+                  Promo code
+                </label>
                 <div style={{ display: "flex", gap: 6 }}>
                   <input
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === "Enter") void applyCode(); }}
-                    placeholder="CODE"
+                    placeholder="Enter code"
                     style={{
-                      flex: 1, minWidth: 0, background: "rgba(255,255,255,0.04)",
-                      border: "1px solid var(--border)", borderRadius: "var(--r-1)",
-                      color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 12,
-                      letterSpacing: ".08em", padding: "8px 10px",
+                      flex: 1, minWidth: 0,
+                      background: "rgba(0,0,0,0.35)",
+                      border: "1px solid var(--border)", borderRadius: "var(--r-1, 6px)",
+                      color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 12.5,
+                      letterSpacing: ".1em", padding: "9px 10px",
                     }}
                   />
                   <button
                     type="button"
                     onClick={() => void applyCode()}
-                    disabled={checking}
+                    disabled={checking || code.trim().length < 3}
                     style={{
-                      background: "transparent", border: "1px solid var(--border)",
-                      color: "var(--text-soft, var(--text))", borderRadius: "var(--r-1)",
-                      fontSize: 12, padding: "8px 12px", cursor: "pointer", flexShrink: 0,
+                      flexShrink: 0,
+                      background: code.trim().length >= 3 ? "rgba(255,255,255,0.10)" : "transparent",
+                      border: "1px solid var(--border)",
+                      color: "var(--text)", borderRadius: "var(--r-1, 6px)",
+                      fontSize: 12, fontWeight: 600, padding: "9px 14px",
+                      cursor: code.trim().length >= 3 ? "pointer" : "default",
+                      opacity: checking ? 0.6 : 1,
                     }}
                   >
                     {checking ? "…" : "Apply"}
                   </button>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowCode(true)}
-                  style={{
-                    background: "none", border: "none", padding: 0, cursor: "pointer",
-                    color: "var(--muted)", fontSize: 11.5, textAlign: "left",
-                  }}
-                >
-                  Have a code?
-                </button>
-              )
+              </div>
             )}
 
             <button
