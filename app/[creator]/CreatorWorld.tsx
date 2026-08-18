@@ -34,7 +34,8 @@ import DigitalProductCard from "./DigitalProductCard";
 //   2. The feed is the spine. Their actual content, central and large. It is
 //      what makes someone subscribe, back a goal, or tip, so it comes first.
 //   3. Support comes after value. The first ask appears only below the feed.
-//   4. Campaign and subscription are peers, side by side. Neither takes over.
+//   4. Below the feed the store leads and the ask sits in a rail beside it.
+//      On a phone that rail falls underneath, so the goods are met first.
 //   5. Empty sections never render. No "coming soon" anywhere.
 //   6. The page is complete with no campaign, no merch, no marketplace, no
 //      subscription. Strip every paid module and the world still stands.
@@ -252,6 +253,7 @@ async function loadWorld(handle: string) {
     digitalProducts: (digitalProducts ?? []) as any[],
     codesAvailable,
     loggedIn: !!user,
+    viewerSubscribed,
     viewerUserId: user?.id ?? null,
     stripeReady,
     lastActiveLabel: ago((posts as any[])?.[0]?.created_at ?? null),
@@ -265,7 +267,7 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
   const {
     sp, isFounder, campaign, subscriberCount, subscriptionTiers,
     content, socialPosts, liveStream, merchCount, marketCount, digitalProducts, codesAvailable, loggedIn,
-    viewerUserId,
+    viewerSubscribed, viewerUserId,
     lastActiveLabel,
   } = data;
 
@@ -278,6 +280,9 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
 
   const hasFeed = content.length > 0 || socialPosts.length > 0;
   const hasDigital = (digitalProducts ?? []).length > 0;
+  // Is there anything to buy at all. With nothing on the shelf the two-column
+  // layout collapses back to the single centered ask it always was.
+  const hasStore = hasDigital || merchCount > 0 || marketCount > 0;
 
   const campaignGoal = campaign ? Number(campaign.goal_amount ?? campaign.goal ?? 0) : 0;
   const campaignPct = campaign && campaignGoal > 0
@@ -376,17 +381,76 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
             </section>
           ) : null}
 
-          {/* ── 4. SUPPORT — only after the work. Campaign + community as peers. ── */}
-          <section id="support" style={{ marginTop: hasFeed ? 80 : 64, scrollMarginTop: 90, paddingTop: 36, borderTop: "1px solid var(--border)" }}>
-            <SectionLabel center>Support {fn}</SectionLabel>
+          {/* ── 4. THE SHELF AND THE ASK ──────────────────────────────────────
+              What a visitor can actually buy leads. Subscribing sits beside it,
+              not on top of it. The store column is first in the DOM, so a phone
+              scrolls straight from the work into the goods and only meets the
+              subscribe card after it. With nothing on the shelf the rail
+              re-centers itself and the page reads exactly as it did before. */}
+          <div
+            id="support"
+            className={hasStore ? "cw-market" : "cw-market cw-market--solo"}
+            style={{ marginTop: hasFeed ? 76 : 56, scrollMarginTop: 90, paddingTop: 40, borderTop: "1px solid var(--border)" }}
+          >
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24, alignItems: "start", maxWidth: campaign ? 920 : 480, margin: "0 auto" }}>
+            {hasStore ? (
+              <div className="cw-market-main">
+                {hasDigital ? (
+                  <section>
+                    <SectionLabel>{fn}&apos;s digital store</SectionLabel>
+                    <div className="cw-product-grid">
+                      {digitalProducts.map((pr: any) => (
+                        <DigitalProductCard
+                          key={pr.id}
+                          product={pr}
+                          creatorProfileId={sp.id}
+                          codesAvailable={codesAvailable}
+                          bundleSavings={(() => {
+                            const ids: string[] = pr.bundled_product_ids ?? [];
+                            if (ids.length === 0) return undefined;
+                            // What the same items would cost bought one at a time.
+                            const full = (digitalProducts ?? [])
+                              .filter((x: any) => ids.includes(x.id))
+                              .reduce((sum: number, x: any) => sum + Number(x.price ?? 0), 0);
+                            return full > Number(pr.price) ? full - Number(pr.price) : undefined;
+                          })()}
+                          bundleCovers={(() => {
+                            const ids: string[] = pr.bundled_product_ids ?? [];
+                            if (ids.length === 0) return undefined;
+                            // Keep the creator's own ordering of the bundle.
+                            return ids
+                              .map((id) => (digitalProducts ?? []).find((x: any) => x.id === id)?.thumbnail_url)
+                              .filter(Boolean) as string[];
+                          })()}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
 
-              {/* Peer A — join the community. Primary: recurring support is what compounds. */}
+                {merchCount > 0 ? (
+                  <section style={{ marginTop: hasDigital ? 52 : 0 }}>
+                    <CreatorMerch creatorProfileId={sp.id} handle={sp.handle} />
+                  </section>
+                ) : null}
+
+                {marketCount > 0 ? (
+                  <section style={{ marginTop: hasDigital || merchCount > 0 ? 52 : 0 }}>
+                    {/* Subscriber-only listings were hidden from real subscribers
+                        while this was hard-coded false. */}
+                    <CreatorMarketplace creatorProfileId={sp.id} displayName={displayName} isSubscribed={viewerSubscribed} />
+                  </section>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* The rail. Recurring support, the goal, then the quiet one-time ways. */}
+            <aside className="cw-market-rail">
+
               <div>
-                <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-soft, rgba(247,243,236,0.7))", marginBottom: 12 }}>
+                <SectionLabel>
                   Join {fn}&apos;s community{fromPrice ? ` · from $${Number(fromPrice).toFixed(2)}/mo` : ""}
-                </div>
+                </SectionLabel>
                 <FreeTierCard
                   name={sp.free_tier_name}
                   blurb={sp.free_tier_blurb}
@@ -394,26 +458,22 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                   handle={sp.handle}
                   loggedIn={loggedIn}
                 />
-                <div style={{ marginTop: 14 }}>
-                  <SubscribeButton creatorProfileId={sp.id} />
-                </div>
+                <SubscribeButton creatorProfileId={sp.id} />
               </div>
-              {/* Peer B — back the goal. Secondary: a campaign ends, a subscription does not. */}
+
               {campaign ? (
                 <div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--accent)", marginBottom: 12 }}>
-                    Back {fn}&apos;s goal
-                  </div>
+                  <SectionLabel>Back {fn}&apos;s goal</SectionLabel>
                   <div className="ring-gold" style={peerCard}>
-                    <h3 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 21, lineHeight: 1.2, color: "var(--text)", margin: "0 0 8px" }}>{campaign.title}</h3>
+                    <h3 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 20, lineHeight: 1.2, color: "var(--text)", margin: "0 0 8px" }}>{campaign.title}</h3>
                     {campaign.description ? (
-                      <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 17, lineHeight: 1.5, color: "rgba(247,243,236,0.7)", margin: "0 0 18px" }}>
+                      <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 16, lineHeight: 1.5, color: "rgba(247,243,236,0.7)", margin: "0 0 18px" }}>
                         {firstSentence(String(campaign.description))}
                       </p>
                     ) : null}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-                      <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 20, color: "var(--text)" }}>{usd(Number(campaign.raised))}</span>
-                      <span style={{ fontSize: 13, color: "var(--muted)" }}>raised of {usd(campaignGoal)}</span>
+                      <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 19, color: "var(--text)" }}>{usd(Number(campaign.raised))}</span>
+                      <span style={{ fontSize: 12.5, color: "var(--muted)" }}>raised of {usd(campaignGoal)}</span>
                     </div>
                     <div style={{ height: 9, borderRadius: 6, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
                       <div style={{ width: `${campaignPct}%`, height: "100%", background: "var(--accent)", borderRadius: 6 }} />
@@ -429,73 +489,24 @@ export default async function CreatorWorld({ handle }: { handle: string }) {
                 </div>
               ) : null}
 
-            </div>
+              {/* One-time, quiet. The smallest weight on the page. */}
+              <div>
+                <SectionLabel>One-time ways to support {fn}</SectionLabel>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <SuperTipButton creatorProfileId={sp.id} handle={sp.handle} />
+                  <TipButton creatorProfileId={sp.id} />
+                  <GiftSubscriptionButton creatorProfileId={sp.id} handle={sp.handle} />
+                  <MessageButton creatorProfileId={sp.id} handle={sp.handle} />
+                </div>
+              </div>
 
-
-            {/* Quiet community signal */}
-            {(subscriberCount > 0 || isFounder) ? (
-              <div style={{ maxWidth: 560, margin: "40px auto 0" }}>
+              {/* Quiet community signal */}
+              {subscriberCount > 0 || isFounder ? (
                 <TheRoom subscriberCount={subscriberCount} isFounder={isFounder} handle={sp.handle} />
-              </div>
-            ) : null}
+              ) : null}
 
-            {/* One-time, quiet. The smallest weight on the page. */}
-            <div style={{ marginTop: 40, textAlign: "center" }}>
-              <SectionLabel center>One-time ways to support {fn}</SectionLabel>
-              <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-                <SuperTipButton creatorProfileId={sp.id} handle={sp.handle} />
-                <TipButton creatorProfileId={sp.id} />
-                <GiftSubscriptionButton creatorProfileId={sp.id} handle={sp.handle} />
-                <MessageButton creatorProfileId={sp.id} handle={sp.handle} />
-              </div>
-            </div>
-          </section>
-
-          {/* ── Quiet shelves — only when they actually hold something ── */}
-          {hasDigital ? (
-            <section style={{ marginTop: 64 }}>
-              <SectionLabel center>{fn}&apos;s digital store</SectionLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }}>
-                {digitalProducts.map((pr: any) => (
-                  <DigitalProductCard
-                    key={pr.id}
-                    product={pr}
-                    creatorProfileId={sp.id}
-                    codesAvailable={codesAvailable}
-                    bundleSavings={(() => {
-                      const ids: string[] = pr.bundled_product_ids ?? [];
-                      if (ids.length === 0) return undefined;
-                      // What the same items would cost bought one at a time.
-                      const full = (digitalProducts ?? [])
-                        .filter((x: any) => ids.includes(x.id))
-                        .reduce((sum: number, x: any) => sum + Number(x.price ?? 0), 0);
-                      return full > Number(pr.price) ? full - Number(pr.price) : undefined;
-                    })()}
-                    bundleCovers={(() => {
-                      const ids: string[] = pr.bundled_product_ids ?? [];
-                      if (ids.length === 0) return undefined;
-                      // Keep the creator's own ordering of the bundle.
-                      return ids
-                        .map((id) => (digitalProducts ?? []).find((x: any) => x.id === id)?.thumbnail_url)
-                        .filter(Boolean) as string[];
-                    })()}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {merchCount > 0 ? (
-            <section style={{ marginTop: 56, maxWidth: 720, marginLeft: "auto", marginRight: "auto" }}>
-              <CreatorMerch creatorProfileId={sp.id} handle={sp.handle} />
-            </section>
-          ) : null}
-
-          {marketCount > 0 ? (
-            <section style={{ marginTop: 40, paddingBottom: 8, maxWidth: 720, marginLeft: "auto", marginRight: "auto" }}>
-              <CreatorMarketplace creatorProfileId={sp.id} displayName={displayName} isSubscribed={false} />
-            </section>
-          ) : null}
+            </aside>
+          </div>
 
           <div style={{ height: 72 }} />
         </div>

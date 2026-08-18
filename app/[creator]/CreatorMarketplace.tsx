@@ -85,13 +85,12 @@ export default function CreatorMarketplace({
           background: "rgba(0,0,0,0.88)", backdropFilter: "blur(16px)",
           display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
+          <div onClick={e => e.stopPropagation()} className="cp-market-modal" style={{
             background: "#0f0f14", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 12, overflow: "hidden", maxWidth: 720, width: "100%",
-            display: "grid", gridTemplateColumns: "1fr 1fr",
           }}>
             {/* Image side */}
-            <div style={{ background: "#09090C", minHeight: 380, display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <div className="cp-market-modal-img" style={{ background: "#09090C", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
               {selected.images && selected.images.length > 0 ? (
                 <img src={selected.images[0]} alt={selected.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
               ) : (

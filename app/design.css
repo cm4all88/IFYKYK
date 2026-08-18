@@ -1199,3 +1199,54 @@ img { max-width: 100%; display: block; }
 }
 .feed-card:hover { border-color: var(--accent-border); transform: translateY(-2px); }
 .feed-act { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--muted-faint); }
+
+/* ── Creator page: the shelf leads, the ask sits beside it ──────────────────
+   Two columns on desktop (store left, subscribe rail right). One column on a
+   phone, where the store column comes first in the DOM and therefore first on
+   screen: the goods are met before the ask. `--solo` is the no-store case,
+   where the rail centers itself and the page reads as it always did. */
+.cw-market {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 332px;
+  gap: 44px;
+  align-items: start;
+}
+.cw-market--solo { grid-template-columns: minmax(0, 480px); justify-content: center; }
+.cw-market-main { min-width: 0; }
+.cw-market-rail { display: flex; flex-direction: column; gap: 34px; min-width: 0; }
+.cw-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+
+@media (max-width: 960px) {
+  .cw-market { grid-template-columns: 1fr; gap: 56px; }
+  .cw-market--solo { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .cw-product-grid { grid-template-columns: 1fr; gap: 12px; }
+}
+
+/* Shelf chrome used by CreatorMerch and CreatorMarketplace. These class names
+   were referenced by both components but had never been defined, so both
+   shelves rendered as unstyled text above their items. */
+.cp-rail-section { display: block; min-width: 0; }
+.cp-rail-kicker {
+  display: block;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.cp-rail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+@media (max-width: 560px) {
+  .cp-rail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+}
+
+/* Marketplace detail: two panes on desktop, stacked on a phone. Side by side
+   at 375px left the image a sliver and the buy button off the fold. */
+.cp-market-modal { display: grid; grid-template-columns: 1fr 1fr; }
+.cp-market-modal-img { min-height: 380px; }
+@media (max-width: 700px) {
+  .cp-market-modal { grid-template-columns: 1fr; max-height: 88vh; overflow-y: auto; }
+  .cp-market-modal .cp-market-modal-img { min-height: 220px; max-height: 40vh; }
+}
