@@ -215,7 +215,11 @@ async function loadWorld(handle: string) {
     .from("digital_products")
     .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales, bundled_product_ids, sale_price, sale_starts_at, sale_ends_at")
     .eq("creator_profile_id", sp.id).eq("status", "active")
-    .order("created_at", { ascending: false }).limit(8);
+    // Was 8. A creator with 12 products had 4 of them invisible, with no "see
+    // all" anywhere, so nobody could buy them. This is also the array the
+    // bundle savings and bundle cover lookups read from below: anything cut
+    // here makes a bundle understate its own savings and drop cover tiles.
+    .order("created_at", { ascending: false }).limit(48);
 
   const stripeReady = await hasSecret("STRIPE_SECRET_KEY");
 
