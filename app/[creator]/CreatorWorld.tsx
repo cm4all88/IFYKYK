@@ -213,7 +213,7 @@ async function loadWorld(handle: string) {
 
   const { data: digitalProducts } = await (supabase as any)
     .from("digital_products")
-    .select("id, title, description, price, category, thumbnail_url, preview_description, total_sales, bundled_product_ids, sale_price, sale_starts_at, sale_ends_at")
+    .select("id, title, description, price, category, thumbnail_url, preview_description, bundled_product_ids, sale_price, sale_starts_at, sale_ends_at")
     .eq("creator_profile_id", sp.id).eq("status", "active")
     // Was 8. A creator with 12 products had 4 of them invisible, with no "see
     // all" anywhere, so nobody could buy them. This is also the array the
