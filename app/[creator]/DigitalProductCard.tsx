@@ -17,7 +17,6 @@ interface Props {
     category: string;
     thumbnail_url?: string;
     preview_description?: string;
-    total_sales?: number;
     sale_price?: number | null;
     sale_starts_at?: string | null;
     sale_ends_at?: string | null;
@@ -191,12 +190,6 @@ export default function DigitalProductCard({
         {product.preview_description && (
           <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>{product.preview_description}</p>
         )}
-
-        {product.total_sales && product.total_sales > 0 ? (
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "var(--font-mono)", letterSpacing: ".06em" }}>
-            {product.total_sales} sold
-          </p>
-        ) : null}
 
         {onSale && !applied && (
           <p style={{ fontSize: 12, color: "var(--muted)" }}>

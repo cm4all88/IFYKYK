@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     // the fee portion as the application fee (which Stripe deducts its cut from).
     const fanCents = grossUpForStripe(priceCents);
     const appFeePct = appFeePercentForGrossUp(priceCents);
-    params.set("subscription_data[application_fee_percent]", appFeePct.toFixed(4));
+    params.set("subscription_data[application_fee_percent]", appFeePct.toFixed(2));
     params.set("line_items[0][price_data][currency]", "usd");
     params.set("line_items[0][price_data][product_data][name]", `${profile.handle} · ${channelName || "subscription"}`);
     params.set("line_items[0][price_data][product_data][description]", `Includes the card fee so @${profile.handle} receives the full $${(priceCents / 100).toFixed(2)}/${interval}.`);

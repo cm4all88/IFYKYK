@@ -18,10 +18,16 @@ export function grossUpForStripe(netCents: number): number {
  * For a destination-charge subscription: the application_fee_percent that leaves
  * the creator their full net each invoice while the platform keeps exactly enough
  * to cover Stripe (nets ~$0).
+ *
+ * Stripe rejects application_fee_percent with more than two decimal places, so
+ * the raw percentage is floored to 2 decimals. Flooring (not rounding) means the
+ * creator can only ever receive slightly MORE than their sticker price — the
+ * platform absorbs the sub-cent difference, never the creator.
  */
 export function appFeePercentForGrossUp(netCents: number): number {
   const gross = grossUpForStripe(netCents);
-  return ((gross - netCents) / gross) * 100;
+  const rawPct = ((gross - netCents) / gross) * 100;
+  return Math.floor(rawPct * 100) / 100;
 }
 
 /**
