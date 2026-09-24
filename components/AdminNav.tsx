@@ -16,6 +16,8 @@ const NAV = [
   { href: "/admin/comms",        label: "Comms",          icon: "✉" },
   { href: "/admin/content",      label: "Content Engine", icon: "✎" },
   { href: "/admin/video-studio", label: "Video Studio",   icon: "▶" },
+  { href: "/admin/posts",        label: "All Posts",      icon: "▦" },
+  { href: "/admin/transactions", label: "Transactions",   icon: "$" },
   { href: "/admin/moderation",   label: "Moderation",     icon: "⚐" },
   { href: "/admin/trust",        label: "Trust & Safety", icon: "⛨" },
   { href: "/admin/ads",          label: "Featured / Ads", icon: "★" },

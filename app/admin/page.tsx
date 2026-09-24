@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase-server";
+import { loadTransactions, summarizeTransactions, TXN_TYPES } from "@/lib/admin/transactions";
+import { handleMap } from "@/lib/admin/filters";
 
 // Never prerender an admin surface: it is authorised per request via isAdmin()
 // and reads privileged rows with the service role.
@@ -21,7 +24,7 @@ export default async function AdminOverviewPage() {
     { count: flaggedContent },
     { data: recentCreators },
     { data: recentFlags },
-    { data: tipStats },
+    , // 30 day tips row, superseded by loadTransactions below
     { count: newCreators7d },
     { count: newSubs7d },
     { count: publishedCreators },
@@ -53,6 +56,31 @@ export default async function AdminOverviewPage() {
     (supabase as any).from("subscriptions").select("creator_profile_id, tier, status, created_at").order("created_at", { ascending: false }).limit(8),
   ]);
 
+  // ── Money, trust and content, all from the same sources as their own pages ──
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+  const safeCount = async (q: any) => { try { const r = await q; return r.error ? null : (r.count ?? 0); } catch { return null; } };
+
+  const [txns, underReview, payoutsHeld, blocked24h, disputedTips, pendingTips, posts24h, postsUnreviewed, postsFlagged, recentPostsRes] = await Promise.all([
+    loadTransactions(supabase, { sinceIso: thirtyDaysAgo, perSourceLimit: 2000 }),
+    safeCount((supabase as any).from("creator_trust").select("creator_profile_id", { count: "exact", head: true }).neq("monetization_status", "active")),
+    safeCount((supabase as any).from("creator_trust").select("creator_profile_id", { count: "exact", head: true }).eq("payout_hold_active", true)),
+    safeCount((supabase as any).from("tip_checkout_attempts").select("id", { count: "exact", head: true }).like("outcome", "blocked%").gte("created_at", dayAgo)),
+    safeCount((supabase as any).from("tips").select("id", { count: "exact", head: true }).eq("status", "disputed")),
+    safeCount((supabase as any).from("tips").select("id", { count: "exact", head: true }).in("status", ["checkout_created", "payment_pending"]).gte("created_at", dayAgo)),
+    safeCount((supabase as any).from("posts").select("id", { count: "exact", head: true }).gte("created_at", dayAgo)),
+    safeCount((supabase as any).from("posts").select("id", { count: "exact", head: true }).eq("moderation_status", "pending")),
+    safeCount((supabase as any).from("posts").select("id", { count: "exact", head: true }).eq("moderation_status", "flagged")),
+    (supabase as any).from("posts").select("id, creator_profile_id, caption, media_url, media_type, lock_type, moderation_status, created_at").order("created_at", { ascending: false }).limit(6),
+  ]);
+  const money30 = summarizeTransactions(txns.rows);
+  const today = summarizeTransactions(txns.rows.filter((r) => r.created_at >= dayAgo));
+  const recentTxns = txns.rows.slice(0, 10);
+  const recentPosts: any[] = recentPostsRes?.data ?? [];
+  const overviewHandles = await handleMap(supabase, [...recentTxns.map((r) => r.creator_profile_id), ...recentPosts.map((p) => p.creator_profile_id)]);
+  const usd = (v: number) => `$${v.toFixed(2)}`;
+  const n = (v: number | null) => (v === null ? "·" : v);
+
   // Resolve creator handles for the recent subscribers list
   const subCreatorIds = Array.from(new Set((recentSubs ?? []).map((s: any) => s.creator_profile_id).filter(Boolean)));
   let subHandleMap: Record<string, string> = {};
@@ -61,10 +89,6 @@ export default async function AdminOverviewPage() {
     subHandleMap = Object.fromEntries((cps ?? []).map((c: any) => [c.id, c.handle]));
   }
 
-  const monthlyRevenue = (tipStats ?? []).reduce(
-    (sum: number, t: any) => sum + (parseFloat(t.platform_receives) || 0),
-    0
-  );
 
   return (
     <div>
@@ -114,8 +138,8 @@ export default async function AdminOverviewPage() {
         </div>
         <div className="stat-card">
           <div className="stat-label">Platform Rev (30d)</div>
-          <div className="stat-value" style={{ fontSize: 28 }}>${monthlyRevenue.toFixed(0)}</div>
-          <div className="stat-sub">from tip fees only</div>
+          <div className="stat-value" style={{ fontSize: 28 }}>{usd(money30.all.platform)}</div>
+          <div className="stat-sub">all products, settled</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Pending Flags</div>
@@ -126,7 +150,96 @@ export default async function AdminOverviewPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      {txns.failures.length > 0 && (
+        <div className="adm-banner adm-banner--err" style={{ marginBottom: 16 }}>
+          Money totals are incomplete: {txns.failures.map((f) => f.label).join(", ")} could not be read.
+        </div>
+      )}
+
+      {/* Money */}
+      <div className="card">
+        <div className="card-title">Money <Link href="/admin/transactions" style={{ fontSize: 11, marginLeft: 8 }}>all transactions</Link></div>
+        <div className="stat-grid" style={{ marginBottom: 12 }}>
+          <div className="stat-card"><div className="stat-label">Fan spend (24h)</div><div className="stat-value">{usd(today.all.gross)}</div><div className="stat-sub">{today.all.settledCount} payments</div></div>
+          <div className="stat-card"><div className="stat-label">Fan spend (30d)</div><div className="stat-value">{usd(money30.all.gross)}</div><div className="stat-sub">{money30.all.settledCount} payments</div></div>
+          <div className="stat-card"><div className="stat-label">To creators (30d)</div><div className="stat-value">{usd(money30.all.creatorNet)}</div></div>
+          <div className="stat-card"><div className="stat-label">Platform (30d)</div><div className="stat-value" style={{ color: "var(--spot)" }}>{usd(money30.all.platform)}</div></div>
+        </div>
+        <table className="adm-table">
+          <thead><tr><th>Product (30d)</th><th>Payments</th><th>Fan spend</th><th>To creators</th><th>Platform</th></tr></thead>
+          <tbody>
+            {money30.byType.filter((t) => t.count > 0).map((t) => (
+              <tr key={t.type}>
+                <td><Link href={`/admin/transactions?type=${t.type}`}>{t.label}</Link></td>
+                <td>{t.settledCount}{t.count !== t.settledCount ? <span style={{ color: "var(--muted)" }}> (+{t.count - t.settledCount} unsettled)</span> : null}</td>
+                <td>{usd(t.gross)}</td><td>{usd(t.creatorNet)}</td><td>{usd(t.platform)}</td>
+              </tr>
+            ))}
+            {money30.all.count === 0 && <tr><td colSpan={5} style={{ color: "var(--muted)" }}>No payments in 30 days.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Trust and content */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+        <div className="card">
+          <div className="card-title">Trust and safety <Link href="/admin/trust" style={{ fontSize: 11, marginLeft: 8 }}>open</Link></div>
+          <table className="adm-table"><tbody>
+            <tr><td>Creators under review or blocked</td><td style={{ color: underReview ? "var(--red)" : undefined }}>{n(underReview)}</td></tr>
+            <tr><td>Creators with payouts held</td><td>{n(payoutsHeld)}</td></tr>
+            <tr><td>Tip checkouts blocked (24h)</td><td>{n(blocked24h)}</td></tr>
+            <tr><td>Tips in dispute</td><td style={{ color: disputedTips ? "var(--red)" : undefined }}>{n(disputedTips)}</td></tr>
+            <tr><td>Tip checkouts not completed (24h)</td><td>{n(pendingTips)}</td></tr>
+          </tbody></table>
+        </div>
+        <div className="card">
+          <div className="card-title">Content <Link href="/admin/posts" style={{ fontSize: 11, marginLeft: 8 }}>all posts</Link></div>
+          <table className="adm-table"><tbody>
+            <tr><td>Posts in the last 24h</td><td><Link href="/admin/posts?days=1">{n(posts24h)}</Link></td></tr>
+            <tr><td>Posts not yet reviewed</td><td><Link href="/admin/posts?mod=pending&days=365">{n(postsUnreviewed)}</Link></td></tr>
+            <tr><td>Flagged posts</td><td style={{ color: postsFlagged ? "var(--red)" : undefined }}><Link href="/admin/posts?mod=flagged&days=365">{n(postsFlagged)}</Link></td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      {/* Latest activity */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+        <div className="card">
+          <div className="card-title">Latest transactions</div>
+          <table className="adm-table">
+            <thead><tr><th>When</th><th>Type</th><th>Creator</th><th>Gross</th><th>Status</th></tr></thead>
+            <tbody>
+              {recentTxns.length === 0 ? <tr><td colSpan={5} style={{ color: "var(--muted)" }}>None yet.</td></tr> : recentTxns.map((r) => (
+                <tr key={r.key} style={r.settled ? undefined : { opacity: 0.6 }}>
+                  <td style={{ fontSize: 11 }}>{new Date(r.created_at).toLocaleString()}</td>
+                  <td style={{ fontSize: 11 }}>{TXN_TYPES.find((t) => t.type === r.type)?.label}</td>
+                  <td style={{ fontSize: 11 }}>{r.creator_profile_id ? `@${overviewHandles.get(r.creator_profile_id) ?? "?"}` : "platform"}</td>
+                  <td>{usd(r.gross)}</td>
+                  <td><span className={`badge ${r.settled ? "badge--green" : "badge--dim"}`}>{r.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="card">
+          <div className="card-title">Latest posts</div>
+          <table className="adm-table">
+            <thead><tr><th>Creator</th><th>Post</th><th>Access</th><th>Review</th></tr></thead>
+            <tbody>
+              {recentPosts.length === 0 ? <tr><td colSpan={4} style={{ color: "var(--muted)" }}>No posts yet.</td></tr> : recentPosts.map((p) => (
+                <tr key={p.id}>
+                  <td style={{ fontSize: 11 }}><Link href={`/admin/posts?creator=${p.creator_profile_id}&days=365`}>@{overviewHandles.get(p.creator_profile_id) ?? "?"}</Link></td>
+                  <td style={{ fontSize: 11, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.caption || (p.media_url ? `(${p.media_type ?? "media"})` : "(empty)")}</td>
+                  <td style={{ fontSize: 11 }}>{p.lock_type ?? "free"}</td>
+                  <td><span className={`badge ${p.moderation_status === "flagged" || p.moderation_status === "blocked" ? "badge--red" : p.moderation_status === "approved" ? "badge--green" : "badge--dim"}`}>{p.moderation_status ?? "unreviewed"}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
         {/* Recent signups */}
         <div className="card">
           <div className="card-title">Recent Creators</div>
@@ -232,6 +345,9 @@ export default async function AdminOverviewPage() {
             { href: "/admin/subscribers", label: "View Subscribers" },
             { href: "/admin/subscriptions", label: "Subscriptions" },
             { href: "/admin/moderation", label: "Review Flags" },
+            { href: "/admin/posts", label: "All Posts" },
+            { href: "/admin/transactions", label: "All Transactions" },
+            { href: "/admin/trust", label: "Trust & Safety" },
             { href: "/admin/content", label: "Content Engine" },
             { href: "/admin/ads", label: "Manage Featured Slots" },
             { href: "/admin/roadmap", label: "Roadmap" },

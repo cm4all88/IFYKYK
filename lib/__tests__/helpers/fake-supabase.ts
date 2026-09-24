@@ -13,6 +13,8 @@ export class FakeDb {
     stripe_webhook_events: ["event_id"],
     creator_trust: ["creator_profile_id"],
   };
+  /** Tables whose every query returns an error, to test failure isolation. */
+  failTables = new Set<string>();
   private seq = 0;
   constructor(seed: Record<string, Row[]> = {}) {
     for (const [k, v] of Object.entries(seed)) this.tables[k] = v.map((r) => ({ ...r }));
@@ -73,6 +75,7 @@ class FakeQuery implements PromiseLike<any> {
   }
 
   private exec(): any {
+    if (this.db.failTables.has(this.table)) return { data: null, count: null, error: { code: "42P01", message: `relation "${this.table}" does not exist` } };
     const t = this.db.rows(this.table);
     if (this.op === "select") {
       let rows = t.filter((r) => this.match(r));

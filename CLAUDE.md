@@ -111,7 +111,7 @@ Related flows:
 
 ### Admin functionality (existing)
 
-Pages under `app/admin/`: dashboard, `creators` (+ `[id]` detail and `[id]/build`), `subscribers`, `subscriptions`, `referrals`, `coupons`, `ads`, `comms` (announcement banner + `admin_messages` blasts), `content` (AI content engine), `moderation`, `flags`, `credentials` (`platform_settings` key/value store), `roadmap`, `video-studio` (Remotion marketing videos).
+Pages under `app/admin/`: dashboard (money, trust and content summary), `posts` (every post, unblurred, approve / flag / remove / restore; creators cannot undo a removal, migration 069), `transactions` (one ledger across every payment table via `lib/admin/transactions.ts`, CSV at `/api/admin/transactions/export`), `trust` (see Trust and safety), `creators` (+ `[id]` detail and `[id]/build`), `subscribers`, `subscriptions`, `referrals`, `coupons`, `ads`, `comms` (announcement banner + `admin_messages` blasts), `content` (AI content engine), `moderation`, `flags`, `credentials` (`platform_settings` key/value store), `roadmap`, `video-studio` (Remotion marketing videos).
 
 Backing APIs under `app/api/admin/`: `creators/{pick,post,profile,social-post,tier}`, `campaigns/create`, `content`, `studio/commit`, `video-studio/{analyze,caption,creators,creator/[id],hooks,script}`, `new-creator-alert`.
 
