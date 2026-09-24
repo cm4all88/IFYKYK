@@ -19,7 +19,9 @@ export async function createConnectAccount(email: string) {
     },
     settings: {
       payouts: {
-        schedule: { interval: "daily" },
+        // Unused by the app today. If it is ever wired in, new accounts must start held
+        // like the connect routes do (lib/trust/new-account.ts).
+        schedule: { interval: "manual" },
       },
     },
   });

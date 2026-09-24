@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
 import { grossUpForStripe } from "@/lib/fees";
 import { writeOrLog } from "@/lib/db";
+import { finishAttempt, guardTipCheckout } from "@/lib/trust/tip-guard";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -35,6 +36,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Creator hasn't connected Stripe yet" }, { status: 400 });
   }
 
+  // Same trust gate as /api/tip. If it refuses, no Stripe session is created.
+  const guard = await guardTipCheckout({
+    kind: "live_tip",
+    creatorProfileId: stream.creator_profile_id,
+    fanUserId: user.id,
+    headers: req.headers,
+    amountUsd: Number(amountUsd),
+    source: "live_stream",
+  });
+  if (!guard.ok) return NextResponse.json({ error: guard.message }, { status: guard.status });
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
   // Fan covers the card fee; creator nets the full tip.
@@ -59,12 +71,17 @@ export async function POST(req: NextRequest) {
     },
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/live?tip=success`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/live?tip=cancelled`,
+    expires_at: Math.floor(Date.now() / 1000) + guard.config.tipSessionExpiryMinutes * 60,
     metadata: {
+      type: "live_tip",
+      creator_profile_id: stream.creator_profile_id,
       stream_id: streamId,
       display_name: displayName || "Anonymous",
       message: message || "",
     },
   });
+
+  await finishAttempt(guard.admin, guard.attemptId, { stripe_session_id: session.id });
 
   // Record in DB (pre-payment — confirmed via webhook)
   await writeOrLog("live/tip insert live_stream_tips", (supabase as any).from("live_stream_tips").insert({

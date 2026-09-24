@@ -97,11 +97,13 @@ Related flows:
 
 ### Stripe & Stripe Connect
 
-- `lib/stripe.ts` — the shared `Stripe` instance (`apiVersion: "2024-04-10"`), `createConnectAccount()` (Express, daily payouts, card_payments + transfers), `createOnboardingLink()`, `verifyWebhook()`.
+- `lib/stripe.ts` — the shared `Stripe` instance (`apiVersion: "2024-04-10"`), `createConnectAccount()` (Express, manual payouts, card_payments + transfers; unused), `createOnboardingLink()`, `verifyWebhook()`.
 - Connect onboarding: `/api/stripe/connect/start` → `/return` → `/refresh`, plus an embedded-components session at `/api/stripe/connect/session`. UI at `app/(platform)/connect-stripe`.
 - Creator platform billing: `/api/billing`, `/api/billing/setup`, `/api/billing/portal`, dunning cron at `/api/cron/billing-dunning`.
 - Fan payments: `/api/subscribe`, `/api/tip`, `/api/super-tip`, `/api/merch/checkout`, `/api/marketplace/purchase`, `/api/digital/purchase`, `/api/gift-subscription`, `/api/campaigns/donate`, `/api/live/tip`, `/api/medals/purchase`.
-- All Stripe event handling funnels through `app/api/webhooks/stripe/route.ts`. CCBill is a parallel processor for adult accounts (`lib/ccbill.ts`, `/api/webhooks/ccbill`).
+- All Stripe event handling funnels through `app/api/webhooks/stripe/route.ts`. It verifies with `Stripe.webhooks.constructEvent` (300s tolerance), de-duplicates through `stripe_webhook_events`, then runs `lib/trust/tip-webhook.ts` before the legacy handlers.
+- **Trust and safety (`lib/trust/*`, migration 068).** Every tip family checkout (`/api/tip`, `/api/super-tip`, `/api/live/tip`) must pass `guardTipCheckout()` before calling Stripe. `tips` rows start as `checkout_created`; only the webhook sets `succeeded`, and every earnings reader must filter `status = 'succeeded'`. New Connect accounts start with manual payouts. Thresholds live only in `lib/trust/config.ts`. See `audit/trust-safety/FRAUD_AUDIT.md`.
+- CCBill is a parallel processor for adult accounts (`lib/ccbill.ts`, `/api/webhooks/ccbill`).
 
 ### Resend email
 

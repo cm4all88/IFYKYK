@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
       .from("tips")
       .select("amount, platform_receives, created_at")
       .eq("creator_profile_id", profileId)
+      .eq("status", "succeeded")
       .gte("created_at", windowStart),
     (supabase as any)
       .from("posts")

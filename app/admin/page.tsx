@@ -45,6 +45,7 @@ export default async function AdminOverviewPage() {
     (supabase as any)
       .from("tips")
       .select("amount, platform_receives, created_at")
+      .eq("status", "succeeded")
       .gte("created_at", new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()),
     (supabase as any).from("creator_profiles").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
     (supabase as any).from("subscriptions").select("*", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),

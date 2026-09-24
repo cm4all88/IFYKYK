@@ -17,6 +17,7 @@ const NAV = [
   { href: "/admin/content",      label: "Content Engine", icon: "✎" },
   { href: "/admin/video-studio", label: "Video Studio",   icon: "▶" },
   { href: "/admin/moderation",   label: "Moderation",     icon: "⚐" },
+  { href: "/admin/trust",        label: "Trust & Safety", icon: "⛨" },
   { href: "/admin/ads",          label: "Featured / Ads", icon: "★" },
 ];
 

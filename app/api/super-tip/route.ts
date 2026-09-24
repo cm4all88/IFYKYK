@@ -3,6 +3,7 @@ import { getPayeeCreator } from "@/lib/payee";
 import { createClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { SUPER_TIP_MIN_CENTS, dollars, grossUpForStripe, superTipRecognitionCents } from "@/lib/fees";
+import { finishAttempt, guardTipCheckout } from "@/lib/trust/tip-guard";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -24,6 +25,18 @@ export async function POST(req: NextRequest) {
   if (!profile?.stripe_account_id || !profile.stripe_onboarded) {
     return NextResponse.json({ error: "Creator hasn't connected payments" }, { status: 503 });
   }
+
+  // Same trust gate as /api/tip: eligibility, velocity, attempt log. If it
+  // refuses, no Stripe session is created.
+  const guard = await guardTipCheckout({
+    kind: "super_tip",
+    creatorProfileId: profile.id,
+    fanUserId: user?.id ?? null,
+    headers: req.headers,
+    amountUsd: Number(amountUsd),
+    source: "profile",
+  });
+  if (!guard.ok) return NextResponse.json({ error: guard.message }, { status: guard.status });
 
   // Creator receives 100% of the tip. The platform's only revenue is a recognition
   // fee the fan pays ON TOP, for the badge / pin / highlight. Fan also covers Stripe.
@@ -54,6 +67,7 @@ export async function POST(req: NextRequest) {
     "metadata[amount_usd]": String(amountUsd),
     "metadata[recognition_usd]": (recognitionCents / 100).toFixed(2),
     "metadata[fan_paid_usd]": (totalCents / 100).toFixed(2),
+    "expires_at": String(Math.floor(Date.now() / 1000) + guard.config.tipSessionExpiryMinutes * 60),
   });
 
   if (user) params.set("client_reference_id", user.id);
@@ -67,9 +81,11 @@ export async function POST(req: NextRequest) {
   if (!res.ok) {
     const err = await res.text();
     console.error("Super tip Stripe error:", err);
+    await finishAttempt(guard.admin, guard.attemptId, { outcome: "stripe_error" });
     return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
   }
 
   const session = await res.json();
+  await finishAttempt(guard.admin, guard.attemptId, { stripe_session_id: session.id });
   return NextResponse.json({ url: session.url });
 }

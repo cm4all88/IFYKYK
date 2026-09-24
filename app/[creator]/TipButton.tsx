@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 const AMOUNTS = ["3", "5", "10", "25", "50"];
 
@@ -7,12 +7,29 @@ export default function TipButton({ creatorProfileId }: { creatorProfileId: stri
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("5");
   const [custom, setCustom] = useState("");
-  const formRef = useRef<HTMLFormElement>(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const finalAmount = custom && Number(custom) >= 1 ? custom : amount;
 
-  function submit() {
-    formRef.current?.submit();
+  // Same request the hidden form used to make, via fetch so a refusal from the
+  // server (eligibility, rate limit) shows up here instead of as raw JSON.
+  async function submit() {
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ creator_profile_id: creatorProfileId, amount_usd: finalAmount, tip_source: "profile" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.url) { window.location.href = data.url; return; }
+      setError(data.error ?? "Couldn't start the tip. Please try again.");
+    } catch {
+      setError("Couldn't start the tip. Please try again.");
+    }
+    setSending(false);
   }
 
   if (!open) {
@@ -31,12 +48,6 @@ export default function TipButton({ creatorProfileId }: { creatorProfileId: stri
       padding: "var(--s-5)",
       minWidth: 240,
     }}>
-      {/* Hidden form — submits to existing tip route */}
-      <form ref={formRef} action="/api/tip" method="post" style={{ display: "none" }}>
-        <input type="hidden" name="creator_profile_id" value={creatorProfileId} />
-        <input type="hidden" name="amount_usd" value={finalAmount} />
-      </form>
-
       <p style={{
         fontFamily: "var(--font-display)",
         fontSize: 12,
@@ -102,7 +113,7 @@ export default function TipButton({ creatorProfileId }: { creatorProfileId: stri
         <button
           type="button"
           onClick={submit}
-          disabled={Number(finalAmount) < 1}
+          disabled={Number(finalAmount) < 1 || sending}
           className="btn btn--primary"
           style={{ flex: 1, borderRadius: "var(--r-pill)" }}
         >
@@ -117,6 +128,12 @@ export default function TipButton({ creatorProfileId }: { creatorProfileId: stri
           ✕
         </button>
       </div>
+
+      {error && (
+        <p role="alert" style={{ fontSize: 12, color: "var(--text-soft)", marginTop: "var(--s-3)", lineHeight: 1.5 }}>
+          {error}
+        </p>
+      )}
 
       <p style={{ fontSize: 11, color: "var(--muted)", marginTop: "var(--s-3)", lineHeight: 1.5 }}>
         Show your support directly.

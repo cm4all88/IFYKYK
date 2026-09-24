@@ -42,6 +42,7 @@ export default function PostCarousel({
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [tippingPost, setTippingPost] = useState<string | null>(null);
+  const [tipError, setTipError] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState(5);
   const [tipping, setTipping] = useState(false);
 
@@ -86,15 +87,24 @@ export default function PostCarousel({
 
   async function sendTip(postId: string) {
     setTipping(true);
-    const res = await fetch("/api/tip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ creator_profile_id: creatorProfileId, amount_usd: tipAmount }),
-    });
-    const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
+    setTipError(null);
+    try {
+      const res = await fetch("/api/tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ creator_profile_id: creatorProfileId, amount_usd: tipAmount, post_id: postId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.url) {
+        window.open(data.url, "_blank");
+        setTippingPost(null);
+      } else {
+        setTipError(data.error ?? "Couldn't start the tip. Please try again.");
+      }
+    } catch {
+      setTipError("Couldn't start the tip. Please try again.");
+    }
     setTipping(false);
-    setTippingPost(null);
   }
 
   const mono = "var(--font-mono, DM Mono, monospace)";
@@ -417,6 +427,9 @@ export default function PostCarousel({
                         }}>
                           {tipping ? "…" : `Send $${tipAmount} tip`}
                         </button>
+                        {tipError && (
+                          <div role="alert" style={{ marginTop: 8, fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.7)" }}>{tipError}</div>
+                        )}
                       </div>
                     )}
 

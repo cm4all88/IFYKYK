@@ -40,7 +40,7 @@ export async function GET() {
       (admin as any).from("campaigns").select("id, title").in("creator_profile_id", profileIds),
       (admin as any)
         .from("tips").select("id, fan_user_id, amount, platform_receives, message, created_at")
-        .in("creator_profile_id", profileIds).order("created_at", { ascending: false }),
+        .in("creator_profile_id", profileIds).eq("status", "succeeded").order("created_at", { ascending: false }),
       (admin as any)
         .from("super_tips").select("id, fan_user_id, amount_usd, creator_receives, message, created_at")
         .in("creator_profile_id", profileIds).order("created_at", { ascending: false }),

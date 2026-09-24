@@ -3,23 +3,14 @@ import { createNotification } from "@/lib/notify";
 import { createServiceClient } from "@/lib/supabase-server";
 import { getSecrets } from "@/lib/settings";
 import { sendAdminAlert, sendNotifyEmail } from "@/lib/email";
-import crypto from "node:crypto";
+import Stripe from "stripe";
 import { writeOrLog } from "@/lib/db";
+import { claimEvent, finishEvent } from "@/lib/trust/webhook-events";
+import { handleTrustEvent } from "@/lib/trust/tip-webhook";
+import { loadTrustConfig } from "@/lib/trust/config";
+import { getStripeClient } from "@/lib/trust/stripe-client";
 
 export const runtime = "nodejs";
-
-function verifyStripeSignature(rawBody: string, signatureHeader: string, secret: string): boolean {
-  const parts = signatureHeader.split(",").reduce<Record<string, string>>((acc, p) => {
-    const [k, v] = p.split("=");
-    if (k && v) acc[k] = v;
-    return acc;
-  }, {});
-  const t = parts["t"];
-  const v1 = parts["v1"];
-  if (!t || !v1) return false;
-  const expected = crypto.createHmac("sha256", secret).update(`${t}.${rawBody}`).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
-}
 
 async function notifyCreator(supabase: any, creatorProfileId: string, subject: string, preview: string, body: string) {
   try {
@@ -37,11 +28,17 @@ export async function POST(req: NextRequest) {
 
   const rawBody = await req.text();
   const sig = req.headers.get("stripe-signature");
-  if (!sig || !verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRET)) {
+  if (!sig) return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+
+  // Official verifier: constant time v1 check, multiple v1 values during secret
+  // rotation, and a 300 second timestamp tolerance so a captured request cannot
+  // be replayed later. An unverified body is never parsed or acted on.
+  let event: any;
+  try {
+    event = Stripe.webhooks.constructEvent(rawBody, sig, STRIPE_WEBHOOK_SECRET, 300);
+  } catch {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
-
-  const event = JSON.parse(rawBody);
 
   // Service role, not the anon client. Stripe posts with no cookies, so there is
   // no session and auth.uid() is null. Under RLS that made every insert with a
@@ -51,6 +48,47 @@ export async function POST(req: NextRequest) {
   // notifyCreator's auth.admin.getUserById call could never have worked.
   const supabase = await createServiceClient();
 
+  // Processed event log: a redelivered event that already completed is
+  // acknowledged without running any handler a second time.
+  const decision = await claimEvent(supabase, { id: event.id, type: event.type, account: event.account ?? null });
+  if (decision === "skip") return NextResponse.json({ received: true, duplicate: true });
+
+  let response: NextResponse;
+  try {
+    // Trust and safety first: tip lifecycle, refunds, disputes, fraud warnings,
+    // Connect account status. See lib/trust/tip-webhook.ts.
+    const trust = await handleTrustEvent(event, {
+      admin: supabase,
+      config: await loadTrustConfig(),
+      getStripe: getStripeClient,
+      onTipSucceeded: async (tip) => {
+        const { data: cp } = await (supabase as any).from("creator_profiles").select("user_id").eq("id", tip.creatorProfileId).maybeSingle();
+        if (cp?.user_id) {
+          await createNotification({ userId: cp.user_id, type: "tip", title: `New tip: $${tip.amount.toFixed(2)}`, link: "/dashboard" }).catch(() => {});
+        }
+        await notifyCreator(supabase, tip.creatorProfileId,
+          `💛 New tip: $${tip.amount.toFixed(2)}`,
+          `A fan just tipped you $${tip.amount.toFixed(2)}.`,
+          `A fan sent you a <strong>$${tip.amount.toFixed(2)} tip</strong>. The full amount goes directly to your Stripe account.`
+        );
+      },
+    });
+    if (trust.note && trust.status >= 400) {
+      console.error(JSON.stringify({ at: "webhooks/stripe", event: "trust_handler", type: event.type, status: trust.status, note: trust.note }));
+    }
+    response = trust.handled
+      ? NextResponse.json({ received: true }, { status: trust.status })
+      : await processEvent(event, supabase);
+  } catch (e: any) {
+    console.error(JSON.stringify({ at: "webhooks/stripe", event: "handler_threw", type: event.type, message: String(e?.message ?? "").slice(0, 300) }));
+    response = NextResponse.json({ error: "Handler failed" }, { status: 500 });
+  }
+
+  await finishEvent(supabase, event.id, response.status);
+  return response;
+}
+
+async function processEvent(event: any, supabase: any): Promise<NextResponse> {
   // ── Connected account became ready → mark the creator onboarded ──
   // Reliable fallback: fires whenever the account's status changes, so the
   // dashboard updates even if the post-onboarding return redirect never ran.
@@ -100,19 +138,12 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Tip ─────────────────────────────────────────────────────────
+    // Handled before this function runs, by lib/trust/tip-webhook.ts, which
+    // moves the pre created checkout row to succeeded only when
+    // payment_status is "paid", idempotently. Kept as an explicit branch so a
+    // tip can never fall through to another handler below.
     if (type === "tip") {
-      const amount = parseFloat(meta.amount_usd ?? "0") || (s.amount_total ?? 0) / 100;
-      await writeOrLog("webhooks/stripe insert tips", (supabase as any).from("tips").insert({
-        fan_user_id: meta.fan_user_id || null,
-        creator_profile_id: meta.creator_profile_id,
-        amount,
-        stripe_session_id: s.id,
-      }));
-      await notifyCreator(supabase, meta.creator_profile_id,
-        `💛 New tip: $${amount.toFixed(2)}`,
-        `A fan just tipped you $${amount.toFixed(2)}.`,
-        `A fan sent you a <strong>$${amount.toFixed(2)} tip</strong>. The full amount goes directly to your Stripe account.`
-      );
+      // no-op
     }
 
     // ── Super Tip ────────────────────────────────────────────────────

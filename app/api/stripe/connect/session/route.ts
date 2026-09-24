@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import Stripe from "stripe";
 import { writeOrLog } from "@/lib/db";
+import { newAccountPayoutSettings, recordNewAccountHold } from "@/lib/trust/new-account";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2024-04-10" });
 
@@ -33,8 +34,11 @@ export async function POST() {
         mcc: "5815",
         product_description: "Subscriptions, tips, and exclusive content for my audience on Spotlightly.",
       },
+      // New accounts start with payouts held (lib/trust/new-account.ts).
+      ...(await newAccountPayoutSettings()),
     });
     accountId = account.id;
+      await recordNewAccountHold(profile.id, account.settings?.payouts?.schedule?.interval);
     await writeOrLog("stripe/connect/session update creator_profiles", (supabase as any)
       .from("creator_profiles")
       .update({ stripe_account_id: accountId })

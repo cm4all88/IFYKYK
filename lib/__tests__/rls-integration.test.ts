@@ -294,3 +294,31 @@ describe.skipIf(authEnabled)("Authenticated RLS pass (skipped)", () => {
     expect(authEnabled).toBe(false);
   });
 });
+
+// ── Migration 068: trust and safety tables ─────────────────────────────────
+// Run after applying 068. Every one of these must be unreachable with the
+// browser key, for reads and writes alike.
+describe.skipIf(!enabled)("RLS — 068 trust and safety tables", () => {
+  const LOCKED = ["tip_checkout_attempts", "creator_trust", "creator_trust_events", "stripe_webhook_events"];
+
+  it.each(LOCKED)("anon cannot read %s", async (t) => {
+    const r = await rest("GET", `/${t}?select=*&limit=1`);
+    expect(r.status >= 400 || (Array.isArray(r.json) && r.json.length === 0), `${t} was readable`).toBe(true);
+  });
+
+  it("anon cannot read tip IPs or card fingerprints", async () => {
+    const r = await rest("GET", "/tip_checkout_attempts?select=ip,card_fingerprint&limit=1");
+    const leaked = Array.isArray(r.json) ? r.json.filter((x: any) => x?.ip || x?.card_fingerprint) : [];
+    expect(leaked.length).toBe(0);
+  });
+
+  it("anon cannot release a creator from review", async () => {
+    const r = await rest("POST", "/creator_trust", { creator_profile_id: NIL, monetization_status: "active" });
+    expect(deniedByPolicy(r), `creator_trust insert was allowed (code ${r.json?.code})`).toBe(true);
+  });
+
+  it("anon cannot forge a succeeded tip", async () => {
+    const r = await rest("POST", "/tips", { creator_profile_id: NIL, amount: 1, status: "succeeded" });
+    expect(deniedByPolicy(r), `tips insert was allowed (code ${r.json?.code})`).toBe(true);
+  });
+});

@@ -22,6 +22,7 @@ export async function GET() {
       .from("tips")
       .select("id, amount, message, created_at, creator:creator_profiles!creator_profile_id(handle, display_name, avatar_url)")
       .eq("fan_user_id", uid)
+      .eq("status", "succeeded")
       .order("created_at", { ascending: false })
       .limit(50),
 

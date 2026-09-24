@@ -90,6 +90,7 @@ export default function CreatorStageClient({
   const [tipPost, setTipPost] = useState<string | null>(null);
   const [tipAmount, setTipAmount] = useState(5);
   const [tipping, setTipping] = useState(false);
+  const [tipError, setTipError] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const CARD_W = 340;
   const CARD_GAP = 16;
@@ -140,14 +141,25 @@ export default function CreatorStageClient({
 
   async function sendTip() {
     setTipping(true);
-    const fd = new FormData();
-    fd.append("creator_profile_id", creatorProfileId);
-    fd.append("amount_usd", String(tipAmount));
-    const res = await fetch("/api/tip", { method: "POST", body: fd });
-    const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
+    setTipError(null);
+    try {
+      // Post tips record the post they came from (tip_source "post").
+      const res = await fetch("/api/tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ creator_profile_id: creatorProfileId, amount_usd: tipAmount, post_id: tipPost }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.url) {
+        window.open(data.url, "_blank");
+        setTipPost(null);
+      } else {
+        setTipError(data.error ?? "Couldn't start the tip. Please try again.");
+      }
+    } catch {
+      setTipError("Couldn't start the tip. Please try again.");
+    }
     setTipping(false);
-    setTipPost(null);
   }
 
   const mono = "var(--font-mono, DM Mono, monospace)";
@@ -554,7 +566,7 @@ export default function CreatorStageClient({
                           <LikeButton postId={p.id} initialCount={p.likes_count ?? 0} initialLiked={likedPostIds.includes(p.id)} size="sm" />
                           <MedalButton postId={p.id} initialCount={p.medal_count ?? 0} size="sm" />
                           {canView && (
-                            <button onClick={e => { e.stopPropagation(); setTipPost(tipPost === p.id ? null : p.id); }}
+                            <button onClick={e => { e.stopPropagation(); setTipError(null); setTipPost(tipPost === p.id ? null : p.id); }}
                               style={{ background: tipPost === p.id ? "rgba(242,184,75,0.15)" : "none", border: "1px solid rgba(242,184,75,0.2)", borderRadius: 4, padding: "4px 10px", color: "rgba(242,184,75,0.7)", cursor: "pointer", fontFamily: mono, fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                               💛 Tip
                             </button>
@@ -571,6 +583,9 @@ export default function CreatorStageClient({
                           <button onClick={sendTip} disabled={tipping} style={{ width: "100%", background: "rgba(242,184,75,0.9)", color: "#09090C", fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", padding: "9px 0", borderRadius: 4, border: "none", cursor: "pointer", opacity: tipping ? 0.5 : 1 }}>
                             {tipping ? "…" : `Send $${tipAmount}`}
                           </button>
+                          {tipError && (
+                            <div role="alert" style={{ marginTop: 8, fontSize: 12, lineHeight: 1.5, color: "rgba(255,255,255,0.7)" }}>{tipError}</div>
+                          )}
                         </div>
                       )}
                       {canView && isActive && (

@@ -77,8 +77,10 @@ const SOURCES: SourceDef[] = [
     label: "Tips",
     table: "tips",
     creatorCol: "creator_profile_id",
-    select: "amount, platform_receives, created_at",
-    settled: () => true,
+    // Rows now exist from checkout creation (migration 068). Only a webhook
+    // confirmed "succeeded" row is money; refunded and disputed rows are not.
+    select: "amount, platform_receives, status, created_at",
+    settled: (r) => r.status === "succeeded",
     net: (r) => num(r.amount) - num(r.platform_receives),
     gross: (r) => num(r.amount),
   },
